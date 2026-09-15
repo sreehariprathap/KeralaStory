@@ -3,11 +3,13 @@ import type { CarModelId } from '../../content/assets/models';
 import type { Vec3 } from '../../contracts';
 import { FEET_TO_CENTER } from '../player/controllerMath';
 import type { CarIntent } from './carMotor';
+import { createNitroState, stepNitro } from './carNitro';
 
 export const CAR_MASS_KG = 1100;
 export const CAR_SUSPENSION_REST = .28;
 export interface CarMotion {
   speed: number; signedSpeed: number; throttle: number; grounded: boolean;
+  nitroActive: boolean; nitroRemaining: number;
   wheelRotation: number[]; wheelSteering: number[]; wheelOffset: number[];
 }
 export const CAR_WHEELS = {
@@ -15,7 +17,7 @@ export const CAR_WHEELS = {
   muscle: [{x:.65,z:1.095,radius:.258,y:.258},{x:-.65,z:1.095,radius:.258,y:.258},{x:.65,z:-1.059,radius:.258,y:.288},{x:-.65,z:-1.059,radius:.258,y:.288}],
 } as const;
 export function createCarMotion(): CarMotion {
-  return {speed:0,signedSpeed:0,throttle:0,grounded:false,wheelRotation:[0,0,0,0],wheelSteering:[0,0,0,0],wheelOffset:[0,0,0,0]};
+  return {speed:0,signedSpeed:0,throttle:0,grounded:false,nitroActive:false,nitroRemaining:0,wheelRotation:[0,0,0,0],wheelSteering:[0,0,0,0],wheelOffset:[0,0,0,0]};
 }
 
 /** A persistent dynamic chassis. Rapier owns gravity, suspension, impacts and slope attitude. */
@@ -45,6 +47,7 @@ export function createCarPhysics(world: World, feet: Vec3, heading: number, mode
   });
   const motion=createCarMotion();
   let reverseArmed=true, steering=0;
+  const nitro=createNitroState();
   const sample=()=>{
     const q=body.rotation(),v=body.linvel();
     const forward={x:2*(q.x*q.z+q.w*q.y),y:2*(q.y*q.z-q.w*q.x),z:1-2*(q.x*q.x+q.y*q.y)};
@@ -62,15 +65,18 @@ export function createCarPhysics(world: World, feet: Vec3, heading: number, mode
     step(intent: CarIntent, dt: number, occupied: boolean) {
       sample();
       const throttle=occupied?Math.max(-1,Math.min(1,intent.forward)):0;
+      stepNitro(nitro, occupied && throttle>0 && intent.nitro===true, dt);
+      motion.nitroActive=nitro.active;
+      motion.nitroRemaining=nitro.remaining;
       if(occupied&&(throttle!==0||intent.steer!==0))body.wakeUp();
       const speed=motion.signedSpeed;
       let brake=!occupied||intent.brake, force=0;
       if(throttle===0&&Math.abs(speed)<.25) reverseArmed=true;
-      if(throttle>0) {if(speed<-.3)brake=true;else if(speed<14)force=4400*throttle;reverseArmed=false;}
+      if(throttle>0) {if(speed<-.3)brake=true;else if(speed<(nitro.active?20:14))force=4400*throttle*nitro.multiplier;reverseArmed=false;}
       if(throttle<0) {if(speed>.25){brake=true;reverseArmed=false;}else if(reverseArmed&&speed>-4)force=2600*throttle;else brake=true;}
       if(intent.brake){force=0;reverseArmed=false;}
       motion.throttle=occupied&&!brake?Math.abs(throttle):0;
-      const target=occupied?-Math.max(-1,Math.min(1,intent.steer))*(.5-.23*Math.min(1,Math.abs(speed)/14)):0;
+      const target=occupied?-Math.max(-1,Math.min(1,intent.steer))*(.5-.23*Math.min(1,Math.abs(speed)/(nitro.active?20:14))):0;
       steering+=(target-steering)*(1-Math.exp(-8*dt));
       for(let i=0;i<4;i++) {
         vehicle.setWheelSteering(i,i<2?steering:0);

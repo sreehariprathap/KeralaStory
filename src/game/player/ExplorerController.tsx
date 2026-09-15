@@ -93,7 +93,7 @@ export function ExplorerController(props: ExplorerControllerProps) {
     const position=rigidBody.translation();previous.current={...position};
     const playing=latest.current.mode==='playing';
     if(!playing&&latest.current.mode!=='loading'){rigidBody.setNextKinematicTranslation(position);motion.current.speed=0;return;}
-    car.current?.step({forward:playing?input.current.move.forward:0,steer:playing?input.current.move.x:0,brake:input.current.brake||!playing},Math.min(world.timestep,1/30),vehicle.current==='car');
+    car.current?.step({forward:playing?input.current.move.forward:0,steer:playing?input.current.move.x:0,brake:input.current.brake||!playing,nitro:playing&&vehicle.current==='car'&&(input.current.keys.has('ShiftLeft')||input.current.keys.has('ShiftRight'))},Math.min(world.timestep,1/30),vehicle.current==='car');
     if(needsSafeReset(position)){
       setTravel('foot');teleport(safePosition.current);validationPending.current=true;const slot=nearestParking(safePosition.current);parked.current={position:[...slot.position],headingRad:slot.headingRad};removeCar();return;
     }
@@ -175,7 +175,7 @@ export function ExplorerController(props: ExplorerControllerProps) {
       const bicycleDistance=Math.hypot(p.x-parked.current.position[0],p.z-parked.current.position[2]);
       const carDistance=carParked.current?Math.hypot(p.x-carParked.current[0],p.z-carParked.current[2]):Infinity;
       const reason=interactionReason(vehicle.current,motion.current.grounded,vehicle.current==='car'?carMotion.current.speed:bike.current.speed,vehicle.current==='foot'?Math.min(bicycleDistance,carDistance):0,vehicle.current==='foot'?3.5:2);
-      latest.current.onSnapshot({position:feet,headingRad:heading.current,speed:motion.current.speed,grounded:motion.current.grounded,travelMode:vehicle.current,sprintLocked:input.current.sprintLocked,canInteract:reason==='mount'||reason==='dismount'||reason==='brake',bicycle:vehicle.current==='bicycle'?{position:feet,headingRad:heading.current}:parked.current,interactionMessage:tick.current<messageUntil.current&&message.current?message.current:vehicle.current==='foot'&&carDistance<bicycleDistance&&reason==='mount'?'Press F to enter car.':''});
+      latest.current.onSnapshot({position:feet,headingRad:heading.current,speed:motion.current.speed,grounded:motion.current.grounded,travelMode:vehicle.current,sprintLocked:input.current.sprintLocked,canInteract:reason==='mount'||reason==='dismount'||reason==='brake',bicycle:vehicle.current==='bicycle'?{position:feet,headingRad:heading.current}:parked.current,nitroActive:vehicle.current==='car'&&carMotion.current.nitroActive,nitroRemaining:vehicle.current==='car'?carMotion.current.nitroRemaining:0,interactionMessage:tick.current<messageUntil.current&&message.current?message.current:vehicle.current==='foot'&&carDistance<bicycleDistance&&reason==='mount'?'Press F to enter car.':''});
     }
   });
   useFrame((_,delta)=>{

@@ -1,10 +1,13 @@
 export const CHARACTER_MODELS = [
-  { id: 'uniform', name: 'School uniform', url: '/assets/characters/arms_out_in_uniform_rigged.glb' },
-  { id: 'nick', name: 'Nick', url: '/assets/characters/nick_unused_model.glb' },
-  { id: 'little-girl', name: 'Little girl', url: '/assets/characters/the_little_girl_rigged.glb' },
-  { id: 'young-tom', name: 'Young Tom', url: '/assets/characters/young_tom_-_childhood_memory.glb' },
-  { id: 'kid-boy', name: 'Kid boy', url: '/assets/characters/kid_boy_rigged.glb' },
-  { id: 'cartoon-kid', name: 'Cartoon kid', url: '/assets/characters/cartoon_kid.glb' },
+  { id: 'uniform', name: 'Maya', url: '/assets/characters/arms_out_in_uniform_rigged.glb' },
+  { id: 'nick', name: 'Niko', url: '/assets/characters/nick_unused_model.glb' },
+  { id: 'little-girl', name: 'Mimi', url: '/assets/characters/the_little_girl_rigged.glb' },
+  { id: 'young-tom', name: 'Tommy', url: '/assets/characters/young_tom_-_childhood_memory.glb' },
+  { id: 'kid-boy', name: 'Kannan', url: '/assets/characters/kid_boy_rigged.glb' },
+  { id: 'cartoon-kid', name: 'Kuttu', url: '/assets/characters/cartoon_kid.glb' },
+  { id: 'teenage-boy', name: 'Achu', url: '/assets/characters/anime-style_teenage_boy.glb' },
+  { id: 'anime-boy', name: 'Appu', url: '/assets/characters/anime_boy_for_blender..glb' },
+  { id: 'friendly-anime-boy', name: 'Kichu', url: '/assets/characters/friendly_anime_boy.glb' },
 ] as const;
 export const CAR_MODELS = [
   { id: 'admin', name: 'Admin car', url: '/assets/cars/admin-car.glb', rotationY: -Math.PI / 2 },

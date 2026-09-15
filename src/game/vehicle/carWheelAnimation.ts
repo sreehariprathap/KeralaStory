@@ -43,7 +43,7 @@ export function createCarWheelAnimation(root: Group, model: CarModelId): CarWhee
   });
   // A missing/renamed wheel is intentionally left untouched; known wheels still animate.
   return {
-    update(motion = { speed: 0, signedSpeed: 0, throttle: 0, grounded: false, wheelRotation: [], wheelSteering: [], wheelOffset: [] }) {
+    update(motion = { speed: 0, signedSpeed: 0, throttle: 0, grounded: false, nitroActive: false, nitroRemaining: 0, wheelRotation: [], wheelSteering: [], wheelOffset: [] }) {
       wheels.forEach((wheel, index) => {
         if (!wheel) return;
         wheel.steering.rotation.y = wheel.front ? (motion.wheelSteering[index] ?? 0) : 0;

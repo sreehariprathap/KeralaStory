@@ -10,6 +10,7 @@ export interface CarIntent {
   forward: number;
   steer: number;
   brake: boolean;
+  nitro?: boolean;
 }
 
 export function createCarState(headingRad = 0): CarMotorState {
