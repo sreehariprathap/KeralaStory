@@ -8,6 +8,7 @@ import {
   type ExplorerProfile,
 } from '../../contracts';
 import './profile-form.css';
+import { useT } from '../i18n/translate';
 
 interface ProfileFormProps {
   onSubmit: (profile: ExplorerProfile) => void;
@@ -18,6 +19,7 @@ interface ProfileFormProps {
 const makeId = () => globalThis.crypto?.randomUUID?.() ?? `explorer-${Date.now().toString(36)}`;
 
 export function ProfileForm({ onSubmit, onPreview, initialProfile }: ProfileFormProps) {
+  const t = useT();
   const id = useId();
   const [displayName, setDisplayName] = useState(initialProfile?.displayName ?? '');
   const [avatarPresetId, setAvatarPresetId] = useState(initialProfile?.avatarPresetId ?? AVATAR_PRESETS[0].id);
@@ -49,7 +51,11 @@ export function ProfileForm({ onSubmit, onPreview, initialProfile }: ProfileForm
       colors: { skin, hair, clothing: preset.clothing },
     });
     if (!result.success) {
-      setError(result.error.issues[0]?.message ?? 'Please check your explorer details.');
+      const issue = result.error.issues[0];
+      const message = issue?.path[0] === 'displayName'
+        ? issue.message.includes('1–24') ? t('profile.error.length') : issue.message.includes('plain-text') ? t('profile.error.plainText') : t('profile.validation')
+        : t('profile.validation');
+      setError(message);
       return null;
     }
     setError(null);
@@ -66,7 +72,7 @@ export function ProfileForm({ onSubmit, onPreview, initialProfile }: ProfileForm
   return (
     <form className="profile-form" onSubmit={handleSubmit} noValidate>
       <div className="profile-form__field">
-        <label htmlFor={nameInputId}>Explorer name</label>
+        <label htmlFor={nameInputId}>{t('profile.name')}</label>
         <input
           id={nameInputId}
           name="displayName"
@@ -74,7 +80,7 @@ export function ProfileForm({ onSubmit, onPreview, initialProfile }: ProfileForm
           value={displayName}
           onChange={(event) => { setDisplayName(event.target.value); if (touched) setError(null); }}
           onBlur={() => { setTouched(true); validate(); }}
-          placeholder="Your explorer name"
+          placeholder={t('profile.namePlaceholder')}
           autoComplete="name"
           aria-invalid={Boolean(error)}
           aria-describedby={error ? errorId : undefined}
@@ -84,26 +90,26 @@ export function ProfileForm({ onSubmit, onPreview, initialProfile }: ProfileForm
       </div>
 
       <fieldset className="profile-form__fieldset">
-        <legend>Traveler style</legend>
+        <legend>{t('profile.style')}</legend>
         <div className="profile-form__preset-grid">
           {AVATAR_PRESETS.map((candidate) => (
             <label className={`profile-form__preset ${candidate.id === avatarPresetId ? 'is-selected' : ''}`} key={candidate.id}>
               <input type="radio" name="avatarPresetId" value={candidate.id} checked={candidate.id === avatarPresetId} onChange={() => setAvatarPresetId(candidate.id)} />
               <span className="profile-form__preset-mark" style={{ backgroundColor: candidate.clothing }} aria-hidden="true" />
-              <span><strong>{candidate.name}</strong><small>{candidate.description}</small></span>
+              <span><strong>{t(`profile.preset.${candidate.id}.name` as Parameters<typeof t>[0])}</strong><small>{t(`profile.preset.${candidate.id}.description` as Parameters<typeof t>[0])}</small></span>
             </label>
           ))}
         </div>
       </fieldset>
 
       <fieldset className="profile-form__fieldset">
-        <legend>Skin tone</legend>
+        <legend>{t('profile.skinTone')}</legend>
         <div className="profile-form__swatches">
           {SKIN_COLORS.map((color, index) => (
             <label className="profile-form__swatch-label" key={color}>
               <input type="radio" name="skin" value={color} checked={skin === color} onChange={() => setSkin(color)} />
               <span className="profile-form__swatch" style={{ backgroundColor: color }} aria-hidden="true" />
-              <span className="profile-form__visually-hidden">Skin tone {index + 1}</span>
+              <span className="profile-form__visually-hidden">{t('profile.skinTone')} {index + 1}</span>
             </label>
           ))}
         </div>
@@ -111,7 +117,7 @@ export function ProfileForm({ onSubmit, onPreview, initialProfile }: ProfileForm
 
       <input type="hidden" name="hair" value={hair} readOnly />
       <input type="hidden" name="clothing" value={CLOTHING_COLORS.includes(preset.clothing) ? preset.clothing : CLOTHING_COLORS[0]} readOnly />
-      <button type="submit" className="button button-primary profile-form__submit">Begin the journey</button>
+      <button type="submit" className="button button-primary profile-form__submit">{t('profile.begin')}</button>
     </form>
   );
 }

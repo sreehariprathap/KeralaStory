@@ -4,7 +4,7 @@ import { useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
 import type { ExplorerProfile } from '../../contracts';
 
-export interface AvatarMotion { speed: number; grounded: boolean }
+export interface AvatarMotion { speed: number; grounded: boolean; riding?: boolean }
 interface Props {
   profile: ExplorerProfile;
   moving?: boolean;
@@ -35,6 +35,14 @@ export function ExplorerAvatar({ profile, moving = false, reducedMotion = false,
     const amount = Math.min(actualSpeed / 4.5, 1) * (onGround ? 0.66 : 0.18);
     stride.current += (amount - stride.current) * (1 - Math.exp(-12 * dt));
     const swing = Math.sin(phase.current) * stride.current;
+    if(motion?.current.riding){
+      if(leftLeg.current)leftLeg.current.rotation.x=-.65+Math.sin(phase.current)*.3;
+      if(rightLeg.current)rightLeg.current.rotation.x=-.65-Math.sin(phase.current)*.3;
+      if(leftArm.current)leftArm.current.rotation.x=-1;
+      if(rightArm.current)rightArm.current.rotation.x=-1;
+      if(torso.current)torso.current.position.y=0;
+      return;
+    }
     if (leftLeg.current) leftLeg.current.rotation.x = onGround ? swing : -0.25;
     if (rightLeg.current) rightLeg.current.rotation.x = onGround ? -swing : 0.3;
     if (leftArm.current) leftArm.current.rotation.x = onGround ? -swing * 0.85 : -0.55;

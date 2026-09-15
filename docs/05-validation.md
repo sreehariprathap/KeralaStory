@@ -1,5 +1,7 @@
 # Validation and expansion
 
+> Validation update: [06-build-log.md](06-build-log.md) records current failures and checks. [08-complete-app-plan.md](08-complete-app-plan.md) adds mobile, cycling and language acceptance gates. The original planning-only statement at the bottom is historical.
+
 ## Repeatable playtest
 
 Use the same route for correctness and performance: spawn overlook → canopy bridge → waterfall overlook → Kadambode paddy loop → temple courtyard → spice garden → main river bridge → Kodaly street loop → harbor jetty → lighthouse → walk back to origin.

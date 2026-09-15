@@ -1,5 +1,7 @@
 # Art and interface bible
 
+> Scope update: [08-complete-app-plan.md](08-complete-app-plan.md) specifies supported touch controls and localized labels, superseding the touch-only desktop notice below. Other art/interface rules remain in force.
+
 ## Design read
 
 A warm, hand-painted Kerala adventure with expressive 3D anime travelers, grounded regional architecture, and an illustrated explorer's atlas. The world dominates the screen. Menus feel like carefully drawn travel materials rather than an enterprise dashboard.

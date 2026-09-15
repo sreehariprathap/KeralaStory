@@ -1,0 +1,18 @@
+.mobile-controls { --touch-size: clamp(44px, 13vw, 56px); --pad-size: 140px; position: absolute; inset: 0; z-index: 5; pointer-events: none; color: var(--paper-raised, #fff7e5); user-select: none; touch-action: none; }
+.mobile-controls.is-disabled { visibility: hidden; }
+.mobile-controls button { font: inherit; color: inherit; pointer-events: auto; touch-action: none; }
+.mobile-controls__pad-cluster { position: absolute; left: max(16px, env(safe-area-inset-left)); bottom: max(18px, env(safe-area-inset-bottom)); width: 200px; height: 292px; }
+.mobile-controls__pad { position: absolute; left: 30px; bottom: 0; width: var(--pad-size); height: var(--pad-size); border: 1px solid #fff7e5a6; border-radius: 50%; background: #285943ba; box-shadow: 0 4px 18px #172e2470; }
+.mobile-controls__stick { position: absolute; left: calc(50% - 25px); top: calc(50% - 25px); width: 50px; height: 50px; border-radius: 50%; background: var(--paper-raised, #fff7e5); border: 2px solid var(--gold, #d5aa54); transform: translate(var(--stick-x, 0px), var(--stick-y, 0px)); transition: transform 80ms ease-out; }
+.mobile-controls__directions { position: absolute; left: 30px; top: 48px; width: 140px; height: 140px; pointer-events: none; }
+.mobile-controls__direction { position: absolute; width: var(--touch-size); height: var(--touch-size); border: 1px solid #fff7e566; border-radius: 50%; background: #285943b8; font-size: 23px; line-height: 1; }
+.mobile-controls__direction--north { left: 48px; top: 0; } .mobile-controls__direction--south { left: 48px; bottom: 0; } .mobile-controls__direction--west { left: 0; top: 48px; } .mobile-controls__direction--east { right: 0; top: 48px; }
+.mobile-controls__sprint { position: absolute; left: 30px; top: 0; min-height: 44px; max-width: 140px; padding: 7px 11px; border: 1px solid #fff7e566; border-radius: 6px; background: #24382ed9; font-size: 12px; }
+.mobile-controls__sprint.is-active { background: var(--gold, #d5aa54); color: var(--ink, #24382e); }
+.mobile-controls__look { position: absolute; inset: 0 0 0 38%; pointer-events: auto; display: grid; place-items: center; color: #fff7e566; font-size: 12px; }
+.mobile-controls__look span { padding: 7px 10px; border: 1px solid #fff7e533; border-radius: 5px; background: #24382e33; }
+.mobile-controls__actions { position: absolute; right: max(16px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.mobile-controls__action { min-width: var(--touch-size); min-height: var(--touch-size); max-width: 140px; padding: 8px 12px; border: 1px solid #fff7e566; border-radius: 50%; background: #285943d9; box-shadow: 0 4px 18px #172e2470; font-size: 12px; }
+.mobile-controls__action--cycle { border-radius: 8px; background: #b96545e6; } .mobile-controls__action:disabled { opacity: .42; pointer-events: none; }
+@media (orientation: landscape) and (max-height: 520px) { .mobile-controls__pad-cluster { bottom: max(10px, env(safe-area-inset-bottom)); transform: scale(.82); transform-origin: bottom left; } .mobile-controls__actions { bottom: max(10px, env(safe-area-inset-bottom)); flex-direction: row; } .mobile-controls__look { left: 45%; } }
+@media (prefers-reduced-motion: reduce) { .mobile-controls__stick { transition: none; } }

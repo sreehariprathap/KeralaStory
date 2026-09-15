@@ -1,0 +1,21 @@
+import { expect, it } from 'vitest';
+import { createInputState, createInputCommands, readMovement, clearInput } from '../src/game/input/inputState';
+it('normalizes touch diagonals and preserves analog strength',()=>{
+ const state=createInputState(),c=createInputCommands(state);
+ c.setMove('touch',1,1);expect(Math.hypot(readMovement(state,0).x,readMovement(state,0).z)).toBeCloseTo(1);
+ c.setMove('touch',0,.4);expect(readMovement(state,0).z).toBeCloseTo(-.4);
+});
+it('sprint lock moves forward until explicitly cancelled, not after blur',()=>{
+ const s=createInputState(),c=createInputCommands(s);c.press('toggleSprint');expect(readMovement(s,0).z).toBe(-1);expect(readMovement(s,0).running).toBe(true);
+ c.setMove('touch',1,0);expect(readMovement(s,0).x).toBeGreaterThan(0);
+ c.setMove('touch',0,-1);expect(s.sprintLocked).toBe(false);
+ c.press('toggleSprint');c.setBrake(true);expect(s.sprintLocked).toBe(false);
+ c.press('toggleSprint');clearInput(s);expect(readMovement(s,0).z).toBeCloseTo(0);
+});
+it('latest source owns movement; releasing it does not resurrect old motion',()=>{
+ const s=createInputState(),c=createInputCommands(s);c.setMove('keyboard',0,1);c.setMove('touch',1,0);c.clear('touch');expect(readMovement(s,0).x).toBeCloseTo(0);expect(readMovement(s,0).z).toBeCloseTo(0);
+ c.setMove('keyboard',0,1);c.clear('touch');expect(readMovement(s,0).z).toBe(-1);
+});
+it('queues actions and clears all input on ownership loss',()=>{
+ const s=createInputState(),c=createInputCommands(s);c.press('jump');c.press('interact');c.addLook('touch',12,5);c.setBrake(true);clearInput(s);expect(s).toEqual(createInputState());
+});

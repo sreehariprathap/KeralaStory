@@ -1,5 +1,7 @@
 # Task backlog and handoff system
 
+> Execution update: use [08-complete-app-plan.md](08-complete-app-plan.md) and [09-model-handoffs.md](09-model-handoffs.md) for the complete-app task sequence and Astra/Luna assignments. This original inventory is preserved; [06-build-log.md](06-build-log.md) records actual status.
+
 All tasks are **planned**, none are implemented. Suggested ownership: **Core** for a stronger coding model with integration review; **Luna** for bounded work against stable contracts; **Art** for asset production/selection and visual review. These are task-sizing recommendations, not guarantees about any model's output.
 
 Luna tasks should fit one focused session, normally one component, pure utility, or content fixture with a few supporting files. If a task needs engine research, new contracts, more than about three production files, or a new dependency, split it or move it to Core. Do not delegate an entire biome or ask a smaller model to invent the visual style.

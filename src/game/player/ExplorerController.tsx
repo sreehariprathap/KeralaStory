@@ -1,136 +1,165 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { CapsuleCollider, RigidBody, useAfterPhysicsStep, useBeforePhysicsStep, useRapier } from '@react-three/rapier';
 import type { RapierCollider, RapierRigidBody } from '@react-three/rapier';
 import type { KinematicCharacterController } from '@dimforge/rapier3d-compat';
 import type { Group } from 'three';
-import type { ExplorerControllerProps, Vec3 } from '../../contracts';
-import { SLICE_BOUNDS } from '../../content/world/kodassery';
+import type { BicycleSave, ExplorerControllerProps, Vec3 } from '../../contracts';
+import { PARKING_SPOTS, nearestParking, safeGroundPosition, isCycleAllowed } from '../../content/world/definition';
 import { useExplorerInput } from '../input/useExplorerInput';
-import { clearInput, headingFromMotion, movementIntent } from '../input/inputState';
+import { clearInput, headingFromMotion, readMovement } from '../input/inputState';
 import { ThirdPersonCamera } from '../camera/ThirdPersonCamera';
 import { ExplorerAvatar } from './ExplorerAvatar';
 import { CAPSULE_HALF_HEIGHT, CAPSULE_RADIUS, FEET_TO_CENTER, RUN_SPEED, WALK_SPEED, dampAngle, needsSafeReset } from './controllerMath';
 import { computeExplorerMovement, createExplorerMotor } from './characterMotor';
+import { BicycleVisual } from '../vehicle/BicycleVisual';
+import { createBicycleState, stepBicycle } from '../vehicle/bicycleMotor';
+import { resolveClearFeet } from '../vehicle/clearance';
+import { interactionReason } from '../vehicle/mountState';
 
 export function ExplorerController(props: ExplorerControllerProps) {
   const { mode, profile, spawn, initialHeading = Math.PI, resetToken, sensitivity, reducedMotion } = props;
-  const { world } = useRapier();
-  const body = useRef<RapierRigidBody>(null);
-  const collider = useRef<RapierCollider>(null);
-  const visual = useRef<Group>(null);
-  const controller = useRef<KinematicCharacterController | null>(null);
-  const latest = useRef(props);
-  latest.current = props;
-  const input = useExplorerInput(mode, props.onPause, props.onMap);
-  const azimuth = useRef(-initialHeading);
-  const heading = useRef(initialHeading);
-  const verticalSpeed = useRef(0);
-  const motion = useRef({ speed: 0, grounded: false });
-  const safePosition = useRef<Vec3>([...spawn]);
-  const tick = useRef(0);
-  const ready = useRef(false);
-  const previous = useRef({ x: spawn[0], y: spawn[1] + FEET_TO_CENTER, z: spawn[2] });
-
-  useEffect(() => {
-    const character = createExplorerMotor(world);
-    controller.current = character;
-    return () => { controller.current = null; world.removeCharacterController(character); };
-  }, [world]);
-
-  useEffect(() => {
-    const rigidBody = body.current;
-    if (!rigidBody) return;
-    const start = latest.current.spawn;
-    const target = { x: start[0], y: start[1] + FEET_TO_CENTER, z: start[2] };
-    rigidBody.setTranslation(target, true);
-    rigidBody.setNextKinematicTranslation(target);
-    previous.current = target;
-    safePosition.current = [...start];
-    verticalSpeed.current = 0;
-    motion.current = { speed: 0, grounded: false };
+  const { world, rapier } = useRapier();
+  const body = useRef<RapierRigidBody>(null),collider = useRef<RapierCollider>(null),visual=useRef<Group>(null),parkedVisual=useRef<Group>(null);
+  const controller=useRef<KinematicCharacterController|null>(null),latest=useRef(props);latest.current=props;
+  const input=useExplorerInput(mode,props.onPause,props.onMap,props.inputCommands);
+  const azimuth=useRef(-initialHeading),heading=useRef(initialHeading),verticalSpeed=useRef(0);
+  const motion=useRef({speed:0,signedSpeed:0,grounded:false,riding:false});
+  const safePosition=useRef<Vec3>([...spawn]);
+  const tick=useRef(0),ready=useRef(false),riding=useRef(false),[showRider,setShowRider]=useState(false);
+  const bike=useRef(createBicycleState(initialHeading));
+  const parked=useRef<BicycleSave>({position:[...PARKING_SPOTS[0].position],headingRad:Math.PI});
+  const message=useRef(''),messageUntil=useRef(0);
+  const previous=useRef({x:spawn[0],y:spawn[1]+FEET_TO_CENTER,z:spawn[2]});
+  const report=(text:string)=>{message.current=text;messageUntil.current=tick.current+180;};
+  const rotation=(angle:number)=>({x:0,y:Math.sin((Math.PI-angle)/2),z:0,w:Math.cos((Math.PI-angle)/2)});
+  const teleport=(feet:Vec3)=>{
+    const target={x:feet[0],y:feet[1]+FEET_TO_CENTER,z:feet[2]};
+    body.current?.setTranslation(target,true);body.current?.setNextKinematicTranslation(target);previous.current=target;
+    verticalSpeed.current=0;motion.current.speed=0;
+  };
+  const setTravel=(ride:boolean)=>{
+    riding.current=ride;motion.current.riding=ride;setShowRider(ride);bike.current.speed=0;
+    collider.current?.setShape(ride?new rapier.Cuboid(.38,FEET_TO_CENTER,.95):new rapier.Capsule(CAPSULE_HALF_HEIGHT,CAPSULE_RADIUS));
+    body.current?.setRotation(ride?rotation(heading.current):{x:0,y:0,z:0,w:1},true);
     clearInput(input.current);
-    heading.current = latest.current.initialHeading ?? Math.PI;
-    azimuth.current = -heading.current;
-  }, [resetToken, input]);
+  };
+  const clearFeet=(x:number,z:number,nearY:number,ride:boolean,targetHeading=heading.current)=>resolveClearFeet(world,body.current,x,z,nearY,ride,targetHeading);
+  const validationPending=useRef(true);
+  useEffect(()=>{const c=createExplorerMotor(world);controller.current=c;return()=>{controller.current=null;world.removeCharacterController(c);};},[world]);
+  useEffect(()=>{
+    if(!body.current)return;
+    setTravel(false);teleport(latest.current.spawn);safePosition.current=[...latest.current.spawn];ready.current=false;tick.current=0;validationPending.current=true;
+    heading.current=latest.current.initialHeading??Math.PI;azimuth.current=-heading.current;bike.current=createBicycleState(heading.current);
+    const saved=latest.current.bicycleSpawn;
+    parked.current=saved?{position:safeGroundPosition(saved.position),headingRad:saved.headingRad}:{position:[...PARKING_SPOTS[0].position],headingRad:Math.PI};
+    if(!isCycleAllowed(parked.current.position[0],parked.current.position[2])){const slot=nearestParking(spawn);parked.current={position:[...slot.position],headingRad:slot.headingRad};}
+    motion.current.grounded=false;
+    // Repositioning is driven by resetToken; other prop changes must not teleport.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[resetToken]);
+  useEffect(()=>{if(mode!=='playing'&&mode!=='loading'){verticalSpeed.current=0;motion.current.speed=0;bike.current.speed=0;}},[mode]);
+  const lastReturn=useRef(props.returnBicycleToken);
+  useEffect(()=>{
+    if(lastReturn.current===props.returnBicycleToken)return;lastReturn.current=props.returnBicycleToken;
+    if(riding.current||!body.current)return;
+    const p=body.current.translation(),slot=nearestParking([p.x,p.y-FEET_TO_CENTER,p.z]);
+    if(Math.hypot(p.x-slot.position[0],p.z-slot.position[2])>8){report('bicycle.returnPark');return;}
+    const valid=clearFeet(slot.position[0],slot.position[2],slot.position[1],true,slot.headingRad);
+    if(valid){parked.current={position:valid,headingRad:slot.headingRad};report('bicycle.returned');}else report('bicycle.parkingBlocked');
+  },[props.returnBicycleToken]);
 
-  useEffect(() => {
-    if (mode !== 'playing' && mode !== 'loading') {
-      verticalSpeed.current = 0;
-      motion.current.speed = 0;
+  useBeforePhysicsStep(()=>{
+    const rigidBody=body.current,shape=collider.current,character=controller.current;if(!rigidBody||!shape||!character)return;
+    const position=rigidBody.translation();previous.current={...position};
+    const playing=latest.current.mode==='playing';
+    if(!playing&&latest.current.mode!=='loading'){rigidBody.setNextKinematicTranslation(position);motion.current.speed=0;return;}
+    if(needsSafeReset(position)){
+      setTravel(false);teleport(safePosition.current);validationPending.current=true;const slot=nearestParking(safePosition.current);parked.current={position:[...slot.position],headingRad:slot.headingRad};return;
     }
-  }, [mode]);
-
-  useBeforePhysicsStep(() => {
-    const rigidBody = body.current;
-    const shape = collider.current;
-    const character = controller.current;
-    if (!rigidBody || !shape || !character) return;
-    const position = rigidBody.translation();
-    previous.current = { ...position };
-    if (latest.current.mode !== 'playing' && latest.current.mode !== 'loading') {
-      rigidBody.setNextKinematicTranslation(position);
-      motion.current.speed = 0;
+    const feet:Vec3=[position.x,position.y-FEET_TO_CENTER,position.z];
+    if(validationPending.current&&tick.current>=2){
+      validationPending.current=false;
+      let valid=clearFeet(feet[0],feet[2],feet[1],false);
+      const slots=[...PARKING_SPOTS].sort((a,b)=>Math.hypot(a.position[0]-feet[0],a.position[2]-feet[2])-Math.hypot(b.position[0]-feet[0],b.position[2]-feet[2]));
+      if(!valid)for(const slot of slots){valid=clearFeet(slot.position[0],slot.position[2],slot.position[1],false);if(valid)break;}
+      if(!valid){latest.current.onError?.('No safe trail position is available. Please reload the scene.');return;}
+      teleport(valid);safePosition.current=valid;
+      const p=parked.current.position;
+      let bikeFeet=clearFeet(p[0],p[2],p[1],true,parked.current.headingRad);
+      if(!bikeFeet)for(const slot of slots){bikeFeet=clearFeet(slot.position[0],slot.position[2],slot.position[1],true,slot.headingRad);if(bikeFeet){parked.current.headingRad=slot.headingRad;break;}}
+      if(bikeFeet)parked.current.position=bikeFeet;
+      if(Math.hypot(valid[0]-parked.current.position[0],valid[2]-parked.current.position[2])<.7){
+        for(const side of [-1,1]){const beside=clearFeet(valid[0]+1.1*side,valid[2],valid[1],false);if(beside){teleport(beside);safePosition.current=beside;break;}}
+      }
       return;
     }
-    if (needsSafeReset(position)) {
-      const safe = safePosition.current;
-      const target = { x: safe[0], y: safe[1] + FEET_TO_CENTER + 0.05, z: safe[2] };
-      rigidBody.setTranslation(target, true);
-      rigidBody.setNextKinematicTranslation(target);
-      previous.current = target;
-      verticalSpeed.current = 0;
-      motion.current.speed = 0;
-      clearInput(input.current);
-      return;
+
+    if(playing&&input.current.interactQueued){
+      input.current.interactQueued=false;
+      const reason=interactionReason(riding.current?'bicycle':'foot',motion.current.grounded,bike.current.speed,Math.hypot(position.x-parked.current.position[0],position.z-parked.current.position[2]));
+      if(reason==='mount'){
+        const p=parked.current.position;heading.current=parked.current.headingRad;
+        const valid=clearFeet(p[0],p[2],p[1],true);
+        if(valid&&isCycleAllowed(p[0],p[2])){bike.current=createBicycleState(heading.current);setTravel(true);teleport(valid);azimuth.current=-heading.current;report('');return;}
+        report('bicycle.noClearance');
+      }else if(reason==='dismount'){
+        let valid:Vec3|null=null;
+        for(const side of [-1,1]){valid=clearFeet(position.x+Math.cos(heading.current)*1.05*side,position.z+Math.sin(heading.current)*1.05*side,feet[1],false);if(valid){const velocity={x:valid[0]-position.x,y:valid[1]-feet[1],z:valid[2]-position.z};const hit=world.castShape(position,{x:0,y:0,z:0,w:1},velocity,new rapier.Capsule(CAPSULE_HALF_HEIGHT,CAPSULE_RADIUS),.01,1,true,rapier.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,rigidBody);if(hit&&hit.time_of_impact<.99)valid=null;else break;}}
+        if(valid){parked.current={position:feet,headingRad:heading.current};setTravel(false);teleport(valid);report('');return;}
+        report('bicycle.noClearance');
+      }else if(reason==='brake')report('bicycle.brakeToDismount');
     }
-    const dt = Math.min(world.timestep, 1 / 30);
-    const intent = movementIntent(input.current.keys, azimuth.current);
-    const playing = latest.current.mode === 'playing';
-    const desiredSpeed = playing ? (intent.running ? RUN_SPEED : WALK_SPEED) : 0;
-    const motorState = { grounded: motion.current.grounded, verticalSpeed: verticalSpeed.current };
-    const corrected = computeExplorerMovement(character, shape, motorState, {
-      xVelocity: intent.x * desiredSpeed,
-      zVelocity: intent.z * desiredSpeed,
-      jump: playing && input.current.jumpQueued,
-    }, dt);
-    input.current.jumpQueued = false;
-    verticalSpeed.current = motorState.verticalSpeed;
-    motion.current.grounded = motorState.grounded;
-    rigidBody.setNextKinematicTranslation({ x: position.x + corrected.x, y: position.y + corrected.y, z: position.z + corrected.z });
+    const dt=Math.min(world.timestep,1/30),intent=readMovement(input.current,azimuth.current);
+    const desiredSpeed=playing?(intent.running?RUN_SPEED:WALK_SPEED):0;
+    let vx=intent.x*desiredSpeed,vz=intent.z*desiredSpeed;
+    if(riding.current){
+      input.current.sprintLocked=false;
+      const oldHeading=bike.current.headingRad;
+      const delta=stepBicycle(bike.current,{forward:playing?input.current.move.forward:0,steer:playing?input.current.move.x:0,brake:input.current.brake||!playing},dt);
+      vx=delta.x/dt;vz=delta.z/dt;
+      if(!isCycleAllowed(position.x+delta.x,position.z+delta.z)){vx=0;vz=0;bike.current.speed=0;report('bicycle.walkOnly');}
+      if(Math.abs(oldHeading-bike.current.headingRad)>.0001){
+        let clear=true,raisedY=feet[1];
+        for(const fraction of [.5,1]){const check=clearFeet(position.x,position.z,feet[1],true,oldHeading+(bike.current.headingRad-oldHeading)*fraction);if(!check){clear=false;break;}raisedY=Math.max(raisedY,check[1]);}
+        if(!clear){bike.current.headingRad=oldHeading;bike.current.speed=0;vx=0;vz=0;}
+        else if(raisedY>feet[1]+.01){position.y=raisedY+FEET_TO_CENTER;rigidBody.setTranslation(position,true);}
+      }
+      heading.current=bike.current.headingRad;rigidBody.setRotation(rotation(heading.current),true);
+    }
+    const state={grounded:motion.current.grounded,verticalSpeed:verticalSpeed.current};
+    const corrected=computeExplorerMovement(character,shape,state,{xVelocity:vx,zVelocity:vz,jump:playing&&!riding.current&&input.current.jumpQueued},dt);
+    input.current.jumpQueued=false;verticalSpeed.current=state.verticalSpeed;motion.current.grounded=state.grounded;
+    if(riding.current&&Math.hypot(corrected.x,corrected.z)<Math.hypot(vx,vz)*dt*.3)bike.current.speed=0;
+    rigidBody.setNextKinematicTranslation({x:position.x+corrected.x,y:position.y+corrected.y,z:position.z+corrected.z});
   });
-
-  useAfterPhysicsStep(() => {
-    const rigidBody = body.current;
-    if (!rigidBody) return;
-    const position = rigidBody.translation();
-    const dt = Math.min(world.timestep, 1 / 30);
-    const dx = position.x - previous.current.x;
-    const dz = position.z - previous.current.z;
-    motion.current.speed = Math.hypot(dx, dz) / dt;
-    if (motion.current.speed > 0.06) heading.current = headingFromMotion(dx, dz);
-    const feet: Vec3 = [position.x, position.y - FEET_TO_CENTER, position.z];
-    const bounds = SLICE_BOUNDS;
-    if (motion.current.grounded && !needsSafeReset(position) && position.x > bounds.xMin + 2 && position.x < bounds.xMax - 2 && position.z > bounds.zMin + 2 && position.z < bounds.zMax - 2) safePosition.current = feet;
+  useAfterPhysicsStep(()=>{
+    const rigidBody=body.current;if(!rigidBody)return;
+    const p=rigidBody.translation(),dt=Math.min(world.timestep,1/30),dx=p.x-previous.current.x,dz=p.z-previous.current.z;
+    motion.current.speed=Math.hypot(dx,dz)/dt;motion.current.signedSpeed=motion.current.speed*(riding.current?Math.sign(bike.current.speed):1);
+    if(!riding.current&&motion.current.speed>.06)heading.current=headingFromMotion(dx,dz);
+    const feet:Vec3=[p.x,p.y-FEET_TO_CENTER,p.z];
+    if(motion.current.grounded&&!needsSafeReset(p))safePosition.current=feet;
     tick.current++;
-    if (!ready.current && motion.current.grounded && tick.current >= 2) {
-      ready.current = true;
-      latest.current.onReady?.();
+    if(!ready.current&&!validationPending.current&&motion.current.grounded&&tick.current>=3){ready.current=true;latest.current.onReady?.();}
+    if(tick.current%6===0||tick.current===1){
+      const reason=interactionReason(riding.current?'bicycle':'foot',motion.current.grounded,bike.current.speed,Math.hypot(p.x-parked.current.position[0],p.z-parked.current.position[2]));
+      latest.current.onSnapshot({position:feet,headingRad:heading.current,speed:motion.current.speed,grounded:motion.current.grounded,travelMode:riding.current?'bicycle':'foot',sprintLocked:input.current.sprintLocked,canInteract:reason==='mount'||reason==='dismount'||reason==='brake',bicycle:riding.current?{position:feet,headingRad:heading.current}:parked.current,interactionMessage:tick.current<messageUntil.current?message.current:''});
     }
-    if (tick.current % 6 === 0 || tick.current === 1) latest.current.onSnapshot({ position: feet, headingRad: heading.current, speed: motion.current.speed, grounded: motion.current.grounded });
   });
-
-  useFrame((_, delta) => {
-    if (visual.current) visual.current.rotation.y = dampAngle(visual.current.rotation.y, Math.PI - heading.current, 1 - Math.exp(-15 * Math.min(delta, 0.06)));
+  useFrame((_,delta)=>{
+    if(visual.current)visual.current.rotation.y=riding.current?0:dampAngle(visual.current.rotation.y,Math.PI-heading.current,1-Math.exp(-15*Math.min(delta,.06)));
+    if(parkedVisual.current){parkedVisual.current.visible=!riding.current;parkedVisual.current.position.set(...parked.current.position);parkedVisual.current.rotation.y=Math.PI-parked.current.headingRad;}
   });
-
   return <>
-    <RigidBody ref={body} type="kinematicPosition" colliders={false} position={[spawn[0], spawn[1] + FEET_TO_CENTER, spawn[2]]} enabledRotations={[false, false, false]} name="explorer-body">
-      <CapsuleCollider ref={collider} args={[CAPSULE_HALF_HEIGHT, CAPSULE_RADIUS]} friction={0} />
-      <group ref={visual} position={[0, -FEET_TO_CENTER, 0]} rotation={[0, Math.PI - initialHeading, 0]}>
-        <ExplorerAvatar profile={profile} reducedMotion={reducedMotion} motion={motion} />
+    <group ref={parkedVisual}><BicycleVisual/></group>
+    <RigidBody ref={body} type="kinematicPosition" colliders={false} position={[spawn[0],spawn[1]+FEET_TO_CENTER,spawn[2]]} enabledRotations={[false,false,false]} name="explorer-body">
+      <CapsuleCollider ref={collider} args={[CAPSULE_HALF_HEIGHT,CAPSULE_RADIUS]} friction={0}/>
+      <group ref={visual} position={[0,-FEET_TO_CENTER,0]} rotation={[0,Math.PI-initialHeading,0]}>
+        {showRider&&<BicycleVisual motion={motion}/>}
+        <group position={[0,showRider?.25:0,showRider?-.2:0]}><ExplorerAvatar profile={profile} reducedMotion={reducedMotion} motion={motion}/></group>
       </group>
     </RigidBody>
-    <ThirdPersonCamera body={body} input={input} azimuth={azimuth} mode={mode} sensitivity={sensitivity} reducedMotion={reducedMotion} resetToken={resetToken} />
+    <ThirdPersonCamera body={body} input={input} azimuth={azimuth} mode={mode} sensitivity={sensitivity} reducedMotion={reducedMotion} resetToken={resetToken}/>
   </>;
 }

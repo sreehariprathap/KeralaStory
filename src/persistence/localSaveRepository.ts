@@ -1,7 +1,8 @@
-import { SaveSchema, type SaveV1 } from '../contracts/index.ts';
+import { SaveSchema, SaveV2Schema, type LocalSave, type SaveV1, type SaveV2 } from '../contracts/index.ts';
 
 const PRIMARY_KEY = 'kerala-story:save:v1';
 const BACKUP_KEY = 'kerala-story:save:backup';
+const ARCHIVE_KEY = 'kerala-story:save:archive';
 
 type RepositoryResult = { ok: boolean; warning: string | null };
 
@@ -14,13 +15,25 @@ function getStorage(storage?: Storage): Storage | null {
   }
 }
 
-function parseSave(raw: string | null): SaveV1 | null {
+function migrateV1(save: SaveV1): SaveV2 {
+  return { ...save, version: 2, locale: 'en', bicycle: null };
+}
+
+function parseSave(raw: string | null): LocalSave | null {
   if (raw === null) return null;
   try {
-    return SaveSchema.parse(JSON.parse(raw));
+    const value: unknown = JSON.parse(raw);
+    const v2 = SaveV2Schema.safeParse(value);
+    if (v2.success) return v2.data;
+    const v1 = SaveSchema.safeParse(value);
+    return v1.success ? v1.data : null;
   } catch {
     return null;
   }
+}
+
+function toV2(save: LocalSave): SaveV2 {
+  return save.version === 1 ? migrateV1(save) : save;
 }
 
 function isFutureSave(raw: string | null): boolean {
@@ -28,13 +41,23 @@ function isFutureSave(raw: string | null): boolean {
   try {
     const value: unknown = JSON.parse(raw);
     return typeof value === 'object' && value !== null && 'version' in value &&
-      typeof value.version === 'number' && value.version > 1;
+      typeof value.version === 'number' && value.version > 2;
   } catch {
     return false;
   }
 }
 
-export function loadLocalSave(storage?: Storage): { save: SaveV1 | null; warning: string | null } {
+function archiveRaw(target: Storage, raw: string): void {
+  if (target.getItem(ARCHIVE_KEY) === null) {
+    target.setItem(ARCHIVE_KEY, raw);
+    return;
+  }
+  let suffix = 1;
+  while (target.getItem(`${ARCHIVE_KEY}:${suffix}`) !== null) suffix += 1;
+  target.setItem(`${ARCHIVE_KEY}:${suffix}`, raw);
+}
+
+export function loadLocalSave(storage?: Storage): { save: SaveV2 | null; warning: string | null } {
   const target = getStorage(storage);
   if (!target) return { save: null, warning: 'Local storage is unavailable; this visit will not persist.' };
   let primary: string | null;
@@ -46,10 +69,10 @@ export function loadLocalSave(storage?: Storage): { save: SaveV1 | null; warning
     return { save: null, warning: 'Unable to read local save storage; this visit will not persist.' };
   }
   const save = parseSave(primary);
-  if (save) return { save, warning: null };
+  if (save) return { save: toV2(save), warning: save.version === 1 ? 'Older save migrated to version 2.' : null };
   const recovered = parseSave(backup);
   if (recovered) {
-    return { save: recovered, warning: isFutureSave(primary)
+    return { save: toV2(recovered), warning: isFutureSave(primary)
       ? 'A newer primary save was preserved; recovered the last known-good backup.'
       : 'Primary save was invalid; recovered the last known-good save.' };
   }
@@ -59,12 +82,12 @@ export function loadLocalSave(storage?: Storage): { save: SaveV1 | null; warning
   return { save: null, warning: null };
 }
 
-export function writeLocalSave(save: SaveV1, storage?: Storage): RepositoryResult {
+export function writeLocalSave(save: LocalSave, storage?: Storage): RepositoryResult {
   const target = getStorage(storage);
   if (!target) return { ok: false, warning: 'Local storage is unavailable; this visit will not persist.' };
   let encoded: string;
   try {
-    encoded = JSON.stringify(SaveSchema.parse(save));
+    encoded = JSON.stringify(SaveV2Schema.parse(save.version === 1 ? migrateV1(SaveSchema.parse(save)) : save));
   } catch {
     return { ok: false, warning: 'Save data is invalid and was not written.' };
   }
@@ -79,7 +102,9 @@ export function writeLocalSave(save: SaveV1, storage?: Storage): RepositoryResul
   }
   try {
     const current = parseSave(primary);
-    if (current) target.setItem(BACKUP_KEY, JSON.stringify(current));
+    if (primary !== null && !current) archiveRaw(target, primary);
+    if (primary !== null && current?.version === 1 && target.getItem(ARCHIVE_KEY) === null) archiveRaw(target, primary);
+    if (current) target.setItem(BACKUP_KEY, JSON.stringify(toV2(current)));
     target.setItem(PRIMARY_KEY, encoded);
     return { ok: true, warning: null };
   } catch {
