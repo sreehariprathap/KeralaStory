@@ -1,5 +1,12 @@
 # Build log — observed implementation status
 
+## 15 September 2026 — Kid boy and Little girl fitted rigs
+
+- Added separate `kid_boy_rigged.glb` and `the_little_girl_rigged.glb` assets, preserving originals. Both have 13 bones, normalized four-influence skin weights and fitted joint positions. Materials and any embedded texture bytes match the originals. Bind geometry is preserved after normalization (maximum measured vertex error below `1e-7` m).
+- Selector uses the derived assets with the existing model IDs. Nick's procedural locomotion adapter now also drives these rigs: relaxed arms, alternating arms/legs, running, airborne and bicycle poses. Kid boy uses a smaller shoulder drop for its initial A pose; Little girl's skirt gets a broad hip/root blend. Animation is runtime-generated; these GLBs do not contain baked clips.
+- Rebuild script and limitations: [character rigs](assets/character-rigs.md). These are fitted prototype rigs, without cloth simulation or foot IK, and do not complete the approved art/animation milestones.
+- Final checks: `npm run typecheck` PASS; `npm test` PASS (109 tests, 24 files); `npm run build` PASS. Existing large-chunk warning remains. Actual-asset tests verify bind shape, weights, skinned deformation, stable head/torso, idle settling and clone independence. Browser/gameplay checks deliberately left to the user, per their request; visual deformation and movement feel await their playtest.
+
 ## 14 September 2026 — complete-app planning audit
 
 This entry records evidence from the current workspace. It does not reconstruct earlier work or claim original backlog tasks complete.

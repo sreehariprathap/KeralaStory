@@ -1,9 +1,9 @@
 export const CHARACTER_MODELS = [
   { id: 'uniform', name: 'School uniform', url: '/assets/characters/arms_out_in_uniform.glb' },
   { id: 'nick', name: 'Nick', url: '/assets/characters/nick_unused_model.glb' },
-  { id: 'little-girl', name: 'Little girl', url: '/assets/characters/the_little_girl.glb' },
+  { id: 'little-girl', name: 'Little girl', url: '/assets/characters/the_little_girl_rigged.glb' },
   { id: 'young-tom', name: 'Young Tom', url: '/assets/characters/young_tom_-_childhood_memory.glb' },
-  { id: 'kid-boy', name: 'Kid boy', url: '/assets/characters/kid_boy.glb' },
+  { id: 'kid-boy', name: 'Kid boy', url: '/assets/characters/kid_boy_rigged.glb' },
   { id: 'cartoon-kid', name: 'Cartoon kid', url: '/assets/characters/cartoon_kid.glb' },
 ] as const;
 export const CAR_MODELS = [

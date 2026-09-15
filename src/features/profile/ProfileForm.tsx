@@ -119,7 +119,7 @@ export function ProfileForm({ onSubmit, onPreview, initialProfile }: ProfileForm
           <option value="procedural">Original traveler</option>
           {CHARACTER_MODELS.map((model) => <option value={model.id} key={model.id}>{model.name}</option>)}
         </select>
-        {usesImportedModel && <p>Original model textures and pose. Walking animations are not included in these files.</p>}
+        {usesImportedModel && <p>{['nick', 'kid-boy', 'little-girl'].includes(characterModelId) ? 'Animated arms and legs for walking, running and jumping.' : 'Static pose: this model needs a skeleton before its arms and legs can animate. Choose Nick, Kid boy or Little girl for an animated character.'}</p>}
       </fieldset>
 
       {!usesImportedModel && <fieldset className="profile-form__fieldset">

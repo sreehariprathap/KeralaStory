@@ -1,13 +1,15 @@
 import { Suspense, useMemo, type RefObject } from 'react';
-import { useLoader } from '@react-three/fiber';
+import { useFrame, useLoader } from '@react-three/fiber';
 import { Box3, Group, Vector3 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone } from 'three/addons/utils/SkeletonUtils.js';
+import { createNickAnimation } from '../player/nickAnimation';
+import type { AvatarMotion } from '../player/ExplorerAvatar';
 
-interface Props { url: string; height?: number; length?: number; rotationY?: number; name?: string; motion?: RefObject<{ speed: number; grounded: boolean }> }
-function LoadedModel({ url, height, length, rotationY = 0, name }: Props) {
+interface Props { url: string; height?: number; length?: number; rotationY?: number; name?: string; motion?: RefObject<AvatarMotion>; animation?: 'nick' | 'kid-boy' | 'little-girl' }
+function LoadedModel({ url, height, length, rotationY = 0, name, motion, animation }: Props) {
   const gltf = useLoader(GLTFLoader, url);
-  const model = useMemo(() => {
+  const { model, animator } = useMemo(() => {
     const root = new Group();
     const scene = clone(gltf.scene);
     scene.rotation.y += rotationY;
@@ -22,8 +24,11 @@ function LoadedModel({ url, height, length, rotationY = 0, name }: Props) {
     scene.position.y -= bounds.min.y;
     scene.position.z -= (bounds.min.z + bounds.max.z) / 2;
     scene.traverse(object => { if ('isMesh' in object) { object.castShadow = true; object.receiveShadow = true; } });
-    return root;
-  }, [gltf.scene, height, length, rotationY, url]);
+    const animator = animation ? createNickAnimation(root, animation) : null;
+    animator?.update(0, { speed: 0, grounded: true });
+    return { model: root, animator };
+  }, [gltf.scene, height, length, rotationY, url, animation]);
+  useFrame((_, delta) => animator?.update(delta, motion?.current ?? { speed: 0, grounded: true }));
   return <primitive object={model} name={name ?? url} dispose={null}/>;
 }
 export function ModelAsset(props: Props) {

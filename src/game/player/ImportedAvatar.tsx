@@ -18,6 +18,7 @@ export function ImportedAvatar({ modelId, motion }: ImportedAvatarProps) {
       name={model.name}
       height={1.7}
       motion={motion}
+      animation={model.id === 'nick' || model.id === 'kid-boy' || model.id === 'little-girl' ? model.id : undefined}
     />
   );
 }
