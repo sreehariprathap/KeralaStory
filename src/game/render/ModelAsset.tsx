@@ -6,7 +6,7 @@ import { clone } from 'three/addons/utils/SkeletonUtils.js';
 import { createNickAnimation } from '../player/nickAnimation';
 import type { AvatarMotion } from '../player/ExplorerAvatar';
 
-interface Props { url: string; height?: number; length?: number; rotationY?: number; name?: string; motion?: RefObject<AvatarMotion>; animation?: 'nick' | 'kid-boy' | 'little-girl' }
+interface Props { url: string; height?: number; length?: number; rotationY?: number; name?: string; motion?: RefObject<AvatarMotion>; animation?: 'nick' | 'kid-boy' | 'little-girl' | 'uniform' }
 function LoadedModel({ url, height, length, rotationY = 0, name, motion, animation }: Props) {
   const gltf = useLoader(GLTFLoader, url);
   const { model, animator } = useMemo(() => {

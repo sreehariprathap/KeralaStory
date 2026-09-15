@@ -1,5 +1,18 @@
 # Build log — observed implementation status
 
+## 15 September 2026 — School uniform arm-stretch correction
+
+- Inspected the user's `Screenshot 2026-09-15 at 1.31.33 AM.png`: arms formed triangular fans when lowered. The uniform arm mask had been centered at normalized Z=0.10, while actual distal-arm vertices lie around Z=0.043. Thousands of vertices were partially root-weighted and stayed behind as the bones moved.
+- Corrected fitted shoulder/elbow/wrist depth and height, regenerated the uniform GLB, and added a regression checking full distal-arm attachment plus triangle-edge stretch in idle and walking poses. Earlier bind-pose/weight-normalization tests were insufficient to catch this deformation. Other generated rigs and originals remain unchanged.
+- Verification: typecheck PASS, 117 tests PASS (24 files), production build PASS, diff whitespace check PASS. Existing bundle warning remains. User screenshot inspected; gameplay/updated visual confirmation remains with the user per their testing preference. Reload the page to clear the cached old GLB.
+
+## 15 September 2026 — School uniform movement
+
+- Added `arms_out_in_uniform_rigged.glb` with 13 bones across six skinned meshes and connected the existing `uniform` profile selection to the shared runtime locomotion animation. Original model preserved. Includes the same idle, walk/run, airborne and bicycle poses as the other fitted rigs.
+- Added uniform-specific joint fitting, arm depth/height masks to protect rear hair and face, and blended skirt weighting. Generator now transforms tangent vectors and handedness along with geometry to preserve normal-map shading. Texture bytes and material metadata are verified against the source. Existing Kid boy/Little girl generated files remain byte-identical.
+- Checks: `npm run typecheck` PASS; `npm test` PASS (116 tests, 24 files); `npm run build` PASS; `git diff --check` PASS. Asset tests verify bind shape, skin weights, limb deformation, stable torso/head, idle recovery, cloned skeleton independence, tangents and source material/image preservation. Large-file tests use a 30-second timeout after the initial 5-second parsing limits were exceeded. Existing large scene-chunk build warning remains.
+- User owns gameplay testing; no browser playtest performed. Rigged model is about 45 MiB and remains a prototype rig without cloth simulation or foot IK. See [rig details](assets/character-rigs.md).
+
 ## 15 September 2026 — Kid boy and Little girl fitted rigs
 
 - Added separate `kid_boy_rigged.glb` and `the_little_girl_rigged.glb` assets, preserving originals. Both have 13 bones, normalized four-influence skin weights and fitted joint positions. Materials and any embedded texture bytes match the originals. Bind geometry is preserved after normalization (maximum measured vertex error below `1e-7` m).

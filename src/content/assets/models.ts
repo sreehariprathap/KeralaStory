@@ -1,5 +1,5 @@
 export const CHARACTER_MODELS = [
-  { id: 'uniform', name: 'School uniform', url: '/assets/characters/arms_out_in_uniform.glb' },
+  { id: 'uniform', name: 'School uniform', url: '/assets/characters/arms_out_in_uniform_rigged.glb' },
   { id: 'nick', name: 'Nick', url: '/assets/characters/nick_unused_model.glb' },
   { id: 'little-girl', name: 'Little girl', url: '/assets/characters/the_little_girl_rigged.glb' },
   { id: 'young-tom', name: 'Young Tom', url: '/assets/characters/young_tom_-_childhood_memory.glb' },

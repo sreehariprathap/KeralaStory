@@ -6,6 +6,7 @@ import { Box3, Matrix3, Matrix4, Quaternion, Vector3 } from 'three';
 
 const assets = new URL('../public/assets/characters/', import.meta.url);
 const profiles = [
+  { source: 'arms_out_in_uniform.glb', output: 'arms_out_in_uniform_rigged.glb', shoulder: [.095,.698,.043], elbow: [.20,.697,.043], wrist: [.305,.694,.043], hip: [.062,.44,.06], knee: [.067,.21,.065], ankle: [.075,.06,.06], skirt: true, armDepth: .08, armUpperFade: .045 },
   { source: 'kid_boy.glb', output: 'kid_boy_rigged.glb', shoulder: [.105,.655,.012], elbow: [.23,.545,.012], wrist: [.325,.455,.012], hip: [.045,.385,.015], knee: [.045,.205,.015], ankle: [.045,.05,.015], skirt: false },
   { source: 'the_little_girl.glb', output: 'the_little_girl_rigged.glb', shoulder: [.083,.663,0], elbow: [.24,.655,0], wrist: [.38,.65,0], hip: [.043,.43,0], knee: [.043,.205,0], ankle: [.043,.05,0], skirt: true },
 ];
@@ -77,7 +78,9 @@ for (const profile of profiles) {
   function weights(x,y,z) {
     const side=x>=0?'L':'R', ax=Math.abs(x);
     const armY=profile.shoulder[1]+(ax-profile.shoulder[0])*(profile.wrist[1]-profile.shoulder[1])/(profile.wrist[0]-profile.shoulder[0]);
-    const armBlend=smooth(.075,.135,ax)*(1-smooth(profile.shoulder[1]+.025,profile.shoulder[1]+.075,y))*smooth(armY-.08,armY-.035,y);
+    // Long hair behind the uniform's shoulders must remain attached to the torso.
+    const armDepth=profile.armDepth ? 1-smooth(profile.armDepth*.65,profile.armDepth,Math.abs(z-profile.shoulder[2])) : 1;
+    const armBlend=smooth(.075,.135,ax)*(1-smooth(profile.shoulder[1]+.025,profile.shoulder[1]+(profile.armUpperFade??.075),y))*smooth(armY-.08,armY-.035,y)*armDepth;
     if(armBlend>0) {
       // Project onto the authored upper-arm axis; blend across the elbow.
       const start=new Vector3(...profile.shoulder), axis=new Vector3(...profile.elbow).sub(start);
@@ -116,7 +119,15 @@ for (const profile of profiles) {
       for(let i=0;i<normals.length;i+=3) vertex.fromArray(normals,i).applyMatrix3(normalMatrix).normalize().toArray(normals,i);
       attributes.NORMAL=append(normals,'VEC3',5126);
     }
-    if(attributes.TANGENT!==undefined) throw new Error('Tangent transformation not implemented');
+    if(attributes.TANGENT!==undefined) {
+      const tangents=new Float32Array(readAccessor(attributes.TANGENT));
+      const handedness=Math.sign(matrix.determinant());
+      for(let i=0;i<tangents.length;i+=4) {
+        vertex.fromArray(tangents,i).transformDirection(matrix).toArray(tangents,i);
+        tangents[i+3]*=handedness;
+      }
+      attributes.TANGENT=append(tangents,'VEC4',5126);
+    }
     const output={...primitive,attributes};
     if(matrix.determinant()<0) {
       const indices=primitive.indices===undefined?Array.from({length:count},(_,i)=>i):readAccessor(primitive.indices);

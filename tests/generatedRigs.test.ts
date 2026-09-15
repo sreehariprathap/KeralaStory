@@ -17,6 +17,7 @@ if (typeof globalThis.ProgressEvent === 'undefined') {
 
 type Json = {
   buffers?: { byteLength: number; uri?: string }[];
+  bufferViews?: { buffer?: number; byteOffset?: number; byteLength: number }[];
   materials?: unknown[];
   textures?: unknown[];
   images?: { bufferView?: number; mimeType?: string }[];
@@ -43,6 +44,19 @@ function readGlb(name: string): ParsedGlb {
   }
   if (!json || !binary) throw new Error(`${name} is missing JSON or binary data.`);
   return { json, binary, file };
+}
+
+function embeddedImageBytes(glb: ParsedGlb, imageIndex: number): Uint8Array {
+  const image = glb.json.images?.[imageIndex];
+  const view = image?.bufferView === undefined ? undefined : glb.json.bufferViews?.[image.bufferView];
+  if (!image || !view) throw new Error(`Image ${imageIndex} is not embedded in the GLB.`);
+  const start = view.byteOffset ?? 0;
+  return glb.binary.subarray(start, start + view.byteLength);
+}
+
+function imageMetadata(image: { bufferView?: number; mimeType?: string }) {
+  const { bufferView: _bufferView, ...metadata } = image;
+  return metadata;
 }
 
 async function loadTextureFree(name: string): Promise<Object3D> {
@@ -99,11 +113,58 @@ function expectSamePose(a: Object3D, b: Object3D) {
   }
 }
 
+describe('School uniform arm weighting regression', () => {
+  it('moves the whole arm surface together without stretching triangles back into the T pose', { timeout: 30_000 }, async () => {
+    const root = await loadTextureFree('arms_out_in_uniform_rigged.glb');
+    let armVertices = 0, minArmWeight = 1, maxStretch = 1;
+    const samples = skinnedMeshes(root).map(mesh => {
+      const position = mesh.geometry.getAttribute('position');
+      const joints = mesh.geometry.getAttribute('skinIndex');
+      const weights = mesh.geometry.getAttribute('skinWeight');
+      const before = Array.from({ length: position.count }, (_, i) => mesh.getVertexPosition(i, new Vector3()).clone());
+      const isArm = before.map((p, i) => {
+        if (Math.abs(p.x) / 1.7 < .15 || p.y / 1.7 < .64 || p.y / 1.7 > .74) return false;
+        const expected = p.x > 0 ? [4, 5, 6] : [10, 11, 12];
+        let influence = 0;
+        for (let slot = 0; slot < 4; slot++) if (expected.includes(joints.getComponent(i, slot))) influence += weights.getComponent(i, slot);
+        minArmWeight = Math.min(minArmWeight, influence);
+        armVertices++;
+        return true;
+      });
+      return { mesh, before, isArm };
+    });
+    expect(armVertices).toBeGreaterThan(1000);
+    expect(minArmWeight).toBeGreaterThan(.999);
+    const animator = createNickAnimation(root, 'uniform');
+    for (const speed of [0, 3.5]) {
+      if (!speed) animator.update(0, { speed, grounded: true });
+      else for (let i = 0; i < 30; i++) animator.update(1 / 60, { speed, grounded: true });
+      root.updateMatrixWorld(true);
+      for (const { mesh, before, isArm } of samples) {
+        const index = mesh.geometry.index;
+        const count = index?.count ?? before.length;
+        const a = new Vector3(), b = new Vector3();
+        for (let i = 0; i < count; i += 3) for (let edge = 0; edge < 3; edge++) {
+          const u = index ? index.getX(i + edge) : i + edge;
+          const v = index ? index.getX(i + (edge + 1) % 3) : i + (edge + 1) % 3;
+          if (!isArm[u] || !isArm[v]) continue;
+          const rest = before[u].distanceTo(before[v]);
+          if (rest < 1e-5) continue;
+          const current = mesh.getVertexPosition(u, a).distanceTo(mesh.getVertexPosition(v, b));
+          maxStretch = Math.max(maxStretch, current / rest);
+        }
+      }
+    }
+    expect(maxStretch).toBeLessThan(1.6);
+  });
+});
+
 describe.each([
   { label: 'kid boy', rig: 'kid-boy' as const, original: 'kid_boy.glb', generated: 'kid_boy_rigged.glb', meshCount: 22 },
   { label: 'little girl', rig: 'little-girl' as const, original: 'the_little_girl.glb', generated: 'the_little_girl_rigged.glb', meshCount: 1 },
+  { label: 'school uniform', rig: 'uniform' as const, original: 'arms_out_in_uniform.glb', generated: 'arms_out_in_uniform_rigged.glb', meshCount: 6 },
 ])('$label generated GLB rig', ({ rig, original, generated, meshCount }) => {
-  it('contains the expected skinned meshes and valid four weight influences', async () => {
+  it('contains the expected skinned meshes and valid four weight influences', { timeout: 30_000 }, async () => {
     const root = await loadTextureFree(generated);
     const skinned = skinnedMeshes(root);
     expect(skinned).toHaveLength(meshCount);
@@ -117,6 +178,28 @@ describe.each([
       const weights = mesh.geometry.getAttribute('skinWeight');
       expect(indices.itemSize).toBe(4);
       expect(weights.itemSize).toBe(4);
+      const tangents = mesh.geometry.getAttribute('tangent');
+      if (tangents) {
+        expect(tangents.itemSize).toBe(4);
+        let invalidTangent = 0;
+        let invalidHandedness = 0;
+        let maxLengthError = 0;
+        for (let i = 0; i < tangents.count; i++) {
+          const x = tangents.getX(i);
+          const y = tangents.getY(i);
+          const z = tangents.getZ(i);
+          const w = tangents.getW(i);
+          if (![x, y, z, w].every(Number.isFinite)) {
+            invalidTangent++;
+            continue;
+          }
+          maxLengthError = Math.max(maxLengthError, Math.abs(Math.hypot(x, y, z) - 1));
+          if (Math.abs(Math.abs(w) - 1) >= 1e-5) invalidHandedness++;
+        }
+        expect(invalidTangent).toBe(0);
+        expect(maxLengthError).toBeLessThan(0.01);
+        expect(invalidHandedness).toBe(0);
+      }
       for (let i = 0; i < indices.count; i++) {
         let sum = 0;
         for (let slot = 0; slot < 4; slot++) {
@@ -134,16 +217,16 @@ describe.each([
     expect(maxWeightError).toBeLessThan(1e-5);
   });
 
-  it('keeps the normalized bind pose aligned with the original loaded model', async () => {
+  it('keeps the normalized bind pose aligned with the original loaded model', { timeout: 30_000 }, async () => {
     const source = normalizedSourceVertices(await loadTextureFree(original));
     const generatedVertices = vertices(await loadTextureFree(generated));
     expect(generatedVertices).toHaveLength(source.length);
-    for (let i = 0; i < source.length; i++) {
-      expect(generatedVertices[i].distanceTo(source[i]), `vertex ${i}`).toBeLessThan(1e-5);
-    }
+    let maxError = 0;
+    for (let i = 0; i < source.length; i++) maxError = Math.max(maxError, generatedVertices[i].distanceTo(source[i]));
+    expect(maxError).toBeLessThan(1e-5);
   });
 
-  it('moves arm and leg vertices while keeping root-weighted head and torso stable', async () => {
+  it('moves arm and leg vertices while keeping root-weighted head and torso stable', { timeout: 30_000 }, async () => {
     const root = await loadTextureFree(generated);
     const animator = createNickAnimation(root, rig);
     const limbs = new Set([1, 2, 4, 5, 7, 8, 10, 11]);
@@ -170,7 +253,7 @@ describe.each([
     expect(maxStable).toBeLessThan(1e-5);
   });
 
-  it('returns to the same idle pose after walking stops and leaves clones independent', async () => {
+  it('returns to the same idle pose after walking stops and leaves clones independent', { timeout: 30_000 }, async () => {
     const source = await loadTextureFree(generated);
     const first = clone(source);
     const second = clone(source);
@@ -182,5 +265,20 @@ describe.each([
     for (let i = 0; i < idle.length; i++) expect(poseSnapshot(first)[i][1].angleTo(idle[i][1])).toBeLessThan(0.01);
     expectSamePose(source, second);
     expect(poseSnapshot(first)).not.toEqual(poseSnapshot(second));
+  });
+
+  it('preserves source materials and embedded image data', () => {
+    const source = readGlb(original);
+    const derived = readGlb(generated);
+    expect(derived.json.materials).toEqual(source.json.materials);
+    expect(derived.json.textures).toEqual(source.json.textures);
+    expect(derived.json.samplers).toEqual(source.json.samplers);
+    const sourceImages = source.json.images ?? [];
+    const derivedImages = derived.json.images ?? [];
+    expect(derivedImages).toHaveLength(sourceImages.length);
+    for (let i = 0; i < sourceImages.length; i++) {
+      expect(imageMetadata(derivedImages[i]), `image ${i} metadata`).toEqual(imageMetadata(sourceImages[i]));
+      expect(Buffer.from(embeddedImageBytes(derived, i)).equals(Buffer.from(embeddedImageBytes(source, i))), `image ${i} bytes`).toBe(true);
+    }
   });
 });

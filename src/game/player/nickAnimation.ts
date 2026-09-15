@@ -1,8 +1,8 @@
 import { Bone, Object3D, Quaternion, Vector3 } from 'three';
 import type { AvatarMotion } from './ExplorerAvatar';
 
-/** In-place locomotion for Nick and the fitted Kid boy/Little girl skeletons. */
-export function createNickAnimation(root: Object3D, rig: 'nick' | 'kid-boy' | 'little-girl' = 'nick') {
+/** In-place locomotion for Nick and the fitted character skeletons. */
+export function createNickAnimation(root: Object3D, rig: 'nick' | 'kid-boy' | 'little-girl' | 'uniform' = 'nick') {
   const parts = ['Hip', 'Knee', 'Shoulder', 'Elbow'] as const;
   const joints: { bone: Bone; part: typeof parts[number]; side: number; rest: Quaternion; previous: Quaternion }[] = [];
   const point = new Vector3();
