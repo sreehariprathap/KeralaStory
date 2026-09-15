@@ -1,5 +1,7 @@
 # Architecture and contracts
 
+> Current source implements parts of this specification. [06-build-log.md](06-build-log.md) records evidence; [08](08-complete-app-plan.md) extends contracts for mobile/language/cycling and resolves world-size precedence.
+
 This is an implementation specification, not existing code. Exact compatible dependency versions must be verified and pinned in the foundation task.
 
 ## Proposed stack and ownership

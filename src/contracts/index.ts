@@ -32,7 +32,7 @@ export const SaveSchema = z.object({
   visitedLandmarkIds: z.array(z.string()).max(500), settings: SettingsSchema, updatedAt: z.string().datetime(),
 });
 export type SaveV1 = z.infer<typeof SaveSchema>;
-export interface PlayerSnapshot { position: Vec3; headingRad: number; speed: number; grounded: boolean }
+export interface PlayerSnapshot { position: Vec3; headingRad: number; speed: number; grounded: boolean; travelMode?: TravelMode; sprintLocked?: boolean; canInteract?: boolean; bicycle?: BicycleSave; interactionMessage?: string }
 export interface Landmark { id: string; zoneId: ZoneId; label: string; position: Vec3; discoveryRadiusM: number; iconId: string; description: string }
 export interface MapBounds { xMin: number; xMax: number; zMin: number; zMax: number }
 export interface ExplorerControllerProps {
@@ -40,4 +40,22 @@ export interface ExplorerControllerProps {
   sensitivity: number; reducedMotion: boolean;
   onSnapshot: (snapshot: PlayerSnapshot) => void; onPause: () => void; onMap: () => void;
   onReady?: () => void;
+  onError?: (message:string) => void;
+  inputCommands?: (commands: import("./input").InputCommands | null) => void;
+  bicycleSpawn?: BicycleSave | null;
+  returnBicycleToken?: number;
 }
+
+export const LocaleSchema = z.enum(['en', 'ml']);
+export type Locale = z.infer<typeof LocaleSchema>;
+export const ControlsPreferenceSchema = z.enum(['auto', 'touch', 'desktop']);
+export type ControlsPreference = z.infer<typeof ControlsPreferenceSchema>;
+export const PreferencesSchema = z.object({ locale: LocaleSchema.default('en'), controls: ControlsPreferenceSchema.default('auto') });
+export type Preferences = z.infer<typeof PreferencesSchema>;
+export type TravelMode = 'foot' | 'bicycle';
+export const BicycleSaveSchema = z.object({ position: Vec3Schema, headingRad: z.number().finite() });
+export type BicycleSave = z.infer<typeof BicycleSaveSchema>;
+export const SaveV2Schema = SaveSchema.extend({ version: z.literal(2), locale: LocaleSchema, bicycle: BicycleSaveSchema.nullable() });
+export type SaveV2 = z.infer<typeof SaveV2Schema>;
+export type LocalSave = SaveV1 | SaveV2;
+export type { InputCommands, InputSource, InputAction } from './input';

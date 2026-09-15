@@ -115,6 +115,11 @@
   justify-self: start;
 }
 
+.settings-panel__control-options { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.settings-panel__control-option { display: flex; align-items: center; gap: 0.4rem; min-height: 44px; padding: 0.5rem 0.75rem; border: 1px solid color-mix(in srgb, var(--ink) 28%, transparent); border-radius: 6px; }
+.settings-panel__control-option input { accent-color: var(--forest); }
+.settings-panel__select { min-height: 44px; padding: 0.5rem 0.7rem; color: var(--ink); background: var(--paper-raised); border: 1px solid color-mix(in srgb, var(--ink) 35%, transparent); border-radius: 6px; font: inherit; }
+
 @media (max-width: 34rem) {
   .settings-panel__quality-grid {
     grid-template-columns: 1fr;

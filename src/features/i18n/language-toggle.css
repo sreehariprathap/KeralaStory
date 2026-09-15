@@ -1,0 +1,26 @@
+.language-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .6rem;
+  color: var(--ink);
+  font-size: .9rem;
+}
+
+.language-toggle__label {
+  font-weight: 700;
+}
+
+.language-toggle select {
+  min-height: 44px;
+  min-width: 8.5rem;
+  padding: .5rem 2rem .5rem .7rem;
+  color: var(--forest);
+  background: var(--paper-raised);
+  border: 1px solid color-mix(in srgb, var(--ink) 38%, transparent);
+  border-radius: 6px;
+}
+
+@media (max-width: 480px) {
+  .language-toggle { align-items: flex-start; flex-direction: column; gap: .25rem; }
+  .language-toggle select { width: 100%; }
+}

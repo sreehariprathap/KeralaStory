@@ -1,5 +1,7 @@
 # Product and delivery plan
 
+> Current delivery scope: see [08-complete-app-plan.md](08-complete-app-plan.md) and [09-model-handoffs.md](09-model-handoffs.md). Mobile play, English/Malayalam labels and cycling are now included; 07/08 specify the compressed world envelope. This document retains the original experience requirements.
+
 ## Experience
 
 The player enters a lived-in, fictional Kerala-inspired world and can immediately walk, run, look around, and choose detours. The primary reward is seeing what lies beyond the next bend: canopy homes, luminous paddy fields, the river crossing, then the harbor opening toward the sea.

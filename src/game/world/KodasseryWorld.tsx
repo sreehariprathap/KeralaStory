@@ -1,3 +1,4 @@
+import { terrainMeshData } from './traversalGeometry';
 import { memo, useMemo, useRef, useLayoutEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
@@ -10,14 +11,11 @@ const pathCurve = new CatmullRomCurve3(KODASSERY_PATH.map(([x,z]) => new Vector3
 export const TRAIL_POINTS = pathCurve.getPoints(150);
 
 function terrainGeometry() {
-  const g = new BufferGeometry(); const p:number[]=[]; const c:number[]=[]; const idx:number[]=[];
-  const nx=54, nz=66; const base=new Color();
+  const g = new BufferGeometry(), {vertices:p,indices:idx,nx,nz}=terrainMeshData('north');
+  const c:number[]=[],base=new Color();
   for(let j=0;j<=nz;j++) for(let i=0;i<=nx;i++) {
-    const x=-78+i/nx*166,z=-499+j/nz*165;
-    p.push(x,terrainHeight(x,z),z);
     base.set(i%3===0 ? '#829361' : '#879b65'); base.multiplyScalar(0.97+Math.sin(i*1.6+j*.9)*.055); c.push(base.r,base.g,base.b);
   }
-  for(let j=0;j<nz;j++)for(let i=0;i<nx;i++){ const a=j*(nx+1)+i;idx.push(a,a+nx+1,a+1,a+1,a+nx+1,a+nx+2); }
   g.setAttribute('position',new Float32BufferAttribute(p,3));g.setAttribute('color',new Float32BufferAttribute(c,3));g.setIndex(idx);g.computeVertexNormals();return g;
 }
 function trailGeometry(points:Vector3[],width:number) {

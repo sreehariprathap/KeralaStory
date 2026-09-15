@@ -1,9 +1,13 @@
+import type { Locale } from '../../contracts';
+import { translate, MALAYALAM_CATALOG, type TranslationKey } from '../../features/i18n/translate';
+import { RegionalDetails } from './RegionalDetails';
 import { memo, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
 import { BoxGeometry, BufferGeometry, CanvasTexture, Color, CylinderGeometry, DoubleSide, Float32BufferAttribute, Group, InstancedMesh, Object3D, PlaneGeometry, Quaternion, SRGBColorSpace, Vector3 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { BRIDGE_DECK_Y, BRIDGE_NORTH_Z, BRIDGE_SOUTH_Z, BRIDGE_X, CITY_PATH, VILLAGE_PATH, WATER_LEVEL, isWater, riverCenter, terrainHeight } from '../../content/world/kodassery';
+import { terrainMeshData, traversalBoxes } from './traversalGeometry';
 import { KodasseryWorld } from './KodasseryWorld';
 
 type V3 = [number, number, number];
@@ -116,19 +120,16 @@ function buildTemple(b:VillageBuilder) {
 
 function buildBridge(b:VillageBuilder) {
   const length=BRIDGE_SOUTH_Z-BRIDGE_NORTH_Z,mid=(BRIDGE_NORTH_Z+BRIDGE_SOUTH_Z)/2;
-  b.box([BRIDGE_X,BRIDGE_DECK_Y-.25,mid],[4,.5,length],PALETTE.timber,true);
+  for (const shape of traversalBoxes().filter(shape=>shape.id.startsWith('bridge-'))) b.box(shape.position,shape.size,PALETTE.timber,true,shape.rotation);
   for(let i=0;i<110;i++)b.box([BRIDGE_X,BRIDGE_DECK_Y+.025,BRIDGE_NORTH_Z+(i+.5)*length/110],[4.15,.06,length/110-.035],i%3===0?'#ab895c':'#92734e');
   for(const side of [-1,1]) {
     const x=BRIDGE_X+side*2.12;
     for(let i=0;i<=14;i++){const z=BRIDGE_NORTH_Z+i*length/14;b.box([x,BRIDGE_DECK_Y+.65,z],[.16,1.55,.16],PALETTE.timber);if(i%3===0)b.box([x,8.5,z],[.32,13,.35],PALETTE.timber);}
     for(const h of [.48,1.2])b.box([x,BRIDGE_DECK_Y+h,mid],[.13,.13,length],PALETTE.timber);
     // Continuous physical rails keep the crossing usable even between visible posts.
-    b.colliders.push({position:[x,BRIDGE_DECK_Y+.6,mid],size:[.1,.7,length/2],rotation:[0,0,0]});
+
   }
-  for(const [deckZ,landZ] of [[BRIDGE_NORTH_Z+12,BRIDGE_NORTH_Z-12],[BRIDGE_SOUTH_Z,BRIDGE_SOUTH_Z+9]]) {
-    const landY=terrainHeight(BRIDGE_X,landZ)+.07,delta=landZ-deckZ,dy=landY-BRIDGE_DECK_Y,length=Math.hypot(delta,dy),angle=-Math.atan(dy/delta);
-    b.box([BRIDGE_X,(landY+BRIDGE_DECK_Y)/2-.15,(deckZ+landZ)/2],[4,.3,length],PALETTE.timber,true,[angle,0,0]);
-  }
+
 }
 
 function boat(b:VillageBuilder,x:number,z:number,y:number,yaw=0,scale=1) {
@@ -142,7 +143,7 @@ function boat(b:VillageBuilder,x:number,z:number,y:number,yaw=0,scale=1) {
   b.beam(p(-.5,.1,-1),p(2.2,.2,3),.055,PALETTE.timber);
 }
 
-function buildArchitecture() {
+export function buildArchitecture() {
   const b=new VillageBuilder();buildTemple(b);buildBridge(b);
   buildShop(b,-10,-194,"RAJAN'S TEA SHOP",'രാജൻ ചായക്കട','#cfc197',7);
   buildShop(b,13,-28,'SREEKRISHNA STORES','ശ്രീകൃഷ്ണ സ്റ്റോഴ്സ്','#d8cea7',8);
@@ -180,9 +181,7 @@ function buildArchitecture() {
   b.signs.push({position:[lx,ly+2,lz+2.31],yaw:0,english:'KODALY LIGHT',malayalam:'കൊടാലി',color:'#eee0ab',width:2.7});
   // Working harbor: quay, wooden pier, sheds, coir bundles and moored fishing boats.
   const hy=terrainHeight(48,77);
-  b.box([62,hy-.25,79],[38,.5,14],'#b5ad92',true);
-  b.box([78,hy-.7,80],[2,2.5,18],'#8b8c78',true);
-  b.box([87,WATER_LEVEL+.25,76],[19,.5,3.5],PALETTE.timber,true);
+  for (const shape of traversalBoxes().filter(shape=>!shape.id.startsWith('bridge-'))) b.box(shape.position,shape.size,shape.id==='harbor-quay'?'#b5ad92':PALETTE.timber,true,shape.rotation);
   for(let i=0;i<8;i++)for(const sign of [-1,1])b.box([79+i*2.4,WATER_LEVEL-1,76+sign*1.8],[.2,3,.2],PALETTE.timber);
   buildHouse(b,63,73,9,5,'#c2c1a7');
   for(let i=0;i<7;i++)b.cylinder([55+(i%4)*1.3,hy+.45,82+Math.floor(i/4)*1.3],.5,.56,.9,'#a48655');
@@ -192,20 +191,11 @@ function buildArchitecture() {
 }
 
 function createTerrain() {
-  const p:number[]=[],colors:number[]=[],indices:number[]=[],color=new Color(),nx=83,nz=213;
-  // Column-dependent river rows put both shores exactly on the canonical river outline.
+  const {vertices:p,indices,nx,nz}=terrainMeshData('south'),colors:number[]=[],color=new Color();
   for(let j=0;j<=nz;j++)for(let i=0;i<=nx;i++) {
-    const x=-78+i*2,north=riverCenter(x)-21,south=riverCenter(x)+21;
-    let z:number;
-    if(j<=102)z=-334+j*2;
-    else if(j<=110)z=-130+(north+130)*(j-102)/8;
-    else if(j<=131)z=north+(south-north)*(j-110)/21;
-    else if(j<=135)z=south+(-64-south)*(j-131)/4;
-    else z=-64+(j-135)*2;
-    const y=terrainHeight(x,z);p.push(x,y,z);
+    const index=(j*(nx+1)+i)*3,x=p[index],z=p[index+2];
     color.set(isWater(x,z)?'#8b9b81':z>-64?'#9baa71':j%3?'#91a265':'#8f9d61');color.multiplyScalar(.98+Math.sin(i*1.7+j*.8)*.035);colors.push(color.r,color.g,color.b);
   }
-  for(let j=0;j<nz;j++)for(let i=0;i<nx;i++){const a=j*(nx+1)+i;indices.push(a,a+nx+1,a+1,a+1,a+nx+1,a+nx+2);}
   const g=new BufferGeometry();g.setAttribute('position',new Float32BufferAttribute(p,3));g.setAttribute('color',new Float32BufferAttribute(colors,3));g.setIndex(indices);g.computeVertexNormals();return g;
 }
 
@@ -254,14 +244,16 @@ function Plants({data,geometry,low=false}:{data:Instance[];geometry:BufferGeomet
   useLayoutEffect(()=>{const o=new Object3D(),c=new Color();items.forEach((v,i)=>{o.position.set(...v.position);o.rotation.set(...v.rotation);o.scale.set(...v.scale);o.updateMatrix();ref.current!.setMatrixAt(i,o.matrix);ref.current!.setColorAt(i,c.set(v.color));});ref.current!.instanceMatrix.needsUpdate=true;ref.current!.computeBoundingSphere();},[items]);
   return <instancedMesh ref={ref} args={[geometry,undefined,items.length]} castShadow receiveShadow><meshStandardMaterial roughness={1} side={DoubleSide}/></instancedMesh>;
 }
-function PaintedSign({sign}:{sign:Sign}) {
+const signKeys:Record<string,TranslationKey>={"RAJAN'S TEA SHOP":'sign.rajan-tea','SREEKRISHNA STORES':'sign.sreekrishna-stores','ROYAL BAKERY':'sign.royal-bakery','VIDYA BOOKS':'sign.vidya-books','KODALY PROVISIONS':'sign.kodaly-provisions','HARBOUR TEA STALL':'sign.harbor-tea','KODALY LIGHT':'sign.kodaly-light','KADAMBODE TEMPLE':'sign.temple'};
+const signPlaces:Record<string,TranslationKey>={"RAJAN'S TEA SHOP":'place.tea-shop','KADAMBODE TEMPLE':'place.temple','KODALY LIGHT':'place.lighthouse'};
+function PaintedSign({sign,locale}:{sign:Sign;locale:Locale}) {
   const {texture,paint}=useMemo(()=>{
     const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=320;
     const ctx=canvas.getContext('2d')!,texture=new CanvasTexture(canvas);texture.colorSpace=SRGBColorSpace;
-    const paint=()=>{ctx.fillStyle=sign.color;ctx.fillRect(0,0,1024,320);ctx.strokeStyle='#566449';ctx.lineWidth=12;ctx.strokeRect(12,12,1000,296);ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#465343';ctx.font='bold 64px "Noto Sans Malayalam", sans-serif';ctx.fillText(sign.malayalam,512,108,950);ctx.fillStyle='#94503b';ctx.font='bold 55px Georgia, serif';ctx.fillText(sign.english,512,228,945);texture.needsUpdate=true;};
+    const paint=()=>{ctx.fillStyle=sign.color;ctx.fillRect(0,0,1024,320);ctx.strokeStyle='#566449';ctx.lineWidth=12;ctx.strokeRect(12,12,1000,296);ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#465343';ctx.font='bold 64px "Noto Sans Malayalam", sans-serif';ctx.fillText(translate(locale==='ml'&&!MALAYALAM_CATALOG[signKeys[sign.english]]?.trim()&&signPlaces[sign.english]?signPlaces[sign.english]:signKeys[sign.english],locale),512,135,950);ctx.fillStyle='#94503b';ctx.font='bold 55px Georgia, serif';ctx.fillText('KERALA · 2000',512,248,945);texture.needsUpdate=true;};
     paint();return {texture,paint};
-  },[sign]);
-  useEffect(()=>{let active=true;void document.fonts.load('bold 64px "Noto Sans Malayalam"').then(()=>{if(active)paint();});return()=>{active=false;};},[paint]);
+  },[sign,locale]);
+  useEffect(()=>{let active=true;void document.fonts.load('bold 64px "Noto Sans Malayalam"').then(()=>{if(active)paint();});return()=>{active=false;texture.dispose();};},[paint,texture]);
   return <mesh position={sign.position} rotation={[0,sign.yaw,0]}><planeGeometry args={[sign.width,sign.width*.3125]}/><meshStandardMaterial map={texture} roughness={1} side={DoubleSide}/></mesh>;
 }
 function Water({animated}:{animated:boolean}) {
@@ -275,18 +267,18 @@ function Water({animated}:{animated:boolean}) {
     <group ref={ref}><mesh geometry={streaks}><meshBasicMaterial color="#a0d0bd" transparent opacity={.65}/></mesh></group>
   </>;
 }
-function KeralaGeometry({quality='medium',animated=true}:{quality?:'low'|'medium'|'high';animated?:boolean}) {
+function KeralaGeometry({quality='medium',animated=true,locale='en'}:{quality?:'low'|'medium'|'high';animated?:boolean;locale?:Locale}) {
   const architecture=useMemo(buildArchitecture,[]),ground=useMemo(createTerrain,[]),plants=useMemo(generatePlants,[]);
   const roads=useMemo(()=>({village:ribbon(VILLAGE_PATH,3.8),tar:ribbon(VILLAGE_PATH.filter(([,z])=>z>=-260),3,.082),city:ribbon(CITY_PATH,4.1),cityTar:ribbon(CITY_PATH,3.1,.082),temple:ribbon([[-6,-238],[12,-238],[22,-231]],2.4),tea:ribbon([[7,-190],[-10,-190]],2.1)}),[]);
   const frond=useMemo(()=>leafGeometry(),[]),banana=useMemo(()=>leafGeometry(true),[]),trunk=useMemo(()=>new CylinderGeometry(.75,1,1,7),[]),shrub=useMemo(()=>new CylinderGeometry(.4,1,1,7),[]);
   return <>
-    <KodasseryWorld quality={quality} animated={animated}/>
+    <KodasseryWorld quality={quality} animated={animated}/><RegionalDetails quality={quality} animated={animated}/>
     <RigidBody type="fixed" colliders="trimesh"><mesh geometry={ground} receiveShadow><meshStandardMaterial vertexColors roughness={1}/></mesh></RigidBody>
     {Object.entries(roads).map(([key,geometry])=><mesh key={key} geometry={geometry} receiveShadow><meshStandardMaterial color={key==='tar'||key==='cityTar'?PALETTE.tar:PALETTE.sand} roughness={1} side={DoubleSide}/></mesh>)}
     <Water animated={animated}/>
     {architecture.meshes.map(({color,geometry})=><mesh key={color} geometry={geometry} castShadow receiveShadow><meshStandardMaterial color={color} roughness={.92} side={DoubleSide}/></mesh>)}
     <RigidBody type="fixed" colliders={false}>{architecture.colliders.map((c,i)=><CuboidCollider key={i} args={c.size} position={c.position} rotation={c.rotation}/>)}</RigidBody>
-    {architecture.signs.map(sign=><PaintedSign key={sign.english} sign={sign}/>)}
+    {architecture.signs.map(sign=><PaintedSign key={sign.english} sign={sign} locale={locale}/>)}
     <Plants data={plants.trunks} geometry={trunk}/><Plants data={plants.fronds} geometry={frond}/>
     <Plants data={plants.bananaTrunks} geometry={trunk}/><Plants data={plants.bananaLeaves} geometry={banana}/>
     {quality!=='low'&&<Plants data={plants.shrubs} geometry={shrub}/>}

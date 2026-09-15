@@ -1,26 +1,62 @@
-# The Kerala Story: exploration game plan
+# The Kerala Story
 
-Planning baseline, 14 September 2026. No game implementation has started.
+The current build is a browser based third person exploration prototype set in
+Kerala around 2000. It has one connected procedural world with four regions:
+Kodassery Peaks, Kadambode, Kurumali Puzha, and Kodaly. The world currently
+tracks 12 landmarks, including `spice-garden`, and stores an explorer profile
+and progress locally in the browser.
 
-Build a browser-based, third-person anime adventure where a player creates a local explorer profile and journeys continuously from Kodassery Peaks through Kadambode and Kurumali Puzha to Kodaly harbor. Exploration, atmosphere, movement, an accurate map, and a readable HUD are the first release.
+## Run locally
 
-## Read and hand off
+```sh
+npm install
+npm run dev
+```
 
-1. [Product and delivery plan](docs/01-product-plan.md): scope, player journey, region layout, milestones, completion gates.
-2. [Art and interface bible](docs/02-design-bible.md): reusable visual, avatar, environment, map, HUD, and asset rules.
-3. [Architecture and contracts](docs/03-architecture.md): stack, coordinates, module ownership, data boundaries, performance, persistence.
-4. [Task backlog](docs/04-task-backlog.md): dependency-ordered tasks, Luna candidates, acceptance checks, and a copyable handoff prompt.
-5. [Validation and expansion](docs/05-validation.md): playtest route, release checks, risks, and rules for adding regions and quests.
+Open the Vite URL shown in the terminal. Useful checks are:
 
-The supplied image is a composition reference, not a survey or a playable heightmap. Its labels do not create gameplay requirements: the pictured toll does not mean a toll must exist in the exploration release. The user's written request governs scope.
+```sh
+npm run typecheck
+npm test
+npm run build
+```
 
-## Recommended defaults
+## Controls
 
-- Desktop keyboard/mouse first; responsive menus, touch gameplay deferred.
-- Single player with a local name, avatar preset, appearance colors, and saved position. This is a local profile, not online authentication. Accounts, cloud saves, and multiplayer are separate later decisions.
-- React + TypeScript + Vite for the application; Three.js through React Three Fiber for 3D; Rapier for collision and character movement.
-- First prove a polished Kodassery trail, canopy bridge, and waterfall overlook. Then complete a traversable four-region blockout before dressing every region.
-- Shared zone data drives both the scene and navigational map. Use a separate illustrated atlas treatment for atmosphere.
-- No quests, combat, inventory, stamina, paid assets, or backend in the initial scope.
+Desktop uses the canvas for keyboard and mouse input:
 
-Start with **F01 → F02/F03 → C01 → C02 → C03** in the backlog. Do not delegate whole regions or the movement system as small Luna tasks. Implementing a task requires a separate handoff; this planning package does not dispatch work.
+- `W A S D` or arrow keys: walk
+- `Shift`: run
+- `Space`: jump
+- `R`: toggle sprint lock and auto-forward
+- `F`: mount or dismount the bicycle
+- drag: look; `Q` / `E`: turn
+- `M`: open the field map; `Esc`: pause
+
+On a touch device, choose `Auto`, `Touch`, or `Desktop` in Settings. Touch
+mode provides a left analog pad and directional buttons, a sprint-lock button,
+right-side camera look, Jump, and bicycle actions. While riding, hold Brake;
+after the bicycle stops, release and press backward again to arm reverse.
+The Settings action returns a nearby bicycle to a named parking spot when the
+explorer is on foot.
+
+## Language and saves
+
+The language selector is available at entry and in Settings. Malayalam values
+come from [src/content/locales/ml.json](src/content/locales/ml.json); blank or
+whitespace values fall back to the English catalog. Keep catalog keys unchanged
+when supplying translations. The locale preference persists locally, and old
+V1 saves migrate to V2 while preserving the profile, discoveries, position, and
+settings.
+
+## Current scope
+
+The four regions, traveler, bicycle, environment, and signs are procedural
+prototypes. Approved rigged character and bicycle GLBs, final environment
+assets, licensed audio, and device support certification are still open work.
+The project does not claim final art, recorded release audio, or certified
+desktop/mobile browser support.
+
+See [docs/08-complete-app-plan.md](docs/08-complete-app-plan.md) for the
+implementation scope and [docs/10-translations.md](docs/10-translations.md)
+for the translation worksheet and runtime API.
