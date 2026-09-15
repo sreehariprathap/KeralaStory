@@ -163,7 +163,6 @@ export function ExplorerController(props: ExplorerControllerProps) {
   });
   useAfterPhysicsStep(()=>{
     const rigidBody=body.current;if(!rigidBody)return;
-    if(import.meta.env.DEV&&vehicle.current==='car')console.log('car-entry-debug', JSON.stringify({sensor:collider.current?.isSensor(),enabled:collider.current?.isEnabled(),shape:collider.current?.shape.type,car:car.current?.body.translation(),velocity:car.current?.body.linvel(),player:rigidBody.translation(),contacts:carMotion.current.grounded}));
     if(car.current){const carHeading=car.current.sample(),p=car.current.body.translation();carParked.current=[p.x,p.y-FEET_TO_CENTER,p.z];carParkedHeading.current=carHeading;if(vehicle.current==='car'){heading.current=carHeading;rigidBody.setTranslation(p,true);rigidBody.setNextKinematicTranslation(p);motion.current.grounded=carMotion.current.grounded;}}
     const p=rigidBody.translation(),dt=Math.min(world.timestep,1/30),dx=p.x-previous.current.x,dz=p.z-previous.current.z;
     motion.current.speed=vehicle.current==='car'?carMotion.current.speed:Math.hypot(dx,dz)/dt;motion.current.signedSpeed=vehicle.current==='car'?carMotion.current.signedSpeed:motion.current.speed*(riding.current?Math.sign(bike.current.speed):1);
