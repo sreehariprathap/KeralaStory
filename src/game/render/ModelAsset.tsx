@@ -3,15 +3,13 @@ import { useFrame, useLoader } from '@react-three/fiber';
 import { Box3, Group, Vector3 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone } from 'three/addons/utils/SkeletonUtils.js';
-import { createNickAnimation } from '../player/nickAnimation';
-import { createStaticAvatarAnimation } from '../player/staticAvatarAnimation';
-import { createGenericSkeletonAnimation } from '../player/genericSkeletonAnimation';
+import { createNickAnimation, type CharacterRig } from '../player/nickAnimation';
 import type { AvatarMotion } from '../player/ExplorerAvatar';
 import type { CarModelId } from '../../content/assets/models';
 import type { CarMotion } from '../vehicle/carPhysics';
 import { createCarWheelAnimation } from '../vehicle/carWheelAnimation';
 
-interface Props { url: string; height?: number; length?: number; rotationY?: number; name?: string; motion?: RefObject<AvatarMotion>; animation?: 'nick' | 'kid-boy' | 'little-girl' | 'uniform' | 'static' | 'generic'; carModel?: CarModelId; carMotion?: RefObject<CarMotion> }
+interface Props { url: string; height?: number; length?: number; rotationY?: number; name?: string; motion?: RefObject<AvatarMotion>; animation?: CharacterRig; carModel?: CarModelId; carMotion?: RefObject<CarMotion> }
 function LoadedModel({ url, height, length, rotationY = 0, name, motion, animation, carModel, carMotion }: Props) {
   const gltf = useLoader(GLTFLoader, url);
   const { model, animator, wheelAnimator } = useMemo(() => {
@@ -29,7 +27,7 @@ function LoadedModel({ url, height, length, rotationY = 0, name, motion, animati
     scene.position.y -= bounds.min.y;
     scene.position.z -= (bounds.min.z + bounds.max.z) / 2;
     scene.traverse(object => { if ('isMesh' in object) { object.castShadow = true; object.receiveShadow = true; } });
-    const animator = animation === 'static' ? createStaticAvatarAnimation(root) : animation === 'generic' ? createGenericSkeletonAnimation(root) : animation ? createNickAnimation(root, animation) : null;
+    const animator = animation ? createNickAnimation(root, animation) : null;
     // Normalization (including root scale and centering) must happen before wheel pivots.
     const wheelAnimator = carModel ? createCarWheelAnimation(root, carModel) : null;
     animator?.update(0, { speed: 0, grounded: true });

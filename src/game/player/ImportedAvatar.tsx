@@ -18,7 +18,8 @@ export function ImportedAvatar({ modelId, motion }: ImportedAvatarProps) {
       name={model.name}
       height={1.7}
       motion={motion}
-      animation={model.id === 'nick' || model.id === 'kid-boy' || model.id === 'little-girl' || model.id === 'uniform' ? model.id : ['anime-boy', 'friendly-anime-boy'].includes(model.id) ? 'generic' : 'static'}
+      animation={model.rig}
+      rotationY={model.rotationY}
     />
   );
 }

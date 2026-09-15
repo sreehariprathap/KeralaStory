@@ -1,13 +1,13 @@
 export const CHARACTER_MODELS = [
-  { id: 'uniform', name: 'Maya', url: '/assets/characters/arms_out_in_uniform_rigged.glb' },
-  { id: 'nick', name: 'Niko', url: '/assets/characters/nick_unused_model.glb' },
-  { id: 'little-girl', name: 'Mimi', url: '/assets/characters/the_little_girl_rigged.glb' },
-  { id: 'young-tom', name: 'Tommy', url: '/assets/characters/young_tom_-_childhood_memory.glb' },
-  { id: 'kid-boy', name: 'Kannan', url: '/assets/characters/kid_boy_rigged.glb' },
-  { id: 'cartoon-kid', name: 'Kuttu', url: '/assets/characters/cartoon_kid.glb' },
-  { id: 'teenage-boy', name: 'Achu', url: '/assets/characters/anime-style_teenage_boy.glb' },
-  { id: 'anime-boy', name: 'Appu', url: '/assets/characters/anime_boy_for_blender..glb' },
-  { id: 'friendly-anime-boy', name: 'Kichu', url: '/assets/characters/friendly_anime_boy.glb' },
+  { id: 'uniform', name: 'Maya', url: '/assets/characters/arms_out_in_uniform_rigged.glb', rig: 'uniform', rotationY: 0 },
+  { id: 'nick', name: 'Niko', url: '/assets/characters/nick_unused_model.glb', rig: 'nick', rotationY: 0 },
+  { id: 'little-girl', name: 'Mimi', url: '/assets/characters/the_little_girl_rigged.glb', rig: 'little-girl', rotationY: 0 },
+  { id: 'young-tom', name: 'Tommy', url: '/assets/characters/young_tom_rigged.glb', rig: 'relaxed', rotationY: 0 },
+  { id: 'kid-boy', name: 'Kannan', url: '/assets/characters/kid_boy_rigged.glb', rig: 'kid-boy', rotationY: 0 },
+  { id: 'cartoon-kid', name: 'Kuttu', url: '/assets/characters/cartoon_kid_rigged.glb', rig: 'fitted', rotationY: 0 },
+  { id: 'teenage-boy', name: 'Achu', url: '/assets/characters/anime-style_teenage_boy_rigged.glb', rig: 'relaxed', rotationY: 0 },
+  { id: 'anime-boy', name: 'Appu', url: '/assets/characters/anime_boy_for_blender..glb', rig: 'appu', rotationY: Math.PI },
+  { id: 'friendly-anime-boy', name: 'Kichu', url: '/assets/characters/friendly_anime_boy_rigged.glb', rig: 'relaxed', rotationY: 0 },
 ] as const;
 export const CAR_MODELS = [
   { id: 'admin', name: 'Admin car', url: '/assets/cars/admin-car.glb', rotationY: -Math.PI / 2 },

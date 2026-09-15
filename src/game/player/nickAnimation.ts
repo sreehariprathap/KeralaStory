@@ -2,14 +2,16 @@ import { Bone, Object3D, Quaternion, Vector3 } from 'three';
 import type { AvatarMotion } from './ExplorerAvatar';
 
 /** In-place locomotion for Nick and the fitted character skeletons. */
-export function createNickAnimation(root: Object3D, rig: 'nick' | 'kid-boy' | 'little-girl' | 'uniform' = 'nick') {
+export type CharacterRig = 'nick' | 'kid-boy' | 'little-girl' | 'uniform' | 'relaxed' | 'fitted' | 'appu';
+export function createNickAnimation(root: Object3D, rig: CharacterRig = 'nick') {
   const parts = ['Hip', 'Knee', 'Shoulder', 'Elbow'] as const;
   const joints: { bone: Bone; part: typeof parts[number]; side: number; rest: Quaternion; previous: Quaternion }[] = [];
   const point = new Vector3();
   root.updateMatrixWorld(true);
   root.traverse(object => {
     if (!(object instanceof Bone)) return;
-    const match = object.name.match(rig === 'nick' ? /Nick:?(Hip|Knee|Shoulder|Elbow)_([LR])_0\d+$/ : /Kerala(Hip|Knee|Shoulder|Elbow)_([LR])_0\d+$/);
+    const appu = rig === 'appu' ? object.name.match(/^J_Bip_([LR])_(UpperLeg|LowerLeg|UpperArm|LowerArm)_\d+$/) : null;
+    const match = appu ? ['', ({UpperLeg:'Hip',LowerLeg:'Knee',UpperArm:'Shoulder',LowerArm:'Elbow'} as Record<string,string>)[appu[2]], appu[1]] : object.name.match(rig === 'nick' ? /Nick:?(Hip|Knee|Shoulder|Elbow)_([LR])_0\d+$/ : /Kerala(Hip|Knee|Shoulder|Elbow)_([LR])_0\d+$/);
     if (!match) return;
     root.worldToLocal(object.getWorldPosition(point));
     joints.push({ bone: object, part: match[1] as typeof parts[number], side: Math.sign(point.x) || 1, rest: object.quaternion.clone(), previous: object.quaternion.clone() });
@@ -41,7 +43,7 @@ export function createNickAnimation(root: Object3D, rig: 'nick' | 'kid-boy' | 'l
           bend = joint.part === 'Hip' ? wave * stride * .65 : joint.part === 'Knee' ? Math.max(0, -wave) * stride * .95 : joint.part === 'Shoulder' ? -wave * stride * .5 : -.12 - stride * .35;
         }
         deltaRotation.setFromAxisAngle(x, bend);
-        if (joint.part === 'Shoulder') deltaRotation.multiply(drop.setFromAxisAngle(z, -joint.side * (rig === 'kid-boy' ? .62 : 1.35)));
+        if (joint.part === 'Shoulder') deltaRotation.multiply(drop.setFromAxisAngle(z, -joint.side * (rig === 'relaxed' ? 0 : rig === 'kid-boy' ? .62 : 1.35)));
         joint.bone.parent!.getWorldQuaternion(parentRotation);
         // Express the character-space rotation in this bone parent's coordinate frame.
         target.copy(parentRotation).invert().multiply(rootRotation).multiply(deltaRotation);

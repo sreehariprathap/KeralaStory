@@ -6,6 +6,10 @@ import { Box3, Matrix3, Matrix4, Quaternion, Vector3 } from 'three';
 
 const assets = new URL('../public/assets/characters/', import.meta.url);
 const profiles = [
+  { source: 'anime-style_teenage_boy.glb', output: 'anime-style_teenage_boy_rigged.glb', shoulder: [.12,.73,0], elbow: [.155,.56,0], wrist: [.16,.40,0], hip: [.075,.44,0], knee: [.075,.235,0], ankle: [.08,.055,0], relaxed: true, center: [0,0], armRadius: .065 },
+  { source: 'friendly_anime_boy.glb', output: 'friendly_anime_boy_rigged.glb', shoulder: [.09,.735,0], elbow: [.115,.57,0], wrist: [.12,.435,0], hip: [.055,.46,0], knee: [.055,.255,0], ankle: [.06,.055,0], relaxed: true, armRadius: .044 },
+  { source: 'young_tom_-_childhood_memory.glb', output: 'young_tom_rigged.glb', shoulder: [.095,.70,0], elbow: [.12,.55,0], wrist: [.125,.43,0], hip: [.055,.44,0], knee: [.055,.24,0], ankle: [.055,.05,0], relaxed: true, armRadius: .05 },
+  { source: 'cartoon_kid.glb', output: 'cartoon_kid_rigged.glb', shoulder: [.10,.685,0], elbow: [.255,.685,0], wrist: [.39,.685,0], hip: [.055,.415,0], knee: [.055,.225,0], ankle: [.055,.05,0], skirt: false },
   { source: 'arms_out_in_uniform.glb', output: 'arms_out_in_uniform_rigged.glb', shoulder: [.095,.698,.043], elbow: [.20,.697,.043], wrist: [.305,.694,.043], hip: [.062,.44,.06], knee: [.067,.21,.065], ankle: [.075,.06,.06], skirt: true, armDepth: .08, armUpperFade: .045 },
   { source: 'kid_boy.glb', output: 'kid_boy_rigged.glb', shoulder: [.105,.655,.012], elbow: [.23,.545,.012], wrist: [.325,.455,.012], hip: [.045,.385,.015], knee: [.045,.205,.015], ankle: [.045,.05,.015], skirt: false },
   { source: 'the_little_girl.glb', output: 'the_little_girl_rigged.glb', shoulder: [.083,.663,0], elbow: [.24,.655,0], wrist: [.38,.65,0], hip: [.043,.43,0], knee: [.043,.205,0], ankle: [.043,.05,0], skirt: true },
@@ -59,6 +63,7 @@ for (const profile of profiles) {
   }
   for(const node of doc.scenes[doc.scene??0].nodes) visit(node,new Matrix4());
   const height=bounds.max.y-bounds.min.y, center=bounds.getCenter(new Vector3());
+  if(profile.center){center.x=profile.center[0];center.z=profile.center[1];}
   const nodes=[{name:'KeralaRoot',translation:[0,0,0],children:[]}], joints=[0], points=[new Vector3()];
   const ids={};
   function bone(name, point, parent) {
@@ -77,11 +82,19 @@ for (const profile of profiles) {
   }
   function weights(x,y,z) {
     const side=x>=0?'L':'R', ax=Math.abs(x);
+    if(profile.relaxed && y>profile.wrist[1]-.07 && y<profile.shoulder[1]+.045){
+      const t=Math.max(0,Math.min(1,(profile.shoulder[1]-y)/(profile.shoulder[1]-profile.wrist[1])));
+      const armX=profile.shoulder[0]+t*(profile.wrist[0]-profile.shoulder[0]);
+      const radius=profile.armRadius;
+      const distance=Math.hypot(ax-armX,z-profile.shoulder[2]);
+      const blend=(1-smooth(radius*.75,radius*1.5,distance))*smooth(armX-radius,armX-radius*.25,ax)*(1-smooth(profile.shoulder[1],profile.shoulder[1]+.045,y));
+      if(blend>0){const elbow=1-smooth(profile.elbow[1]-.03,profile.elbow[1]+.03,y);return [[0,1-blend],[ids[`Shoulder${side}`],blend*(1-elbow)],[ids[`Elbow${side}`],blend*elbow]];}
+    }
     const armY=profile.shoulder[1]+(ax-profile.shoulder[0])*(profile.wrist[1]-profile.shoulder[1])/(profile.wrist[0]-profile.shoulder[0]);
     // Long hair behind the uniform's shoulders must remain attached to the torso.
     const armDepth=profile.armDepth ? 1-smooth(profile.armDepth*.65,profile.armDepth,Math.abs(z-profile.shoulder[2])) : 1;
     const armBlend=smooth(.075,.135,ax)*(1-smooth(profile.shoulder[1]+.025,profile.shoulder[1]+(profile.armUpperFade??.075),y))*smooth(armY-.08,armY-.035,y)*armDepth;
-    if(armBlend>0) {
+    if(!profile.relaxed && armBlend>0) {
       // Project onto the authored upper-arm axis; blend across the elbow.
       const start=new Vector3(...profile.shoulder), axis=new Vector3(...profile.elbow).sub(start);
       const t=new Vector3(ax,y,z).sub(start).dot(axis)/axis.lengthSq();

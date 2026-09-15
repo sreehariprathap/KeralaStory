@@ -8,6 +8,7 @@ import { BoxGeometry, BufferGeometry, CanvasTexture, Color, CylinderGeometry, Do
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { BRIDGE_DECK_Y, BRIDGE_NORTH_Z, BRIDGE_SOUTH_Z, BRIDGE_X, CITY_PATH, VILLAGE_PATH, WATER_LEVEL, isWater, riverCenter, terrainHeight } from '../../content/world/kodassery';
 import { terrainMeshData, traversalBoxes } from './traversalGeometry';
+import { createTerrainSurface, planFoundation, planFoundationSteps, type FoundationPlan } from './buildingFoundation';
 import { GrassAssetMesh, KodasseryWorld, type Instance as GrassInstance } from './KodasseryWorld';
 
 type V3 = [number, number, number];
@@ -36,6 +37,7 @@ function generatePaddyGrass(): GrassInstance[] {
 
 /** Static meshes are merged by material: repeated architecture does not add draw calls. */
 class VillageBuilder {
+  terrain = createTerrainSurface(terrainMeshData('south'));
   pieces = new Map<string, BufferGeometry[]>();
   colliders: Collider[] = [];
   signs: Sign[] = [];
@@ -57,6 +59,40 @@ class VillageBuilder {
     g.applyQuaternion(new Quaternion().setFromUnitVectors(UP,d.clone().normalize()));
     this.add(g,color,va.add(vb).multiplyScalar(.5).toArray() as V3);
   }
+  foundation(x:number,z:number,width:number,depth:number,color=PALETTE.wall,clearance=.22):FoundationPlan {
+    const plan=planFoundation(this.terrain,{x,z,width,depth,clearance});
+    this.box(plan.body.position,plan.body.size,color,true);
+    // A flush dressed cap and broad masonry courses read as a retaining plinth.
+    // They stay inside the solid footprint, so decoration adds no collision lip.
+    this.box([x,plan.deckY-.065,z],[width,.13,depth],'#a98569');
+    for(let y=plan.deckY-.48,course=0;y>plan.groundMin;y-=.46,course++) {
+      for(const sign of [-1,1]) {
+        this.box([x,y,z+sign*(depth/2+.006)],[width,.022,.018],'#805f4c');
+        this.box([x+sign*(width/2+.006),y,z],[.018,.022,depth],'#805f4c');
+        for(let offset=-width/2+.7+(course%2)*.6;offset<width/2;offset+=1.4) {
+          this.box([x+offset,y+.23,z+sign*(depth/2+.008)],[.018,.44,.016],'#805f4c');
+        }
+      }
+    }
+    return plan;
+  }
+  steps(x:number,edgeZ:number,deckY:number,width=3) {
+    const steps=planFoundationSteps(this.terrain,{x,edgeZ,deckY,width});
+    for(const step of steps) {
+      // These are the visible, dressed masonry treads. A separate continuous
+      // collision face below prevents tiny terrain-to-tread lips from stopping
+      // the capsule before it reaches an otherwise legal riser.
+      this.box(step.position,step.size,PALETTE.wall);
+      this.box([step.position[0],step.position[1]+step.size[1]/2-.025,step.position[2]],[step.size[0],.05,step.size[2]],'#aa8567');
+    }
+    const outer=steps.at(-1)!;
+    const landingZ=outer.position[2]+outer.size[2]/2+1.2;
+    const landingY=this.terrain.heightAt(x,landingZ)+.02;
+    const length=landingZ-edgeZ,rise=deckY-landingY,angle=Math.atan2(rise,length),thickness=.16;
+    // The collision surface starts at the porch and ends just above the
+    // rendered terrain. Its lower volume is buried or hidden by the treads.
+    this.box([x,(deckY+landingY)/2-Math.cos(angle)*thickness/2,edgeZ+length/2],[width,thickness,Math.hypot(length,rise)],PALETTE.wall,true,[angle,0,0]);
+  }
   roof(x:number,y:number,z:number,w:number,d:number,h:number) {
     // Four genuinely sloping roof faces, a long ridge, and generous Kerala eaves.
     const ridge=Math.max(.5,d-w*.48),p=[-w/2,0,-d/2,w/2,0,-d/2,w/2,0,d/2,-w/2,0,d/2,0,h,-ridge/2,0,h,ridge/2];
@@ -72,8 +108,7 @@ class VillageBuilder {
 }
 
 function buildHouse(b:VillageBuilder,x:number,z:number,w=8,d=6,color=PALETTE.cream) {
-  const y=terrainHeight(x,z),h=3.1;
-  b.box([x,y-.4,z],[w+1,1.6,d+2],PALETTE.wall,true);
+  const foundation=b.foundation(x,z,w+1,d+2),y=foundation.deckY-.3,h=3.1;
   b.box([x,y+h/2+.3,z-.6],[w,h,d-1],color,true);
   b.roof(x,y+h+.35,z,w+2,d+2,1.7);
   b.box([x,y+1.35,z+d/2-.98],[1.25,2.2,.08],PALETTE.timber);
@@ -82,13 +117,12 @@ function buildHouse(b:VillageBuilder,x:number,z:number,w=8,d=6,color=PALETTE.cre
     b.box([x+side*w*.31,y+1.9,z+d/2-.87],[.07,1.22,.07],PALETTE.cream);
     b.box([x+side*(w/2-.3),y+1.65,z+d/2+.5],[.16,3,.16],PALETTE.timber);
   }
-  b.box([x,y+.14,z+d/2+1.6],[3,.28,1.2],PALETTE.wall,true);
+  b.steps(x,foundation.bounds.zMax,foundation.deckY);
 }
 
 function buildShop(b:VillageBuilder,x:number,z:number,english:string,malayalam:string,color:string,w=7) {
-  const y=terrainHeight(x,z),d=5;
-  b.box([x,y-.45,z],[w+1,1.62,d+3],PALETTE.wall,true);
-  for(let step=0;step<5;step++) {const sz=z+4.1+(4-step)*.35,top=terrainHeight(x,z+5.7)+(step+1)*((y+.36-terrainHeight(x,z+5.7))/5);b.box([x,top-.15,sz],[3,.3,.45],PALETTE.wall,true);}
+  const d=5,foundation=b.foundation(x,z,w+1,d+3),y=foundation.deckY-.2;
+  b.steps(x,foundation.bounds.zMax,foundation.deckY);
   b.box([x,y+1.8,z-1],[w,3.2,3.2],color,true);
   b.roof(x,y+3.5,z-.1,w+1.5,7.2,1.1);
   b.box([x,y+3.15,z+2.3],[w+1,.12,2.8],'#748c7a',false,[-.12,0,0]);
@@ -105,11 +139,13 @@ function buildShop(b:VillageBuilder,x:number,z:number,english:string,malayalam:s
 }
 
 function buildTemple(b:VillageBuilder) {
-  const x=25,z=-238,y=terrainHeight(x,z);
-  b.box([x,y-1.7,z],[26,3.4,24],'#c4b48c',true);
+  const x=25,z=-238,foundation=b.foundation(x,z,26,24,'#aa8b68'),y=foundation.deckY;
   b.box([17,y+.025,z],[10,.05,2.4],PALETTE.sand);
-  const approachY=terrainHeight(8,z)+.07,approachLength=Math.hypot(6,y+.04-approachY);
-  b.box([11,(approachY+y+.04)/2-.1,z],[approachLength,.2,3],PALETTE.sand,true,[0,0,Math.atan2(y+.04-approachY,6)]);
+  // A broad solid approach joins the village trail to the raised west gate.
+  // Its top endpoints and collider agree; the retaining body remains below grade.
+  const approachStart=-1,approachEnd=12,approachY=b.terrain.heightAt(approachStart,z)+.02,approachLength=approachEnd-approachStart,approachRise=y+.04-approachY;
+  const angle=Math.atan2(approachRise,approachLength),thickness=Math.abs(approachRise)+1.5;
+  b.box([approachStart+approachLength/2+Math.sin(angle)*thickness/2,(approachY+y+.04)/2-Math.cos(angle)*thickness/2,z],[Math.hypot(approachLength,approachRise),thickness,3],PALETTE.sand,true,[0,0,angle]);
   // Low laterite boundary follows the courtyard, with a broad open west entrance.
   for(const dz of [-12,12])b.box([x,y+.48,z+dz],[26,.95,.55],PALETTE.wall,true);
   b.box([x+13,y+.48,z],[.55,.95,24],PALETTE.wall,true);
@@ -170,7 +206,12 @@ export function buildArchitecture() {
   buildShop(b,43,51,'HARBOUR TEA STALL','തുറമുഖം ചായക്കട','#b7c2ae',6);
   for(const [x,z,w,d] of [[-25,-319,8,6],[31,-307,8,7],[31,-278,9,7],[-23,-250,8,6],[-31,-214,9,7],[36,-177,8,6],[-25,-157,7,6],[-7,-43,8,6],[-20,-10,9,7],[7,21,9,6],[54,31,8,6],[8,51,10,7]] as [number,number,number,number][]) {
     buildHouse(b,x,z,w,d,z%2===0?'#d4c7a3':PALETTE.cream);
-    const y=terrainHeight(x,z);b.box([x-w*.65,y+.55,z+6],[.45,1.1,13],PALETTE.wall,true);
+    // Short level masonry sections follow the slope; each reaches below the mesh.
+    for(let i=0;i<9;i++) {
+      const wall=planFoundation(b.terrain,{x:x-w*.65,z:z-.5+(i+.5)*13/9,width:.45,depth:13/9,clearance:1.1,burial:.35});
+      b.box(wall.body.position,wall.body.size,PALETTE.wall,true);
+      b.box([wall.body.position[0],wall.deckY-.045,wall.body.position[2]],[.45,.09,13/9],'#99765b');
+    }
   }
   // Paddy terraces sit on the hillside, each small field and bund follows its own elevation.
   for(let row=0;row<5;row++)for(let col=0;col<3;col++) {
@@ -189,8 +230,8 @@ export function buildArchitecture() {
   }
   for(let i=1;i<poles.length;i++){const a=poles[i-1],c=poles[i];if(Math.abs(c[2]-a[2])>60)continue;for(const dx of [-.7,.7]){const mid:V3=[(a[0]+c[0])/2+dx,(a[1]+c[1])/2-.75,(a[2]+c[2])/2];b.beam([a[0]+dx,a[1],a[2]],mid,.024,'#454b40');b.beam(mid,[c[0]+dx,c[1],c[2]],.024,'#454b40');}}
   // Lighthouse and its low compound; the road and approach remain unobstructed.
-  const lx=65,lz=54,ly=terrainHeight(lx,lz);
-  b.cylinder([lx,ly+.2,lz],4,4,.4,'#c9c5ab',16);
+  const lx=65,lz=54,lighthouseFoundation=b.foundation(lx,lz,8,8,'#99917c'),ly=lighthouseFoundation.deckY;
+  b.steps(lx,lighthouseFoundation.bounds.zMax,ly);
   for(let i=0;i<5;i++)b.cylinder([lx,ly+1.5+i*2.9,lz],2.1-i*.16,2.26-i*.16,2.9,i%2?'#b95c48':'#eee2c4',16);
   b.colliders.push({position:[lx,ly+7.5,lz],size:[2.1,7.5,2.1],rotation:[0,0,0]});
   b.cylinder([lx,ly+15,lz],2.4,2.4,.3,PALETTE.timber,16);b.cylinder([lx,ly+16.2,lz],1.4,1.4,2.2,'#486e69',12);b.cylinder([lx,ly+17.8,lz],0,2.2,1.4,PALETTE.tile,12);
