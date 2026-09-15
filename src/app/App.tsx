@@ -98,7 +98,7 @@ export function App(){
   const distance=waypoint?Math.round(Math.hypot(snapshot.position[0]-waypoint[0],snapshot.position[2]-waypoint[2])):null;
 
   return <LocaleProvider locale={locale}><main className={`experience ${active?'is-exploring':'is-entry'} ${touch?'uses-touch':''}`} data-mode={mode} data-travel-mode={snapshot.travelMode??'foot'} data-player-position={snapshot.position.map(n=>n.toFixed(3)).join(",")} data-player-grounded={snapshot.grounded}>
-    <AudioDirector settings={settings} mode={mode} player={snapshot}/><div className="world-viewport" aria-label="3D Kerala exploration world">
+    <AudioDirector settings={settings} mode={mode}/><div className="world-viewport" aria-label="3D Kerala exploration world">
       <SceneBoundary key={sceneKey} onRetry={retry} onError={onSceneError} onExit={exit}><Suspense fallback={null}><WorldCanvas locale={locale} active={active} settings={settings} controller={controller} onReady={onWorldReady} onError={onSceneError}/></Suspense></SceneBoundary>
     </div>
     {!active&&<div className="entry-shell">

@@ -18,7 +18,7 @@ export const ASSET_MANIFEST: readonly AssetRecord[] = [
   { id: 'traveler-procedural-preview', status: 'prototype', sourcePath: 'src/game/player/ExplorerAvatar.tsx', license: 'Original project code', kind: 'character' },
   { id: 'bicycle-procedural-roadster-preview', status: 'prototype', sourcePath: 'src/game/vehicle/BicycleVisual.tsx', license: 'Original project code', kind: 'vehicle' },
   { id: 'regional-details-prototype', status: 'prototype', sourcePath: 'src/game/world/RegionalDetails.tsx', license: 'Original project code', kind: 'environment' },
-  { id: 'synthesized-preview-ambience', status: 'prototype', sourcePath: 'src/game/audio/AudioDirector.tsx', license: 'Original project code', kind: 'audio' },
+  { id: 'user-background-music', status: 'prototype', sourcePath: 'docs/assets/bgm.mp3', license: null, kind: 'audio' },
   { id: 'world-reference', status: 'prototype', sourcePath: 'public/assets/world-reference.jpeg', license: null, kind: 'reference' },
   { id: 'world-reference-2000s', status: 'prototype', sourcePath: 'public/assets/world-reference-2000s.jpeg', license: null, kind: 'reference' },
   { id: 'approved-traveler-rig', status: 'prototype', sourcePath: null, license: null, kind: 'character' },
