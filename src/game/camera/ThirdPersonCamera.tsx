@@ -10,6 +10,7 @@ import { FEET_TO_CENTER } from '../player/controllerMath';
 
 interface Props {
   body: RefObject<RapierRigidBody | null>;
+  vehicleBody?: RefObject<RapierRigidBody | null>;
   input: RefObject<ExplorerInput>;
   azimuth: RefObject<number>;
   mode: InputMode;
@@ -19,7 +20,7 @@ interface Props {
 }
 
 /** Environmental sphere sweep excludes the player and sensor-only discoveries. */
-export function ThirdPersonCamera({ body, input, azimuth, mode, sensitivity, reducedMotion, resetToken }: Props) {
+export function ThirdPersonCamera({ body, vehicleBody, input, azimuth, mode, sensitivity, reducedMotion, resetToken }: Props) {
   const { world, rapier } = useRapier();
   const pitch = useRef(0.26);
   const distance = useRef(4.5);
@@ -47,7 +48,7 @@ export function ThirdPersonCamera({ body, input, azimuth, mode, sensitivity, red
     else vectors.anchor.lerp(vectors.target, 1 - Math.exp(-18 * dt));
     vectors.direction.set(Math.sin(azimuth.current) * Math.cos(pitch.current), Math.sin(pitch.current), Math.cos(azimuth.current) * Math.cos(pitch.current));
     const hit = world.castShape(vectors.anchor, { x: 0, y: 0, z: 0, w: 1 }, vectors.direction, sphere, 0.03, 4.5, true,
-      rapier.QueryFilterFlags.EXCLUDE_SENSORS, undefined, undefined, rigidBody);
+      rapier.QueryFilterFlags.EXCLUDE_SENSORS, undefined, undefined, rigidBody, candidate => !vehicleBody?.current || candidate.parent()?.handle !== vehicleBody.current.handle);
     const allowedDistance = hit ? Math.max(0.24, hit.time_of_impact - 0.08) : 4.5;
     // Retract immediately; ease back out once the wall is clear.
     if (allowedDistance < distance.current || !initialized.current || reducedMotion) distance.current = allowedDistance;

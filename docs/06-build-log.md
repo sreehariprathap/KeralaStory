@@ -149,3 +149,10 @@ Rapier route tests use actual rendered terrain arrays and architecture colliders
 - Replaced synthesized ambient playback with `public/assets/bgm.mp3`, keeping playback user-gesture gated, looped, pause/mute aware, and cleaned up with the audio context. Bicycle preview sound remains procedural.
 - The existing default settings volume is `0.5` (50%). The live settings panel displayed `Volume 50%` during inspection.
 - Checks: `npm run typecheck` PASS; `npm test` PASS (89 tests, 20 files); `npm run build` PASS. The existing large scene chunk warning remains. `public/assets/bgm.mp3` served from the dev app with HTTP 200 and `audio/mpeg` content type.
+
+## 15 September 2026 — grounded cars, suspension and exhaust
+
+- Replaced the car's upright character-controller movement with a persistent 1,100 kg dynamic Rapier chassis and four raycast suspension contacts calibrated to each supplied GLB's wheel positions. Gravity, chassis pitch/roll, momentum, impacts, braking and parked suspension are physics-driven; walking and bicycle movement remain separate.
+- Animated the actual tyre meshes with wheel rotation, front steering and suspension travel. Added a pooled rear exhaust trail while driving; reduced-motion mode suppresses smoke. Kept the avatar hidden inside the car and excluded the occupied chassis from camera obstruction queries.
+- Cars retain their physical pose when exited. Entry requires settled wheel contact and low speed; exit checks ground clearance and the path beside the chassis. Reset/unmount removes the extra physics controller and body; pause retains the car's pose and velocity without advancing simulation.
+- Checks: `npm run typecheck` PASS; `npm test` PASS (**145 tests, 26 files**); `npm run build` PASS. Added 24 real-Rapier car tests and four wheel-animation tests, including actual GLB mappings and terrain-mesh contact. Existing large scene-chunk and Three.js CommonJS deprecation warnings remain. Browser/gameplay testing is left to the user as requested; full-route handling, steep-edge behaviour and the final visual feel are not claimed as playtested.
