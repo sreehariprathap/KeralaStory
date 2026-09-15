@@ -1,3 +1,4 @@
+import { CAR_MODELS, CHARACTER_MODELS } from './models';
 export type AssetStatus = 'prototype' | 'ready';
 export type AssetKind = 'character' | 'vehicle' | 'environment' | 'audio' | 'reference';
 
@@ -15,6 +16,8 @@ export interface AssetRecord {
  * prototypes until approved deliverables and provenance are supplied.
  */
 export const ASSET_MANIFEST: readonly AssetRecord[] = [
+  ...CHARACTER_MODELS.map(model => ({ id: `character-${model.id}`, status: 'prototype' as const, sourcePath: `public${model.url}`, license: null, kind: 'character' as const })),
+  ...CAR_MODELS.map(model => ({ id: `car-${model.id}`, status: 'prototype' as const, sourcePath: `public${model.url}`, license: null, kind: 'vehicle' as const })),
   { id: 'traveler-procedural-preview', status: 'prototype', sourcePath: 'src/game/player/ExplorerAvatar.tsx', license: 'Original project code', kind: 'character' },
   { id: 'bicycle-procedural-roadster-preview', status: 'prototype', sourcePath: 'src/game/vehicle/BicycleVisual.tsx', license: 'Original project code', kind: 'vehicle' },
   { id: 'regional-details-prototype', status: 'prototype', sourcePath: 'src/game/world/RegionalDetails.tsx', license: 'Original project code', kind: 'environment' },

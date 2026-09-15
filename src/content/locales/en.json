@@ -179,5 +179,10 @@
   "settings.mute": "Mute sound",
   "settings.volume": "Volume",
   "app.touchComingLater": "Best explored with a keyboard and mouse. Touch gameplay is coming later.",
-  "app.elevenPlaces": "Twelve places along a connected trail: canopy homes, paddy fields, a temple village, the river crossing, and a small-town harbor."
+  "app.elevenPlaces": "Twelve places along a connected trail: canopy homes, paddy fields, a temple village, the river crossing, and a small-town harbor.",
+  "car.spawnerTitle": "Vehicle spawner",
+  "car.spawn": "Spawn / reset car",
+  "car.notSaved": "Off-road prototype · not saved",
+  "car.interact": "Vehicle",
+  "controls.exitCar": "Get out of car"
 }

@@ -151,3 +151,4 @@
     grid-template-columns: 1fr;
   }
 }
+.profile-form select,.vehicle-spawner select{pointer-events:auto;min-height:44px;width:100%;font:inherit;color:var(--ink);background:var(--paper-raised);border:1px solid var(--forest);border-radius:6px;padding:8px}

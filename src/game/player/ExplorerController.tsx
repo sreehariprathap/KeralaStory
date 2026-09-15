@@ -4,7 +4,7 @@ import { CapsuleCollider, RigidBody, useAfterPhysicsStep, useBeforePhysicsStep, 
 import type { RapierCollider, RapierRigidBody } from '@react-three/rapier';
 import type { KinematicCharacterController } from '@dimforge/rapier3d-compat';
 import type { Group } from 'three';
-import type { BicycleSave, ExplorerControllerProps, Vec3 } from '../../contracts';
+import type { BicycleSave, ExplorerControllerProps, TravelMode, Vec3 } from '../../contracts';
 import { PARKING_SPOTS, nearestParking, safeGroundPosition, isCycleAllowed } from '../../content/world/definition';
 import { useExplorerInput } from '../input/useExplorerInput';
 import { clearInput, headingFromMotion, readMovement } from '../input/inputState';
@@ -14,21 +14,27 @@ import { CAPSULE_HALF_HEIGHT, CAPSULE_RADIUS, FEET_TO_CENTER, RUN_SPEED, WALK_SP
 import { computeExplorerMovement, createExplorerMotor } from './characterMotor';
 import { BicycleVisual } from '../vehicle/BicycleVisual';
 import { createBicycleState, stepBicycle } from '../vehicle/bicycleMotor';
+import { CarVisual } from '../vehicle/CarVisual';
+import { createCarState, stepCar } from '../vehicle/carMotor';
 import { resolveClearFeet } from '../vehicle/clearance';
 import { interactionReason } from '../vehicle/mountState';
 
 export function ExplorerController(props: ExplorerControllerProps) {
   const { mode, profile, spawn, initialHeading = Math.PI, resetToken, sensitivity, reducedMotion } = props;
   const { world, rapier } = useRapier();
-  const body = useRef<RapierRigidBody>(null),collider = useRef<RapierCollider>(null),visual=useRef<Group>(null),parkedVisual=useRef<Group>(null);
+  const body = useRef<RapierRigidBody>(null),collider = useRef<RapierCollider>(null),visual=useRef<Group>(null),parkedVisual=useRef<Group>(null),carParkedVisual=useRef<Group>(null);
   const controller=useRef<KinematicCharacterController|null>(null),latest=useRef(props);latest.current=props;
   const input=useExplorerInput(mode,props.onPause,props.onMap,props.inputCommands);
   const azimuth=useRef(-initialHeading),heading=useRef(initialHeading),verticalSpeed=useRef(0);
   const motion=useRef({speed:0,signedSpeed:0,grounded:false,riding:false});
   const safePosition=useRef<Vec3>([...spawn]);
-  const tick=useRef(0),ready=useRef(false),riding=useRef(false),[showRider,setShowRider]=useState(false);
+  const tick=useRef(0),ready=useRef(false),riding=useRef(false),vehicle=useRef<TravelMode>('foot'),[showRider,setShowRider]=useState(false);
   const bike=useRef(createBicycleState(initialHeading));
+  const car=useRef(createCarState(initialHeading));
   const parked=useRef<BicycleSave>({position:[...PARKING_SPOTS[0].position],headingRad:Math.PI});
+  const carParked=useRef<Vec3|null>(null);
+  const [spawnedCarModel,setSpawnedCarModel]=useState(props.carModelId);
+  const carParkedHeading=useRef(initialHeading);
   const message=useRef(''),messageUntil=useRef(0);
   const previous=useRef({x:spawn[0],y:spawn[1]+FEET_TO_CENTER,z:spawn[2]});
   const report=(text:string)=>{message.current=text;messageUntil.current=tick.current+180;};
@@ -38,19 +44,19 @@ export function ExplorerController(props: ExplorerControllerProps) {
     body.current?.setTranslation(target,true);body.current?.setNextKinematicTranslation(target);previous.current=target;
     verticalSpeed.current=0;motion.current.speed=0;
   };
-  const setTravel=(ride:boolean)=>{
-    riding.current=ride;motion.current.riding=ride;setShowRider(ride);bike.current.speed=0;
-    collider.current?.setShape(ride?new rapier.Cuboid(.38,FEET_TO_CENTER,.95):new rapier.Capsule(CAPSULE_HALF_HEIGHT,CAPSULE_RADIUS));
+  const setTravel=(next:TravelMode)=>{
+    const ride=next!=='foot'; riding.current=ride;vehicle.current=next;motion.current.riding=ride;setShowRider(ride);bike.current.speed=0;car.current.speed=0;
+    collider.current?.setShape(next==='car'?new rapier.Cuboid(.9,FEET_TO_CENTER,1.9):next==='bicycle'?new rapier.Cuboid(.38,FEET_TO_CENTER,.95):new rapier.Capsule(CAPSULE_HALF_HEIGHT,CAPSULE_RADIUS));
     body.current?.setRotation(ride?rotation(heading.current):{x:0,y:0,z:0,w:1},true);
     clearInput(input.current);
   };
-  const clearFeet=(x:number,z:number,nearY:number,ride:boolean,targetHeading=heading.current)=>resolveClearFeet(world,body.current,x,z,nearY,ride,targetHeading);
+  const clearFeet=(x:number,z:number,nearY:number,ride:boolean|'car',targetHeading=heading.current)=>resolveClearFeet(world,body.current,x,z,nearY,ride,targetHeading);
   const validationPending=useRef(true);
   useEffect(()=>{const c=createExplorerMotor(world);controller.current=c;return()=>{controller.current=null;world.removeCharacterController(c);};},[world]);
   useEffect(()=>{
     if(!body.current)return;
-    setTravel(false);teleport(latest.current.spawn);safePosition.current=[...latest.current.spawn];ready.current=false;tick.current=0;validationPending.current=true;
-    heading.current=latest.current.initialHeading??Math.PI;azimuth.current=-heading.current;bike.current=createBicycleState(heading.current);
+    setTravel('foot');teleport(latest.current.spawn);safePosition.current=[...latest.current.spawn];ready.current=false;tick.current=0;validationPending.current=true;carParked.current=null;
+    heading.current=latest.current.initialHeading??Math.PI;azimuth.current=-heading.current;bike.current=createBicycleState(heading.current);car.current=createCarState(heading.current);
     const saved=latest.current.bicycleSpawn;
     parked.current=saved?{position:safeGroundPosition(saved.position),headingRad:saved.headingRad}:{position:[...PARKING_SPOTS[0].position],headingRad:Math.PI};
     if(!isCycleAllowed(parked.current.position[0],parked.current.position[2])){const slot=nearestParking(spawn);parked.current={position:[...slot.position],headingRad:slot.headingRad};}
@@ -58,7 +64,7 @@ export function ExplorerController(props: ExplorerControllerProps) {
     // Repositioning is driven by resetToken; other prop changes must not teleport.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[resetToken]);
-  useEffect(()=>{if(mode!=='playing'&&mode!=='loading'){verticalSpeed.current=0;motion.current.speed=0;bike.current.speed=0;}},[mode]);
+  useEffect(()=>{if(mode!=='playing'&&mode!=='loading'){verticalSpeed.current=0;motion.current.speed=0;bike.current.speed=0;car.current.speed=0;}},[mode]);
   const lastReturn=useRef(props.returnBicycleToken);
   useEffect(()=>{
     if(lastReturn.current===props.returnBicycleToken)return;lastReturn.current=props.returnBicycleToken;
@@ -68,6 +74,16 @@ export function ExplorerController(props: ExplorerControllerProps) {
     const valid=clearFeet(slot.position[0],slot.position[2],slot.position[1],true,slot.headingRad);
     if(valid){parked.current={position:valid,headingRad:slot.headingRad};report('bicycle.returned');}else report('bicycle.parkingBlocked');
   },[props.returnBicycleToken]);
+  const lastCarSpawn=useRef(props.carSpawnToken);
+  useEffect(()=>{
+    if(lastCarSpawn.current===props.carSpawnToken)return;lastCarSpawn.current=props.carSpawnToken;
+    const rigidBody=body.current;if(!rigidBody)return;
+    const position=rigidBody.translation(),feet:Vec3=[position.x,position.y-FEET_TO_CENTER,position.z];
+    if(vehicle.current!=='foot'){report('Exit your vehicle before spawning a car.');return;}
+    const candidates:[[number,number],[number,number],[number,number],[number,number]]=[[0,4],[2,4],[-2,4],[0,-4]];
+    for(const [right,forward] of candidates){const x=feet[0]+Math.cos(heading.current)*right+Math.sin(heading.current)*forward,z=feet[2]-Math.sin(heading.current)*right-Math.cos(heading.current)*forward;const valid=clearFeet(x,z,feet[1],'car',heading.current);if(valid){carParked.current=valid;carParkedHeading.current=heading.current;setSpawnedCarModel(latest.current.carModelId??'admin');car.current=createCarState(heading.current);report('Car ready nearby. Press F to drive.');return;}}
+    report('No clear space to spawn the car.');
+  },[props.carSpawnToken]);
 
   useBeforePhysicsStep(()=>{
     const rigidBody=body.current,shape=collider.current,character=controller.current;if(!rigidBody||!shape||!character)return;
@@ -75,7 +91,7 @@ export function ExplorerController(props: ExplorerControllerProps) {
     const playing=latest.current.mode==='playing';
     if(!playing&&latest.current.mode!=='loading'){rigidBody.setNextKinematicTranslation(position);motion.current.speed=0;return;}
     if(needsSafeReset(position)){
-      setTravel(false);teleport(safePosition.current);validationPending.current=true;const slot=nearestParking(safePosition.current);parked.current={position:[...slot.position],headingRad:slot.headingRad};return;
+      setTravel('foot');teleport(safePosition.current);validationPending.current=true;const slot=nearestParking(safePosition.current);parked.current={position:[...slot.position],headingRad:slot.headingRad};carParked.current=null;return;
     }
     const feet:Vec3=[position.x,position.y-FEET_TO_CENTER,position.z];
     if(validationPending.current&&tick.current>=2){
@@ -97,16 +113,22 @@ export function ExplorerController(props: ExplorerControllerProps) {
 
     if(playing&&input.current.interactQueued){
       input.current.interactQueued=false;
-      const reason=interactionReason(riding.current?'bicycle':'foot',motion.current.grounded,bike.current.speed,Math.hypot(position.x-parked.current.position[0],position.z-parked.current.position[2]));
+      const bicycleDistance=Math.hypot(position.x-parked.current.position[0],position.z-parked.current.position[2]);
+      const carDistance=carParked.current?Math.hypot(position.x-carParked.current[0],position.z-carParked.current[2]):Infinity;
+      const nearby=carDistance<bicycleDistance?'car':'bicycle';
+      const reason=interactionReason(vehicle.current,motion.current.grounded,vehicle.current==='car'?car.current.speed:bike.current.speed,vehicle.current==='foot'?Math.min(bicycleDistance,carDistance):0,vehicle.current==='foot'?3.5:2);
       if(reason==='mount'){
-        const p=parked.current.position;heading.current=parked.current.headingRad;
-        const valid=clearFeet(p[0],p[2],p[1],true);
-        if(valid&&isCycleAllowed(p[0],p[2])){bike.current=createBicycleState(heading.current);setTravel(true);teleport(valid);azimuth.current=-heading.current;report('');return;}
+        const isCar=nearby==='car', vehiclePosition=isCar?carParked.current:parked.current.position;
+        if(!vehiclePosition) return;
+        const vehicleHeading=isCar?carParkedHeading.current:parked.current.headingRad;heading.current=vehicleHeading;
+        const valid=clearFeet(vehiclePosition[0],vehiclePosition[2],vehiclePosition[1],isCar?'car':true,vehicleHeading);
+        if(valid&&(isCar||isCycleAllowed(vehiclePosition[0],vehiclePosition[2]))){if(isCar)car.current=createCarState(heading.current);else bike.current=createBicycleState(heading.current);setTravel(nearby);teleport(valid);azimuth.current=-heading.current;report('');return;}
         report('bicycle.noClearance');
       }else if(reason==='dismount'){
         let valid:Vec3|null=null;
-        for(const side of [-1,1]){valid=clearFeet(position.x+Math.cos(heading.current)*1.05*side,position.z+Math.sin(heading.current)*1.05*side,feet[1],false);if(valid){const velocity={x:valid[0]-position.x,y:valid[1]-feet[1],z:valid[2]-position.z};const hit=world.castShape(position,{x:0,y:0,z:0,w:1},velocity,new rapier.Capsule(CAPSULE_HALF_HEIGHT,CAPSULE_RADIUS),.01,1,true,rapier.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,rigidBody);if(hit&&hit.time_of_impact<.99)valid=null;else break;}}
-        if(valid){parked.current={position:feet,headingRad:heading.current};setTravel(false);teleport(valid);report('');return;}
+        const dismountDistance=vehicle.current==='car'?1.55:1.05;
+        for(const side of [-1,1]){valid=clearFeet(position.x+Math.cos(heading.current)*dismountDistance*side,position.z+Math.sin(heading.current)*dismountDistance*side,feet[1],false);if(valid){const velocity={x:valid[0]-position.x,y:valid[1]-feet[1],z:valid[2]-position.z};const hit=world.castShape(position,{x:0,y:0,z:0,w:1},velocity,new rapier.Capsule(CAPSULE_HALF_HEIGHT,CAPSULE_RADIUS),.01,1,true,rapier.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,rigidBody);if(hit&&hit.time_of_impact<.99)valid=null;else break;}}
+        if(valid){if(vehicle.current==='car'){carParked.current=feet;carParkedHeading.current=heading.current;}else parked.current={position:feet,headingRad:heading.current};setTravel('foot');teleport(valid);report('');return;}
         report('bicycle.noClearance');
       }else if(reason==='brake')report('bicycle.brakeToDismount');
     }
@@ -115,49 +137,54 @@ export function ExplorerController(props: ExplorerControllerProps) {
     let vx=intent.x*desiredSpeed,vz=intent.z*desiredSpeed;
     if(riding.current){
       input.current.sprintLocked=false;
-      const oldHeading=bike.current.headingRad;
-      const delta=stepBicycle(bike.current,{forward:playing?input.current.move.forward:0,steer:playing?input.current.move.x:0,brake:input.current.brake||!playing},dt);
+      const activeMotor=vehicle.current==='car'?car.current:bike.current;
+      const oldHeading=activeMotor.headingRad;
+      const delta=vehicle.current==='car'?stepCar(car.current,{forward:playing?input.current.move.forward:0,steer:playing?input.current.move.x:0,brake:input.current.brake||!playing},dt):stepBicycle(bike.current,{forward:playing?input.current.move.forward:0,steer:playing?input.current.move.x:0,brake:input.current.brake||!playing},dt);
       vx=delta.x/dt;vz=delta.z/dt;
-      if(!isCycleAllowed(position.x+delta.x,position.z+delta.z)){vx=0;vz=0;bike.current.speed=0;report('bicycle.walkOnly');}
-      if(Math.abs(oldHeading-bike.current.headingRad)>.0001){
+      if(vehicle.current==='bicycle'&&!isCycleAllowed(position.x+delta.x,position.z+delta.z)){vx=0;vz=0;bike.current.speed=0;report('bicycle.walkOnly');}
+      if(Math.abs(oldHeading-activeMotor.headingRad)>.0001){
         let clear=true,raisedY=feet[1];
-        for(const fraction of [.5,1]){const check=clearFeet(position.x,position.z,feet[1],true,oldHeading+(bike.current.headingRad-oldHeading)*fraction);if(!check){clear=false;break;}raisedY=Math.max(raisedY,check[1]);}
-        if(!clear){bike.current.headingRad=oldHeading;bike.current.speed=0;vx=0;vz=0;}
+        for(const fraction of [.5,1]){const check=clearFeet(position.x,position.z,feet[1],vehicle.current==='car'?'car':true,oldHeading+(activeMotor.headingRad-oldHeading)*fraction);if(!check){clear=false;break;}raisedY=Math.max(raisedY,check[1]);}
+        if(!clear){activeMotor.headingRad=oldHeading;activeMotor.speed=0;vx=0;vz=0;}
         else if(raisedY>feet[1]+.01){position.y=raisedY+FEET_TO_CENTER;rigidBody.setTranslation(position,true);}
       }
-      heading.current=bike.current.headingRad;rigidBody.setRotation(rotation(heading.current),true);
+      heading.current=activeMotor.headingRad;rigidBody.setRotation(rotation(heading.current),true);
     }
     const state={grounded:motion.current.grounded,verticalSpeed:verticalSpeed.current};
     const corrected=computeExplorerMovement(character,shape,state,{xVelocity:vx,zVelocity:vz,jump:playing&&!riding.current&&input.current.jumpQueued},dt);
     input.current.jumpQueued=false;verticalSpeed.current=state.verticalSpeed;motion.current.grounded=state.grounded;
-    if(riding.current&&Math.hypot(corrected.x,corrected.z)<Math.hypot(vx,vz)*dt*.3)bike.current.speed=0;
+    if(riding.current&&Math.hypot(corrected.x,corrected.z)<Math.hypot(vx,vz)*dt*.3)(vehicle.current==='car'?car.current:bike.current).speed=0;
     rigidBody.setNextKinematicTranslation({x:position.x+corrected.x,y:position.y+corrected.y,z:position.z+corrected.z});
   });
   useAfterPhysicsStep(()=>{
     const rigidBody=body.current;if(!rigidBody)return;
     const p=rigidBody.translation(),dt=Math.min(world.timestep,1/30),dx=p.x-previous.current.x,dz=p.z-previous.current.z;
-    motion.current.speed=Math.hypot(dx,dz)/dt;motion.current.signedSpeed=motion.current.speed*(riding.current?Math.sign(bike.current.speed):1);
+    motion.current.speed=Math.hypot(dx,dz)/dt;motion.current.signedSpeed=motion.current.speed*(riding.current?Math.sign(vehicle.current==='car'?car.current.speed:bike.current.speed):1);
     if(!riding.current&&motion.current.speed>.06)heading.current=headingFromMotion(dx,dz);
     const feet:Vec3=[p.x,p.y-FEET_TO_CENTER,p.z];
     if(motion.current.grounded&&!needsSafeReset(p))safePosition.current=feet;
     tick.current++;
     if(!ready.current&&!validationPending.current&&motion.current.grounded&&tick.current>=3){ready.current=true;latest.current.onReady?.();}
     if(tick.current%6===0||tick.current===1){
-      const reason=interactionReason(riding.current?'bicycle':'foot',motion.current.grounded,bike.current.speed,Math.hypot(p.x-parked.current.position[0],p.z-parked.current.position[2]));
-      latest.current.onSnapshot({position:feet,headingRad:heading.current,speed:motion.current.speed,grounded:motion.current.grounded,travelMode:riding.current?'bicycle':'foot',sprintLocked:input.current.sprintLocked,canInteract:reason==='mount'||reason==='dismount'||reason==='brake',bicycle:riding.current?{position:feet,headingRad:heading.current}:parked.current,interactionMessage:tick.current<messageUntil.current?message.current:''});
+      const bicycleDistance=Math.hypot(p.x-parked.current.position[0],p.z-parked.current.position[2]);
+      const carDistance=carParked.current?Math.hypot(p.x-carParked.current[0],p.z-carParked.current[2]):Infinity;
+      const reason=interactionReason(vehicle.current,motion.current.grounded,vehicle.current==='car'?car.current.speed:bike.current.speed,vehicle.current==='foot'?Math.min(bicycleDistance,carDistance):0,vehicle.current==='foot'?3.5:2);
+      latest.current.onSnapshot({position:feet,headingRad:heading.current,speed:motion.current.speed,grounded:motion.current.grounded,travelMode:vehicle.current,sprintLocked:input.current.sprintLocked,canInteract:reason==='mount'||reason==='dismount'||reason==='brake',bicycle:vehicle.current==='bicycle'?{position:feet,headingRad:heading.current}:parked.current,interactionMessage:tick.current<messageUntil.current&&message.current?message.current:vehicle.current==='foot'&&carDistance<bicycleDistance&&reason==='mount'?'Press F to enter car.':''});
     }
   });
   useFrame((_,delta)=>{
     if(visual.current)visual.current.rotation.y=riding.current?0:dampAngle(visual.current.rotation.y,Math.PI-heading.current,1-Math.exp(-15*Math.min(delta,.06)));
-    if(parkedVisual.current){parkedVisual.current.visible=!riding.current;parkedVisual.current.position.set(...parked.current.position);parkedVisual.current.rotation.y=Math.PI-parked.current.headingRad;}
+    if(parkedVisual.current){parkedVisual.current.visible=vehicle.current!=='bicycle';parkedVisual.current.position.set(...parked.current.position);parkedVisual.current.rotation.y=Math.PI-parked.current.headingRad;}
+    if(carParkedVisual.current){carParkedVisual.current.visible=vehicle.current!=='car'&&carParked.current!==null;if(carParked.current){carParkedVisual.current.position.set(...carParked.current);carParkedVisual.current.rotation.y=Math.PI-carParkedHeading.current;}}
   });
   return <>
     <group ref={parkedVisual}><BicycleVisual/></group>
+    <group ref={carParkedVisual} visible={false}>{spawnedCarModel&&<CarVisual modelId={spawnedCarModel}/>}</group>
     <RigidBody ref={body} type="kinematicPosition" colliders={false} position={[spawn[0],spawn[1]+FEET_TO_CENTER,spawn[2]]} enabledRotations={[false,false,false]} name="explorer-body">
       <CapsuleCollider ref={collider} args={[CAPSULE_HALF_HEIGHT,CAPSULE_RADIUS]} friction={0}/>
       <group ref={visual} position={[0,-FEET_TO_CENTER,0]} rotation={[0,Math.PI-initialHeading,0]}>
-        {showRider&&<BicycleVisual motion={motion}/>}
-        <group position={[0,showRider?.25:0,showRider?-.2:0]}><ExplorerAvatar profile={profile} reducedMotion={reducedMotion} motion={motion}/></group>
+        {showRider&&(vehicle.current==='car'?<CarVisual modelId={spawnedCarModel} motion={motion}/>:<BicycleVisual motion={motion}/>)}
+        <group visible={!(showRider&&vehicle.current==='car')} position={[0,showRider?.25:0,showRider?-.2:0]}><ExplorerAvatar profile={profile} reducedMotion={reducedMotion} motion={motion}/></group>
       </group>
     </RigidBody>
     <ThirdPersonCamera body={body} input={input} azimuth={azimuth} mode={mode} sensitivity={sensitivity} reducedMotion={reducedMotion} resetToken={resetToken}/>

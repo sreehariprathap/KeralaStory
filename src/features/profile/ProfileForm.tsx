@@ -7,6 +7,7 @@ import {
   SKIN_COLORS,
   type ExplorerProfile,
 } from '../../contracts';
+import { CHARACTER_MODELS } from '../../content/assets/models';
 import './profile-form.css';
 import { useT } from '../i18n/translate';
 
@@ -23,12 +24,14 @@ export function ProfileForm({ onSubmit, onPreview, initialProfile }: ProfileForm
   const id = useId();
   const [displayName, setDisplayName] = useState(initialProfile?.displayName ?? '');
   const [avatarPresetId, setAvatarPresetId] = useState(initialProfile?.avatarPresetId ?? AVATAR_PRESETS[0].id);
+  const [characterModelId, setCharacterModelId] = useState(initialProfile?.characterModelId ?? 'procedural');
   const [skin, setSkin] = useState(initialProfile?.colors.skin ?? SKIN_COLORS[0]);
   const [hair] = useState(initialProfile?.colors.hair ?? HAIR_COLORS[0]);
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
   const profileId = useMemo(() => initialProfile?.id ?? makeId(), [initialProfile?.id]);
   const preset = AVATAR_PRESETS.find((candidate) => candidate.id === avatarPresetId) ?? AVATAR_PRESETS[0];
+  const usesImportedModel = characterModelId !== 'procedural';
   const nameInputId = `${id}-name`;
   const errorId = `${id}-error`;
 
@@ -38,16 +41,18 @@ export function ProfileForm({ onSubmit, onPreview, initialProfile }: ProfileForm
       id: profileId,
       displayName: displayName.trim() || 'Traveler',
       avatarPresetId,
+      characterModelId: usesImportedModel ? characterModelId : undefined,
       colors: { skin, hair, clothing: preset.clothing },
     });
     if (preview.success) onPreview(preview.data);
-  }, [avatarPresetId, displayName, hair, onPreview, preset.clothing, profileId, skin]);
+  }, [avatarPresetId, characterModelId, displayName, hair, onPreview, preset.clothing, profileId, skin, usesImportedModel]);
 
   const validate = () => {
     const result = ProfileSchema.safeParse({
       id: profileId,
       displayName,
       avatarPresetId,
+      characterModelId: usesImportedModel ? characterModelId : undefined,
       colors: { skin, hair, clothing: preset.clothing },
     });
     if (!result.success) {
@@ -89,7 +94,7 @@ export function ProfileForm({ onSubmit, onPreview, initialProfile }: ProfileForm
         {error && <p id={errorId} className="profile-form__error" role="alert">{error}</p>}
       </div>
 
-      <fieldset className="profile-form__fieldset">
+      {!usesImportedModel && <fieldset className="profile-form__fieldset">
         <legend>{t('profile.style')}</legend>
         <div className="profile-form__preset-grid">
           {AVATAR_PRESETS.map((candidate) => (
@@ -100,9 +105,24 @@ export function ProfileForm({ onSubmit, onPreview, initialProfile }: ProfileForm
             </label>
           ))}
         </div>
-      </fieldset>
+      </fieldset>}
 
       <fieldset className="profile-form__fieldset">
+        <legend>Character model</legend>
+        <label htmlFor={`${id}-character-model`}>Choose a traveler model</label>
+        <select
+          id={`${id}-character-model`}
+          name="characterModelId"
+          value={characterModelId}
+          onChange={(event) => setCharacterModelId(event.target.value)}
+        >
+          <option value="procedural">Original traveler</option>
+          {CHARACTER_MODELS.map((model) => <option value={model.id} key={model.id}>{model.name}</option>)}
+        </select>
+        {usesImportedModel && <p>Original model textures and pose. Walking animations are not included in these files.</p>}
+      </fieldset>
+
+      {!usesImportedModel && <fieldset className="profile-form__fieldset">
         <legend>{t('profile.skinTone')}</legend>
         <div className="profile-form__swatches">
           {SKIN_COLORS.map((color, index) => (
@@ -113,7 +133,7 @@ export function ProfileForm({ onSubmit, onPreview, initialProfile }: ProfileForm
             </label>
           ))}
         </div>
-      </fieldset>
+      </fieldset>}
 
       <input type="hidden" name="hair" value={hair} readOnly />
       <input type="hidden" name="clothing" value={CLOTHING_COLORS.includes(preset.clothing) ? preset.clothing : CLOTHING_COLORS[0]} readOnly />

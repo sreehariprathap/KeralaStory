@@ -17,6 +17,7 @@ export const ProfileSchema = z.object({
   id: z.string().min(1).max(80),
   displayName: z.string().trim().refine(s => Array.from(s).length >= 1 && Array.from(s).length <= 24, 'Use 1–24 characters').refine(s => !/[<>\u0000-\u001f]/.test(s), 'Use a plain-text name'),
   avatarPresetId: z.enum(['canopy', 'clay', 'river']),
+  characterModelId: z.enum(['uniform', 'nick', 'little-girl', 'young-tom', 'kid-boy', 'cartoon-kid']).optional(),
   colors: z.object({ skin: z.enum(SKIN_COLORS), hair: z.enum(HAIR_COLORS), clothing: z.enum(CLOTHING_COLORS) }),
 });
 export type ExplorerProfile = z.infer<typeof ProfileSchema>;
@@ -44,6 +45,8 @@ export interface ExplorerControllerProps {
   inputCommands?: (commands: import("./input").InputCommands | null) => void;
   bicycleSpawn?: BicycleSave | null;
   returnBicycleToken?: number;
+  carSpawnToken?: number;
+  carModelId?: import('../content/assets/models').CarModelId;
 }
 
 export const LocaleSchema = z.enum(['en', 'ml']);
@@ -52,7 +55,7 @@ export const ControlsPreferenceSchema = z.enum(['auto', 'touch', 'desktop']);
 export type ControlsPreference = z.infer<typeof ControlsPreferenceSchema>;
 export const PreferencesSchema = z.object({ locale: LocaleSchema.default('en'), controls: ControlsPreferenceSchema.default('auto') });
 export type Preferences = z.infer<typeof PreferencesSchema>;
-export type TravelMode = 'foot' | 'bicycle';
+export type TravelMode = 'foot' | 'bicycle' | 'car';
 export const BicycleSaveSchema = z.object({ position: Vec3Schema, headingRad: z.number().finite() });
 export type BicycleSave = z.infer<typeof BicycleSaveSchema>;
 export const SaveV2Schema = SaveSchema.extend({ version: z.literal(2), locale: LocaleSchema, bicycle: BicycleSaveSchema.nullable() });

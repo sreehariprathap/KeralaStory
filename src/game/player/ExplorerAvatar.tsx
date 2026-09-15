@@ -3,6 +3,8 @@ import type { RefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
 import type { ExplorerProfile } from '../../contracts';
+import { CHARACTER_MODELS } from '../../content/assets/models';
+import { ImportedAvatar } from './ImportedAvatar';
 
 export interface AvatarMotion { speed: number; grounded: boolean; riding?: boolean }
 interface Props {
@@ -15,7 +17,7 @@ interface Props {
 }
 
 /** Original procedural proportion/animation preview; not the approved rigged GLB asset. Root at feet, forward +Z. */
-export function ExplorerAvatar({ profile, moving = false, reducedMotion = false, speed, grounded = true, motion }: Props) {
+function ProceduralAvatar({ profile, moving = false, reducedMotion = false, speed, grounded = true, motion }: Props) {
   const leftArm = useRef<Group>(null);
   const rightArm = useRef<Group>(null);
   const leftLeg = useRef<Group>(null);
@@ -95,4 +97,13 @@ export function ExplorerAvatar({ profile, moving = false, reducedMotion = false,
       <mesh position={[0, -0.685, 0.068]} rotation={[-0.15, 0, 0]}><boxGeometry args={[0.143, 0.035, 0.048]} /><meshToonMaterial color="#9c7950" /></mesh>
     </group>)}
   </group>;
+}
+
+/** Selects a supplied imported model when the profile requests one. */
+export function ExplorerAvatar(props: Props) {
+  const modelId = props.profile.characterModelId;
+  if (modelId && CHARACTER_MODELS.some((model) => model.id === modelId)) {
+    return <ImportedAvatar modelId={modelId} motion={props.motion} />;
+  }
+  return <ProceduralAvatar {...props} />;
 }

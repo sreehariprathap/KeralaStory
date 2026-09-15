@@ -115,6 +115,15 @@ Rapier route tests use actual rendered terrain arrays and architecture colliders
 - Temporary Malayalam rendering fixture removed; translation worksheet remains blank. Test viewport reset, English and Auto controls restored, normal `/` URL restored.
 - Final assets explicitly deferred by the user. See [free asset sources](assets/free-sources.md) for options. Hardware/browser, streaming, performance and human full-route gates remain open.
 
+## 15 September 2026 — supplied cars and character selection
+
+- Vehicle spawner selects `admin-car.glb` or `classic_muscle_car.glb`. Models retain textures, normalize their ground pivot/scale to the car collision envelope, and face the driving direction. Parked cars retain their own heading. Spawning while mounted is rejected without moving the player.
+- Car entry hides the avatar; exit restores it beside the car. Bicycle rider visibility is retained. Existing car physics and controls remain in use.
+- Added all six supplied character GLBs to a separate profile model selector, live preview and persisted optional `characterModelId`. Older saves still load. Imported materials keep their authored colors; procedural color choices remain available for the original traveler.
+- Shared loader clones skeletons and normalizes feet/height without altering cached source scenes. Local Suspense boundaries isolate model loading from physics. Supplied characters contain no animation clips and retain their authored static poses; car wheel/engine animation is not wired. These assets remain prototype intake, not completion of the approved rig/animation/art gates. Largest character file is approximately 39 MB; asset optimization remains outstanding.
+- Chrome visual inspection: all six textured character previews; both car models spawned, entered, moved forward, braked and exited; avatar hidden inside and restored beside both cars. No browser console errors captured. Full-route vehicle handling, mobile and network/performance gates were not repeated.
+- Final checks: `npm run typecheck` PASS; `npm test` PASS (96 tests, 22 files); `npm run build` PASS. Existing large scene-chunk warning remains. Added Node type declarations for GLB integrity tests. Existing user edits and deleted `cartoon_car.glb` were preserved.
+
 ## 15 September 2026 — supplied default BGM
 
 - Replaced synthesized ambient playback with `public/assets/bgm.mp3`, keeping playback user-gesture gated, looped, pause/mute aware, and cleaned up with the audio context. Bicycle preview sound remains procedural.

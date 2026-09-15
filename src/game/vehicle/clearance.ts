@@ -13,16 +13,18 @@ const MIN_GROUND_NORMAL_Y = Math.cos(Math.PI / 4);
  * Call after collision readiness; heading is the target parked/rider heading.
  * This checks destination clearance, not a swept rotation or dismount path.
  */
-export function resolveClearFeet(world: World, excludeBody: RigidBody | null | undefined, x: number, z: number, nearY: number, ride: boolean, heading: number): Vec3 | null {
+export function resolveClearFeet(world: World, excludeBody: RigidBody | null | undefined, x: number, z: number, nearY: number, ride: boolean | 'car', heading: number): Vec3 | null {
   if (![x,z,nearY,heading].every(Number.isFinite)) return null;
-  const angle = ride ? Math.PI - heading : 0;
+  const vehicle = ride === 'car' ? 'car' : ride ? 'bicycle' : null;
+  const angle = vehicle ? Math.PI - heading : 0;
   const rotation = {x:0,y:Math.sin(angle/2),z:0,w:Math.cos(angle/2)};
-  const shape = ride ? new Cuboid(.38,FEET_TO_CENTER,.95) : new Capsule(CAPSULE_HALF_HEIGHT,CAPSULE_RADIUS);
+  const shape = vehicle === 'car' ? new Cuboid(.9,FEET_TO_CENTER,1.9) : vehicle ? new Cuboid(.38,FEET_TO_CENTER,.95) : new Capsule(CAPSULE_HALF_HEIGHT,CAPSULE_RADIUS);
   // A center-only ray can accept a bike straddling a ledge. Probe its four
   // corners too, with the same heading used by the collider. Foot cardinal
   // probes conservatively require the whole capsule base to be supported.
-  const samples = ride
-    ? [[0,0],[-.38,-.95],[-.38,.95],[.38,-.95],[.38,.95]]
+  const samples = vehicle === 'car'
+    ? [[0,0],[-.9,-1.9],[-.9,1.9],[.9,-1.9],[.9,1.9]]
+    : vehicle ? [[0,0],[-.38,-.95],[-.38,.95],[.38,.95],[.38,-.95]]
     : [[0,0],[-CAPSULE_RADIUS,0],[CAPSULE_RADIUS,0],[0,-CAPSULE_RADIUS],[0,CAPSULE_RADIUS]];
   let highest = -Infinity;
   for (const [localX,localZ] of samples) {
