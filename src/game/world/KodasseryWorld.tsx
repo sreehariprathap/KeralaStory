@@ -1,8 +1,9 @@
 import { terrainMeshData } from './traversalGeometry';
 import { memo, useMemo, useRef, useLayoutEffect } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useLoader } from '@react-three/fiber';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
-import { BufferGeometry, Float32BufferAttribute, Color, CatmullRomCurve3, Vector3, Object3D, DoubleSide, InstancedMesh, Group } from 'three';
+import { BufferGeometry, Float32BufferAttribute, Color, CatmullRomCurve3, Vector3, Object3D, DoubleSide, InstancedMesh, Group, Box3, Mesh } from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { KODASSERY_PATH, terrainHeight } from '../../content/world/kodassery';
 
 const greens = ['#477153','#658956','#789857','#527c59','#95aa64'];
@@ -26,7 +27,7 @@ function trailGeometry(points:Vector3[],width:number) {
   });g.setAttribute('position',new Float32BufferAttribute(p,3));g.setIndex(idx);g.computeVertexNormals();return g;
 }
 
-type Instance = {position:[number,number,number];scale:[number,number,number];rotation?:[number,number,number];color:string};
+export type Instance = {position:[number,number,number];scale:[number,number,number];rotation?:[number,number,number];color:string};
 function InstanceMesh({data,kind}:{data:Instance[];kind:'leaf'|'trunk'|'rock'|'cloud'|'grass'|'timber'}) {
   const ref=useRef<InstancedMesh>(null);
   useLayoutEffect(()=>{const obj=new Object3D();const color=new Color();data.forEach((v,i)=>{obj.position.set(...v.position);obj.scale.set(...v.scale);obj.rotation.set(...(v.rotation??[0,0,0]));obj.updateMatrix();ref.current!.setMatrixAt(i,obj.matrix);ref.current!.setColorAt(i,color.set(v.color));});ref.current!.instanceMatrix.needsUpdate=true;ref.current!.computeBoundingSphere();},[data]);
@@ -34,6 +35,49 @@ function InstanceMesh({data,kind}:{data:Instance[];kind:'leaf'|'trunk'|'rock'|'c
     {kind==='timber'?<boxGeometry/>:kind==='trunk'?<cylinderGeometry args={[.32,.57,1,6]}/>:kind==='grass'?<coneGeometry args={[.5,1,4]}/>:<icosahedronGeometry args={[1,kind==='cloud'?2:1]}/>}
     {kind==='cloud'?<meshBasicMaterial color="#e4ecda" transparent opacity={.82}/>:<meshStandardMaterial roughness={1} flatShading/>}
   </instancedMesh>;
+}
+
+const KODASSERY_GRASS = [
+  '/assets/grass/shrub.glb',
+  '/assets/grass/shrub2.glb',
+] as const;
+
+/** Instanced authored foliage, normalized to the small cone-grass footprint. */
+export function GrassAssetMesh({ data, url }: { data: Instance[]; url: string }) {
+  const gltf = useLoader(GLTFLoader, url);
+  const { geometry, material, sourceScale } = useMemo(() => {
+    const source = gltf.scene;
+    source.updateMatrixWorld(true);
+    const mesh = source.getObjectByProperty('isMesh', true) as Mesh | undefined;
+    if (!mesh) throw new Error(`Grass asset has no mesh: ${url}`);
+    const bounds = new Box3().setFromObject(source, true);
+    const height = Math.max(bounds.max.y - bounds.min.y, 0.001);
+    const normalized = mesh.geometry.clone();
+    normalized.applyMatrix4(mesh.matrixWorld);
+    const center = bounds.getCenter(new Vector3());
+    normalized.translate(-center.x, -bounds.min.y, -center.z);
+    const sourceMaterial = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+    const clonedMaterial = sourceMaterial.clone();
+    clonedMaterial.side = 2;
+    if ('roughness' in clonedMaterial) clonedMaterial.roughness = 1;
+    return { geometry: normalized, material: clonedMaterial, sourceScale: 0.82 / height };
+  }, [gltf.scene, url]);
+  const ref = useRef<InstancedMesh>(null);
+  useLayoutEffect(() => {
+    const object = new Object3D();
+    data.forEach((instance, index) => {
+      object.position.set(...instance.position);
+      object.rotation.set(...(instance.rotation ?? [0, 0, 0]));
+      object.scale.set(instance.scale[0] * sourceScale, instance.scale[1] * sourceScale, instance.scale[2] * sourceScale);
+      object.updateMatrix();
+      ref.current?.setMatrixAt(index, object.matrix);
+    });
+    if (ref.current) {
+      ref.current.instanceMatrix.needsUpdate = true;
+      ref.current.computeBoundingSphere();
+    }
+  }, [data, sourceScale]);
+  return <instancedMesh ref={ref} args={[geometry, material, data.length]} frustumCulled={false} />;
 }
 
 function generateForest(){
@@ -115,7 +159,7 @@ function WorldGeometry({quality='medium',animated=true}:{quality?:'low'|'medium'
     <mesh geometry={path} receiveShadow><meshStandardMaterial color="#d5c396" roughness={1} side={DoubleSide}/></mesh>
     <mesh geometry={pathBranch} receiveShadow><meshStandardMaterial color="#c8b58b" roughness={1} side={DoubleSide}/></mesh>
     <InstanceMesh data={treeTrunks} kind="trunk"/><InstanceMesh data={treeLeaves} kind="leaf"/><InstanceMesh data={forest.rocks} kind="rock"/>
-    {quality!=='low'&&<InstanceMesh data={forest.grass} kind="grass"/>}
+    {quality!=='low'&&KODASSERY_GRASS.map((url,index)=><GrassAssetMesh key={url} url={url} data={forest.grass.filter((_,i)=>i%KODASSERY_GRASS.length===index)}/>)}
     <Treehouse x={18} z={-415}/><Treehouse x={32} z={-425} scale={.8}/><Bridge/><Waterfall animated={animated}/>
     <RigidBody type="fixed" colliders={false}>
       {forest.trunks.filter(t=>Math.min(...TRAIL_POINTS.map(p=>Math.hypot(p.x-t.position[0],p.z-t.position[2])))<15).map((t,i)=><CuboidCollider key={i} position={[t.position[0],t.position[1],t.position[2]]} args={[.5,t.scale[1]/2,.5]}/>)}

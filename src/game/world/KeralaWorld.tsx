@@ -8,7 +8,7 @@ import { BoxGeometry, BufferGeometry, CanvasTexture, Color, CylinderGeometry, Do
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { BRIDGE_DECK_Y, BRIDGE_NORTH_Z, BRIDGE_SOUTH_Z, BRIDGE_X, CITY_PATH, VILLAGE_PATH, WATER_LEVEL, isWater, riverCenter, terrainHeight } from '../../content/world/kodassery';
 import { terrainMeshData, traversalBoxes } from './traversalGeometry';
-import { KodasseryWorld } from './KodasseryWorld';
+import { GrassAssetMesh, KodasseryWorld, type Instance as GrassInstance } from './KodasseryWorld';
 
 type V3 = [number, number, number];
 type Collider = { position: V3; size: V3; rotation: V3 };
@@ -16,6 +16,23 @@ type Sign = { position: V3; yaw: number; english: string; malayalam: string; col
 type Instance = { position: V3; rotation: V3; scale: V3; color: string };
 const UP = new Vector3(0, 1, 0);
 const PALETTE = { tile:'#aa573c', tileLight:'#bd7049', timber:'#72563d', cream:'#e5d7b3', wall:'#a86046', sand:'#bfad79', tar:'#55594d' };
+const FIELD_GRASS_URL = '/assets/grass/field.glb';
+
+function generatePaddyGrass(): GrassInstance[] {
+  const result: GrassInstance[] = [];
+  let seed = 1907;
+  const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  // The field blade is instanced across the five authored terraces only. Roads,
+  // bunds, temple grounds, and the rest of Kadambode remain clear.
+  for (let row = 0; row < 5; row++) for (let col = 0; col < 3; col++) {
+    const x = -42 + col * 12, z = -310 + row * 10;
+    for (let i = 0; i < 48; i++) {
+      const px = x - 4.9 + random() * 9.8, pz = z - 3.9 + random() * 7.8;
+      result.push({ position: [px, terrainHeight(px, pz) + .04, pz], scale: [.55 + random() * .35, .78 + random() * .3, .55 + random() * .35], rotation: [0, random() * Math.PI * 2, 0], color: '#86a94f' });
+    }
+  }
+  return result;
+}
 
 /** Static meshes are merged by material: repeated architecture does not add draw calls. */
 class VillageBuilder {
@@ -268,7 +285,7 @@ function Water({animated}:{animated:boolean}) {
   </>;
 }
 function KeralaGeometry({quality='medium',animated=true,locale='en'}:{quality?:'low'|'medium'|'high';animated?:boolean;locale?:Locale}) {
-  const architecture=useMemo(buildArchitecture,[]),ground=useMemo(createTerrain,[]),plants=useMemo(generatePlants,[]);
+  const architecture=useMemo(buildArchitecture,[]),ground=useMemo(createTerrain,[]),plants=useMemo(generatePlants,[]),paddyGrass=useMemo(generatePaddyGrass,[]);
   const roads=useMemo(()=>({village:ribbon(VILLAGE_PATH,3.8),tar:ribbon(VILLAGE_PATH.filter(([,z])=>z>=-260),3,.082),city:ribbon(CITY_PATH,4.1),cityTar:ribbon(CITY_PATH,3.1,.082),temple:ribbon([[-6,-238],[12,-238],[22,-231]],2.4),tea:ribbon([[7,-190],[-10,-190]],2.1)}),[]);
   const frond=useMemo(()=>leafGeometry(),[]),banana=useMemo(()=>leafGeometry(true),[]),trunk=useMemo(()=>new CylinderGeometry(.75,1,1,7),[]),shrub=useMemo(()=>new CylinderGeometry(.4,1,1,7),[]);
   return <>
@@ -282,6 +299,7 @@ function KeralaGeometry({quality='medium',animated=true,locale='en'}:{quality?:'
     <Plants data={plants.trunks} geometry={trunk}/><Plants data={plants.fronds} geometry={frond}/>
     <Plants data={plants.bananaTrunks} geometry={trunk}/><Plants data={plants.bananaLeaves} geometry={banana}/>
     {quality!=='low'&&<Plants data={plants.shrubs} geometry={shrub}/>}
+    {quality!=='low'&&<GrassAssetMesh url={FIELD_GRASS_URL} data={paddyGrass}/>}
   </>;
 }
 export const KeralaWorld=memo(KeralaGeometry);
