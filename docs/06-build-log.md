@@ -1,5 +1,12 @@
 # Build log — observed implementation status
 
+## 15 September 2026 — multiplayer M0/A01 compatibility workspace
+
+- Added npm workspaces for the protocol, server-safe simulation, and Colyseus server boundaries. Pinned Colyseus core `0.18.14`, SDK `0.18.2`, schema `5.0.32`, WebSocket transport `0.18.2`, and server Rapier `0.19.2`.
+- Server Rapier intentionally matches the existing `@react-three/rapier@2.2.0` dependency. The initial `0.20.0` candidate created incompatible duplicate private Rapier types, so it was rejected. `@types/three` retains an unrelated type-only nested Rapier package; runtime/server simulation resolves `0.19.2`.
+- The Node-only compatibility test constructs and steps Rapier, then starts an ephemeral localhost Colyseus room and confirms the SDK client receives a real schema state patch. It requires local-port permission in this sandbox; no external network service is used.
+- Checks: focused compatibility test PASS (2 tests); `npm run typecheck` PASS; `npm test` PASS (33 files, 182 tests); `npm run build` PASS. Existing Three.js CommonJS deprecation and large `WorldCanvas` chunk warnings remain.
+
 ## 15 September 2026 — School uniform arm-stretch correction
 
 - Inspected the user's `Screenshot 2026-09-15 at 1.31.33 AM.png`: arms formed triangular fans when lowered. The uniform arm mask had been centered at normalized Z=0.10, while actual distal-arm vertices lie around Z=0.043. Thousands of vertices were partially root-weighted and stayed behind as the bones moved.
