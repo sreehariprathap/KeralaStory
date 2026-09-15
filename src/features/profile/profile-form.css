@@ -1,0 +1,153 @@
+.profile-form {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 34rem;
+  min-width: 0;
+  font-size: 1rem;
+}
+
+.profile-form__field,
+.profile-form__fieldset {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.profile-form__field label,
+.profile-form__fieldset legend {
+  font-weight: 700;
+}
+
+.profile-form__field input[type="text"] {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.7rem 0.8rem;
+  color: var(--ink);
+  background: var(--paper-raised);
+  border: 1px solid color-mix(in srgb, var(--ink) 45%, transparent);
+  border-radius: 6px;
+}
+
+.profile-form__field input[type="text"][aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.profile-form__fieldset {
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.profile-form__preset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.profile-form__preset {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 72px;
+  padding: 0.7rem;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid color-mix(in srgb, var(--ink) 28%, transparent);
+  border-radius: 6px;
+  cursor: pointer;
+  min-width: 0;
+  font-size: max(0.875rem, 14px);
+  overflow-wrap: anywhere;
+}
+
+.profile-form__preset:has(input:checked) {
+  border-color: var(--forest);
+  box-shadow: inset 0 0 0 2px var(--forest);
+}
+
+.profile-form__preset input,
+.profile-form__swatch-label input {
+  accent-color: var(--forest);
+}
+
+.profile-form__preset-mark {
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 2px solid var(--paper-raised);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 38%, transparent);
+}
+
+.profile-form__preset strong,
+.profile-form__preset small {
+  display: block;
+}
+
+.profile-form__preset strong {
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+
+.profile-form__preset small {
+  margin-top: 0.2rem;
+  font-size: max(0.75rem, 12px);
+  line-height: 1.25;
+}
+
+.profile-form__swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.profile-form__swatch-label {
+  display: inline-grid;
+  justify-items: center;
+  gap: 0.35rem;
+  min-width: 48px;
+  min-height: 48px;
+  cursor: pointer;
+}
+
+.profile-form__swatch {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid var(--paper-raised);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 42%, transparent);
+}
+
+.profile-form__swatch-label:has(input:checked) .profile-form__swatch {
+  box-shadow: 0 0 0 2px var(--paper-raised), 0 0 0 4px var(--forest);
+}
+
+.profile-form__error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.profile-form__submit {
+  justify-self: start;
+  margin-top: 0.25rem;
+}
+
+.profile-form__visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  white-space: nowrap;
+  border: 0;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 34rem) {
+  .profile-form__preset-grid {
+    grid-template-columns: 1fr;
+  }
+}
