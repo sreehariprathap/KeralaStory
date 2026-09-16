@@ -1,4 +1,5 @@
 import { ExpansionGround } from './ExpansionGround';
+import { staticArchitectureBoxes } from '../../content/world/staticArchitecture';
 import { RiverNetwork } from './RiverNetwork';
 import { TownWorld } from './TownWorld';
 import { MountainExpansion } from './MountainExpansion';
@@ -332,6 +333,7 @@ function Water({animated}:{animated:boolean}) {
   </>;
 }
 function KeralaGeometry({quality='medium',animated=true,locale='en'}:{quality?:'low'|'medium'|'high';animated?:boolean;locale?:Locale}) {
+  const collision=useMemo(staticArchitectureBoxes,[]);
   const architecture=useMemo(buildArchitecture,[]),ground=useMemo(createTerrain,[]),plants=useMemo(generatePlants,[]),paddyGrass=useMemo(generatePaddyGrass,[]);
   const roads=useMemo(()=>({village:ribbon(VILLAGE_PATH,3.8),tar:ribbon(VILLAGE_PATH.filter(([,z])=>z>=-260),3,.082),city:ribbon(CITY_PATH,4.1),cityTar:ribbon(CITY_PATH,3.1,.082),temple:ribbon([[-6,-238],[12,-238],[22,-231]],2.4),tea:ribbon([[7,-190],[-10,-190]],2.1)}),[]);
   const frond=useMemo(()=>leafGeometry(),[]),banana=useMemo(()=>leafGeometry(true),[]),trunk=useMemo(()=>new CylinderGeometry(.75,1,1,7),[]),shrub=useMemo(()=>new CylinderGeometry(.4,1,1,7),[]);
@@ -341,7 +343,7 @@ function KeralaGeometry({quality='medium',animated=true,locale='en'}:{quality?:'
     {Object.entries(roads).map(([key,geometry])=><mesh key={key} geometry={geometry} receiveShadow><meshStandardMaterial color={key==='tar'||key==='cityTar'?PALETTE.tar:PALETTE.sand} roughness={1} side={DoubleSide}/></mesh>)}
     <Water animated={animated}/><RiverNetwork animated={animated} quality={quality}/><TownWorld/>
     {architecture.meshes.map(({color,geometry})=><mesh key={color} geometry={geometry} castShadow receiveShadow><meshStandardMaterial color={color} roughness={.92} side={DoubleSide}/></mesh>)}
-    <RigidBody type="fixed" colliders={false}>{architecture.colliders.map((c,i)=><CuboidCollider key={i} args={c.size} position={c.position} rotation={c.rotation}/>)}</RigidBody>
+    <RigidBody type="fixed" colliders={false}>{collision.map(c=><CuboidCollider key={c.id} args={[c.size[0]/2,c.size[1]/2,c.size[2]/2]} position={c.position} rotation={c.rotation}/>)}</RigidBody>
     {architecture.signs.map(sign=><PaintedSign key={sign.english} sign={sign} locale={locale}/>)}
     <Plants data={plants.trunks} geometry={trunk}/><Plants data={plants.fronds} geometry={frond}/>
     <Plants data={plants.bananaTrunks} geometry={trunk}/><Plants data={plants.bananaLeaves} geometry={banana}/>

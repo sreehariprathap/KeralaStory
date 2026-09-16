@@ -3,7 +3,7 @@ import { MAX_ROOM_OCCUPANTS } from './constants.ts';
 import { AvatarAppearanceSchema, ChatTextSchema, DisplayNameSchema, GuestIdSchema, QuatSchema, RoomPhaseSchema, SeatIdSchema, Vec3Schema, VehicleIdSchema } from './schemas.ts';
 
 export const CLIENT_EVENT_TYPES = ['input', 'enterVehicle', 'exitVehicle', 'chatSend', 'ready', 'leave', 'ping'] as const;
-export const SERVER_EVENT_TYPES = ['roomSnapshot', 'chatAccepted', 'roomError'] as const;
+export const SERVER_EVENT_TYPES = ['roomSnapshot', 'chatAccepted', 'roomError', 'roomWelcome', 'pong'] as const;
 
 export type Vec3 = z.infer<typeof Vec3Schema>;
 export type Quat = z.infer<typeof QuatSchema>;
@@ -36,11 +36,16 @@ export const RoomSnapshotSchema = z.object({
 }).strict();
 export const RoomErrorCodeSchema = z.enum(['ROOM_FULL', 'ROOM_NOT_FOUND', 'WORLD_VERSION_MISMATCH', 'RECONNECT_DENIED', 'ROOM_ENDED', 'INVALID_MESSAGE', 'RATE_LIMITED', 'MUTED', 'VEHICLE_DENIED']);
 export const RoomErrorSchema = z.object({ code: RoomErrorCodeSchema, message: z.string().min(1).max(160) }).strict();
+export const RoomWelcomeSchema = z.object({ roomCode: z.string().regex(/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$/), guestId: GuestIdSchema, reconnectToken: z.string().min(32).max(128) }).strict();
+export const PongSchema = z.object({ clientTimeMs: z.number().finite().nonnegative(), serverTimeMs: z.number().finite().nonnegative() }).strict();
 export const ServerEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('roomSnapshot'), payload: RoomSnapshotSchema }).strict(),
   z.object({ type: z.literal('chatAccepted'), payload: ChatMessageSchema }).strict(),
   z.object({ type: z.literal('roomError'), payload: RoomErrorSchema }).strict(),
+  z.object({ type: z.literal('roomWelcome'), payload: RoomWelcomeSchema }).strict(),
+  z.object({ type: z.literal('pong'), payload: PongSchema }).strict(),
 ]);
+export type RoomWelcomeDto = z.infer<typeof RoomWelcomeSchema>;
 export type TransformDto = z.infer<typeof TransformSchema>;
 export type TravelDto = z.infer<typeof TravelSchema>;
 export type ReplicatedPlayerDto = z.infer<typeof ReplicatedPlayerSchema>;

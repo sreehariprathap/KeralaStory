@@ -1,11 +1,13 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
+import { waterfallBarrierBox } from '../../content/world/staticArchitecture';
 import { Color, DoubleSide, MeshStandardMaterial, Object3D, type InstancedMesh } from 'three';
 import { terrainHeight } from '../../content/world/kodassery';
 import { FALLS, waterfallGeometry } from './waterfallGeometry';
 
 const baseY = terrainHeight(FALLS.x, FALLS.z);
+const barrier = waterfallBarrierBox();
 const rockColors = ['#717c6b', '#838977', '#626f63', '#939783'];
 const rockData = [
   // Embedded backing mass: its west face supports the falling sheets.
@@ -88,7 +90,7 @@ export function Waterfall({ animated, quality }: { animated: boolean; quality: '
     <mesh geometry={assets.fall} material={assets.material} />
     <mesh geometry={assets.stream} material={assets.material} />
     <RigidBody type="fixed" colliders={false}>
-      <CuboidCollider args={[4, 11, 4]} position={[50, baseY + 6, -383]} />
+      <CuboidCollider args={[barrier.size[0]/2, barrier.size[1]/2, barrier.size[2]/2]} position={barrier.position} />
     </RigidBody>
   </group>;
 }

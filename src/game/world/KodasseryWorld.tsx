@@ -1,4 +1,6 @@
 import { terrainMeshData } from './traversalGeometry';
+import { canopyArchitectureBoxes } from '../../content/world/staticArchitecture';
+import { staticForestBoxes } from '../../content/world/staticForest';
 import { memo, useMemo, useRef, useLayoutEffect } from 'react';
 import { useLoader } from '@react-three/fiber';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
@@ -133,6 +135,10 @@ function generateForest(){
   };
 }
 const forest=generateForest();
+/** Kept as a parity check against the authored visual generator. */
+export function authoredForestColliderBoxes() {
+  return [...forest.trunks,...forest.importedFallbackTrunks].filter(t=>Math.min(...TRAIL_POINTS.map(p=>Math.hypot(p.x-t.position[0],p.z-t.position[2])))<15).map(t=>({position:t.position,size:[1,t.scale[1],1]}));
+}
 
 function Timber({position,scale,color='#80684a',rotation=[0,0,0]}:{position:[number,number,number];scale:[number,number,number];color?:string;rotation?:[number,number,number]}) {
   return <mesh position={position} scale={scale} rotation={rotation} castShadow receiveShadow><boxGeometry/><meshStandardMaterial color={color} roughness={1}/></mesh>;
@@ -142,7 +148,6 @@ function Treehouse({x,z,scale=1}:{x:number;z:number;scale?:number}){
   const y=terrainHeight(x,z)+3;
   return <group position={[x,y,z]} scale={scale}>
     <mesh position={[0,2.7,1]} castShadow><cylinderGeometry args={[.65,1,13,9]}/><meshStandardMaterial color="#71644b"/></mesh>
-    <RigidBody type="fixed" colliders={false}><CuboidCollider args={[3.6,.18,3]} position={[0,0,0]}/><CuboidCollider args={[2.4,1.35,.16]} position={[0,1.5,2]}/><CuboidCollider args={[.16,1.35,2]} position={[-2.4,1.5,0]}/><CuboidCollider args={[.16,1.35,2]} position={[2.4,1.5,0]}/></RigidBody>
     {[-2.9,2.9].flatMap(px => [-2.3,2.3].map(pz => {
       const bottom = (terrainHeight(x + px * scale, z + pz * scale) - y) / scale - .15;
       const top = -.17;
@@ -164,18 +169,17 @@ function Bridge(){
   const a=new Vector3(8,terrainHeight(8,-434)+.1,-434),b=new Vector3(18,terrainHeight(18,-415)+3.2,-415);
   const d=b.clone().sub(a),len=d.length(),mid=a.clone().add(b).multiplyScalar(.5);const yaw=Math.atan2(d.x,d.z),pitch=-Math.atan2(d.y,Math.hypot(d.x,d.z));
   return <group position={mid.toArray()} rotation={[0,yaw,0]}><group rotation={[pitch,0,0]}>
-    <RigidBody type="fixed" colliders={false}><CuboidCollider args={[1.1,.12,len/2]}/><CuboidCollider args={[.08,.5,len/2]} position={[-1.12,.55,0]}/><CuboidCollider args={[.08,.5,len/2]} position={[1.12,.55,0]}/></RigidBody>
     <InstanceMesh kind="timber" data={Array.from({length:44},(_,i)=>({position:[0,0,-len/2+i*len/43] as [number,number,number],scale:[2.3,.18,.39] as [number,number,number],color:i%3===0?'#b49566':'#9a7b51'}))}/>
     {[-1.13,1.13].map(x=><group key={x}>{Array.from({length:9},(_,i)=><Timber key={i} position={[x,.55,-len/2+i*len/8]} scale={[.09,1.2,.09]} color="#705c3e"/>)}{[.55,1.05].map(y=><mesh key={y} position={[x,y,0]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.035,.035,len,5]}/><meshStandardMaterial color="#c1aa7a"/></mesh>)}</group>)}
   </group></group>;
 }
 
 function WorldGeometry({quality='medium',animated=true}:{quality?:'low'|'medium'|'high';animated?:boolean}){
+  const canopyCollision=useMemo(()=>[...canopyArchitectureBoxes(),...staticForestBoxes()],[]);
   const ground=useMemo(terrainGeometry,[]);const path=useMemo(()=>trailGeometry(TRAIL_POINTS,3.8),[]);
   const pathBranch=useMemo(()=>trailGeometry(new CatmullRomCurve3([new Vector3(7,0,-396),new Vector3(21,0,-391),new Vector3(31,0,-386)]).getPoints(35),2.4),[]);
   const treeTrunks=useMemo(()=>quality==='low'?[...forest.trunks,...forest.importedFallbackTrunks].filter((_,i)=>i%2===0):forest.trunks,[quality]);
   const treeLeaves=useMemo(()=>quality==='low'?[...forest.leaves,...forest.importedFallbackLeaves].filter((_,i)=>Math.floor(i/4)%2===0):forest.leaves,[quality]);
-  const colliderTrunks=[...forest.trunks,...forest.importedFallbackTrunks];
   return <>
     
     <RigidBody type="fixed" colliders="trimesh"><mesh geometry={ground} receiveShadow><meshStandardMaterial vertexColors roughness={1}/></mesh></RigidBody>
@@ -186,7 +190,7 @@ function WorldGeometry({quality='medium',animated=true}:{quality?:'low'|'medium'
     {quality!=='low'&&KODASSERY_GRASS.map((url,index)=><GrassAssetMesh key={url} url={url} data={forest.grass.filter((_,i)=>i%KODASSERY_GRASS.length===index)}/>)}
     <Treehouse x={18} z={-415}/><Treehouse x={32} z={-425} scale={.8}/><Bridge/><Waterfall animated={animated} quality={quality}/>
     <RigidBody type="fixed" colliders={false}>
-      {colliderTrunks.filter(t=>Math.min(...TRAIL_POINTS.map(p=>Math.hypot(p.x-t.position[0],p.z-t.position[2])))<15).map((t,i)=><CuboidCollider key={i} position={[t.position[0],t.position[1],t.position[2]]} args={[.5,t.scale[1]/2,.5]}/>)}
+      {canopyCollision.map(c=><CuboidCollider key={c.id} position={c.position} rotation={c.rotation} args={[c.size[0]/2,c.size[1]/2,c.size[2]/2]}/>)}
     </RigidBody>
     {[-465,-348].map(z=><group key={z} position={[4,terrainHeight(4,z),z]}><Timber position={[0,1,0]} scale={[.15,2,.15]} color="#776244"/><Timber position={[0,1.75,0]} scale={[1.7,.5,.15]} color="#b69a6a"/><Timber position={[.4,1.75,-.095]} scale={[.5,.06,.025]} color="#3c5840"/></group>)}
   </>;

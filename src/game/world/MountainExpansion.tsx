@@ -1,4 +1,5 @@
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
+import { mountainArchitectureBoxes } from '../../content/world/staticArchitecture';
 import type { Locale } from '../../contracts';
 import { EXPANSION_LAYOUT, terrainHeight } from '../../content/world/definition';
 import { localizedPlace } from '../../features/i18n/translate';
@@ -10,9 +11,7 @@ export function MountainExpansion({locale}:{locale:Locale}) {
   const trail=EXPANSION_LAYOUT.routes.find(r=>r.id==='summit-trail')!;
   const head=EXPANSION_LAYOUT.anchors.find(a=>a.id==='summit-trailhead')!;
   const pads=[.25,.5,.75].map(t=>trail.points[Math.round((trail.points.length-1)*t)]);
-  const rails=[{position:[summit[0],summit[1]+.75,summit[2]-6] as [number,number,number],size:[16,1.5,.18] as [number,number,number]}, {position:[summit[0]+8,summit[1]+.75,summit[2]] as [number,number,number],size:[.18,1.5,12] as [number,number,number]}];
-  const a=trail.points[0],b=trail.points[2],dx=b[0]-a[0],dz=b[2]-a[2],length=Math.hypot(dx,dz);
-  const gates=[-1,1].map(side=>[a[0]-dz/length*side*1.1,terrainHeight(a[0]-dz/length*side*1.1,a[2]+dx/length*side*1.1)+.55,a[2]+dx/length*side*1.1] as [number,number,number]);
+  const boxes=mountainArchitectureBoxes(),rails=boxes.slice(0,2),gates=boxes.slice(2).map(box=>box.position);
   return <group>
     <ExpansionSign position={[head.position[0]+5,head.position[1],head.position[2]]} label={`${localizedPlace(head.id,locale)} · ${localizedPlace('kodassery-summit',locale)}`} width={4}/>
     <ExpansionSign position={[summit[0]+5,summit[1],summit[2]+3]} label={localizedPlace('kodassery-summit',locale)} width={3.5}/>
