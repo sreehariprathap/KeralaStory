@@ -5,9 +5,9 @@ import type { RapierCollider, RapierRigidBody } from '@react-three/rapier';
 import type { KinematicCharacterController } from '@dimforge/rapier3d-compat';
 import type { Group } from 'three';
 import type { BicycleSave, ExplorerControllerProps, TravelMode, Vec3 } from '../../contracts';
-import { PARKING_SPOTS, nearestParking, safeGroundPosition, isCycleAllowed, isTravelAllowed, getAreaAt } from '../../content/world/definition';
+import { PARKING_SPOTS, nearestParking, safeGroundPosition, isCycleAllowed, isTravelAllowed } from '../../content/world/definition';
 import { useExplorerInput } from '../input/useExplorerInput';
-import { clearInput, headingFromMotion, readMovement } from '../input/inputState';
+import { clearInput, headingFromMotion, readFollowMovement } from '../input/inputState';
 import { ThirdPersonCamera } from '../camera/ThirdPersonCamera';
 import { ExplorerAvatar } from './ExplorerAvatar';
 import { CAPSULE_HALF_HEIGHT, CAPSULE_RADIUS, FEET_TO_CENTER, RUN_SPEED, WALK_SPEED, dampAngle, needsSafeReset } from './controllerMath';
@@ -97,7 +97,7 @@ export function ExplorerController(props: ExplorerControllerProps) {
     if(car.current&&vehicle.current==='car'){
       const p=car.current.body.translation(),v=car.current.body.linvel();
       const nx=p.x+v.x*.5,nz=p.z+v.z*.5;
-      blockedDrive=!!getAreaAt(nx,nz)&&!isTravelAllowed('car',nx,nz);
+      blockedDrive=!isTravelAllowed('car',nx,nz);
       if(blockedDrive)report('bicycle.walkOnly');
     }
     car.current?.step({forward:playing&&!blockedDrive?input.current.move.forward:0,steer:playing?input.current.move.x:0,brake:input.current.brake||!playing||blockedDrive,nitro:playing&&!blockedDrive&&vehicle.current==='car'&&(input.current.keys.has('ShiftLeft')||input.current.keys.has('ShiftRight'))},Math.min(world.timestep,1/30),vehicle.current==='car');
@@ -143,7 +143,7 @@ export function ExplorerController(props: ExplorerControllerProps) {
         report('bicycle.noClearance');
       }else if(reason==='brake')report('bicycle.brakeToDismount');
     }
-    const dt=Math.min(world.timestep,1/30),intent=readMovement(input.current,azimuth.current);
+    const dt=Math.min(world.timestep,1/30),intent=readFollowMovement(input.current,azimuth.current);
     if(vehicle.current==='car'){input.current.sprintLocked=false;input.current.jumpQueued=false;return;}
     const desiredSpeed=playing?(intent.running?RUN_SPEED:WALK_SPEED):0;
     let vx=intent.x*desiredSpeed,vz=intent.z*desiredSpeed;
@@ -200,6 +200,6 @@ export function ExplorerController(props: ExplorerControllerProps) {
         <group visible={!(showRider&&vehicle.current==='car')} position={[0,showRider?.25:0,showRider?-.2:0]}><ExplorerAvatar profile={profile} reducedMotion={reducedMotion} motion={motion}/></group>
       </group>
     </RigidBody>
-    <ThirdPersonCamera body={body} vehicleBody={cameraCar} input={input} azimuth={azimuth} mode={mode} sensitivity={sensitivity} reducedMotion={reducedMotion} resetToken={resetToken}/>
+    <ThirdPersonCamera body={body} vehicleBody={cameraCar} input={input} azimuth={azimuth} heading={heading} motion={motion} mode={mode} sensitivity={sensitivity} reducedMotion={reducedMotion} resetToken={resetToken}/>
   </>;
 }

@@ -39,10 +39,10 @@ Core tasks may proceed across independent tracks, but only one writer owns App, 
 
 - [x] Audit existing plans, user changes and multiplayer foundation files.
 - [x] Verify existing protocol/client helper baseline: 59 tests in 10 files passed.
-- [ ] A03/A04 canonical simulation and replay (Astra implementation underway).
-- [ ] A05/A06 server admission and loop (Astra implementation underway).
-- [ ] Remaining ordered deliverables above.
-- [ ] Required integrated typecheck/test/build and running UI inspection.
+- [x] A03/A04 canonical simulation and replay (authoritative movement, reset, replay checksum and parity coverage integrated).
+- [x] A05/A06 server admission and loop (room admission, reconnect, 60/20 Hz loop, patches and lifecycle coverage integrated).
+- [ ] Remaining ordered deliverables above (V2 dressing/cars are partial; network client, picker/spawn, save migration and final gates remain).
+- [x] Integrated typecheck/test/build and running UI inspection for this continuation; mobile/device and hardware-accelerated 3D acceptance remain open.
 - [ ] User gates and hardware/release evidence.
 
 Record measured results and precise gaps in `docs/06-build-log.md`; never convert implementation presence into visual or release acceptance.

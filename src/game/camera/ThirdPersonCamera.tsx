@@ -7,12 +7,15 @@ import { Vector3 } from 'three';
 import type { ExplorerInput } from '../input/inputState';
 import type { InputMode } from '../../contracts';
 import { FEET_TO_CENTER } from '../player/controllerMath';
+import { followHeading } from './followHeading';
 
 interface Props {
   body: RefObject<RapierRigidBody | null>;
   vehicleBody?: RefObject<RapierRigidBody | null>;
   input: RefObject<ExplorerInput>;
   azimuth: RefObject<number>;
+  heading: RefObject<number>;
+  motion: RefObject<{ speed: number }>;
   mode: InputMode;
   sensitivity: number;
   reducedMotion: boolean;
@@ -20,12 +23,13 @@ interface Props {
 }
 
 /** Environmental sphere sweep excludes the player and sensor-only discoveries. */
-export function ThirdPersonCamera({ body, vehicleBody, input, azimuth, mode, sensitivity, reducedMotion, resetToken }: Props) {
+export function ThirdPersonCamera({ body, vehicleBody, input, azimuth, heading, motion, mode, sensitivity, reducedMotion, resetToken }: Props) {
   const { world, rapier } = useRapier();
   const pitch = useRef(0.26);
   const distance = useRef(4.5);
   const initialized = useRef(false);
   const lastReset = useRef(resetToken);
+  const manualLookGrace = useRef(0);
   const vectors = useMemo(() => ({ anchor: new Vector3(), target: new Vector3(), direction: new Vector3(), goal: new Vector3() }), []);
   const sphere = useMemo(() => new rapier.Ball(0.2), [rapier]);
 
@@ -33,12 +37,16 @@ export function ThirdPersonCamera({ body, vehicleBody, input, azimuth, mode, sen
     const rigidBody = body.current;
     if (!rigidBody) return;
     const dt = Math.min(delta, 1 / 15);
-    if (lastReset.current !== resetToken) { initialized.current = false; lastReset.current = resetToken; }
+    if (lastReset.current !== resetToken) { initialized.current = false; lastReset.current = resetToken; manualLookGrace.current = 0; pitch.current = 0.26; }
     if (mode === 'playing') {
       const controls = input.current;
+      const keyboardLook = Number(controls.keys.has('KeyQ')) - Number(controls.keys.has('KeyE'));
+      if (controls.lookX || controls.lookY || keyboardLook || controls.dragging) manualLookGrace.current = 1.2;
+      else manualLookGrace.current = Math.max(0, manualLookGrace.current - dt);
       azimuth.current -= controls.lookX * 0.0025 * sensitivity;
       pitch.current = Math.max(-0.12, Math.min(0.9, pitch.current + controls.lookY * 0.002 * sensitivity));
-      azimuth.current += (Number(controls.keys.has('KeyQ')) - Number(controls.keys.has('KeyE'))) * 1.5 * dt;
+      azimuth.current += keyboardLook * 1.5 * dt;
+      if (!manualLookGrace.current && motion.current.speed > 0.06) azimuth.current = followHeading(azimuth.current, heading.current, dt);
       controls.lookX = 0;
       controls.lookY = 0;
     }

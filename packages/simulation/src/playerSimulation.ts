@@ -72,7 +72,11 @@ export function advancePlayers(sim: SimulationWorld, dt: number): void {
     if (needsSafeReset(sim, feet)) { feet = findSafeSpawn(sim, undefined, player.collider); player.verticalSpeed = 0; reset = true; }
     player.body.setNextKinematicTranslation(toVector([feet[0], feet[1] + PLAYER_CENTER_HEIGHT, feet[2]]));
     player.snapshot.transform.position = feet;
-    player.snapshot.transform.velocity = reset ? [0, 0, 0] : [corrected.x / dt, corrected.y / dt, corrected.z / dt];
+    // Snap sub-millimetre-per-second solver residue at the replication boundary.
+    // The authoritative body remains full precision; clients should not observe
+    // tiny lateral drift after a stopped/disconnected player is settled.
+    const cleanVelocity = (value: number) => Math.abs(value) < 1e-3 ? 0 : value;
+    player.snapshot.transform.velocity = reset ? [0, 0, 0] : [cleanVelocity(corrected.x / dt), cleanVelocity(corrected.y / dt), cleanVelocity(corrected.z / dt)];
     if (Math.hypot(corrected.x, corrected.z) > 1e-5) player.snapshot.transform.headingRad = Math.atan2(corrected.x, -corrected.z);
     if (input) player.snapshot.lastProcessedInput = input.sequence;
   }

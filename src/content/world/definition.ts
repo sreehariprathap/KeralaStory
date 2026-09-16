@@ -214,9 +214,24 @@ export function isCycleAllowed(x: number, z: number): boolean {
   return MAIN_PATH.some((point, i) => i > 0 && distanceToSegment(x, z, MAIN_PATH[i - 1], point) <= 3);
 }
 
+/** Cars may leave the road ribbons and climb any authored dry terrain. Only
+ * unsupported gaps, water and near-vertical terrain are rejected. */
+export function isCarTerrainAllowed(x: number, z: number): boolean {
+  if (!hasGroundAt(x, z)) return false;
+  if (isOnWalkableDeck(x, z)) return true;
+  if (isWater(x, z)) return false;
+  const y = terrainHeight(x, z);
+  const samples = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
+  return samples.every(([dx, dz]) => {
+    if (!hasGroundAt(x + dx, z + dz) || isWater(x + dx, z + dz)) return false;
+    return Math.abs(terrainHeight(x + dx, z + dz) - y) <= 1.75;
+  });
+}
+
 /** Vehicle callers must check the intended position before movement or mounting. */
 export function isTravelAllowed(mode:TravelMode,x:number,z:number):boolean {
   if(mode==='foot')return (hasGroundAt(x,z)&&!isWater(x,z)) || isOnWalkableDeck(x,z);
+  if(mode==='car')return isCarTerrainAllowed(x,z);
   return isCycleAllowed(x,z);
 }
 

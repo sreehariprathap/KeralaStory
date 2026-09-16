@@ -44,6 +44,28 @@ function terrainFixture(model: CarModelId, point: readonly [number, number]) {
 
 describe('real Rapier car physics', () => {
   for (const model of models) {
+    for (const degrees of [20, 30, 35]) {
+      it(`${model} hill starts and climbs a ${degrees} degree incline through tyre contact`, () => {
+        const world = new RAPIER.World({x:0,y:-20,z:0});
+        worlds.push(world);
+        const angle = -degrees * Math.PI / 180;
+        world.createCollider(RAPIER.ColliderDesc.cuboid(12,.2,80)
+          .setTranslation(0,-.2,0).setRotation({x:Math.sin(angle/2),y:0,z:0,w:Math.cos(angle/2)}));
+        const car = createCarPhysics(world,[0,2,0],Math.PI,model);
+        const step = (forward:number, occupied=true) => {car.step({forward,steer:0,brake:false},DT,occupied);world.step();};
+        for(let i=0;i<240;i++) step(0,false);
+        const start={...car.body.translation()};
+        for(let i=0;i<120;i++) step(0,false);
+        expect(Math.abs(car.body.translation().z-start.z)).toBeLessThan(.25);
+        let groundedFrames=0;
+        for(let i=0;i<240;i++) {step(1);if(car.motion.grounded)groundedFrames++;}
+        const end=car.body.translation();
+        expect(end.z-start.z).toBeGreaterThan(3);
+        expect(end.y-start.y).toBeGreaterThan(1);
+        expect(car.motion.signedSpeed).toBeGreaterThan(.5);
+        expect(groundedFrames).toBeGreaterThan(220);
+      });
+    }
     it(`${model} settles with all tyre contact on flat ground at the authored mass`, () => {
       const { world, car, step } = fixture(model);
       expect(car.body.mass()).toBeCloseTo(CAR_MASS_KG, 5);

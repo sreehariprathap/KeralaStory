@@ -37,6 +37,12 @@ describe('V2 terrain and travel profile', () => {
     }
   });
 
+  it('allows cars to leave the ribbons on supported dry terrain while rejecting water', () => {
+    expect(isTravelAllowed('car', -555, -680)).toBe(true);
+    expect(isTravelAllowed('car', -210, -220)).toBe(true);
+    expect(isTravelAllowed('car', 0, -100)).toBe(false);
+  });
+
   it('keeps sampled new-river water triangles well above the surrounding bed', () => {
     const meshes = EXPANSION_GROUND.v2!.river.meshes.filter(mesh => mesh.id !== 'athirappilly-drop');
     for (const mesh of meshes) for (let i = 0; i < mesh.indices.length; i += 3) {
