@@ -5,6 +5,9 @@ import { EXPANSION_GROUND, EXPANSION_LAYOUT, V2_ROUTES, V2_LAYOUT, terrainHeight
 import { ExpansionSign } from './ExpansionSign';
 import type { ExpansionRoute } from '../../contracts/worldExpansion';
 import type { TerrainChunk } from './expansionTerrain';
+import { routeSurfaceHeight, visibleRoutePoints } from './routeVisualGeometry';
+
+const WORLD_ROUTES = [...EXPANSION_LAYOUT.routes, ...V2_ROUTES];
 
 function Chunk({chunk}:{chunk:TerrainChunk}) {
   const geometry=useMemo(()=>{
@@ -16,20 +19,22 @@ function Chunk({chunk}:{chunk:TerrainChunk}) {
     <TrimeshCollider args={[collision[0],collision[1]]} friction={.9}/>
   </RigidBody>;
 }
-function RouteRibbon({route}:{route:ExpansionRoute}) {
+function RouteRibbon({route,routes}:{route:ExpansionRoute;routes:readonly ExpansionRoute[]}) {
   const geometry=useMemo(()=>{
-    const vertices:number[]=[],indices:number[]=[],across=6;
-    route.points.forEach((p,i)=>{
-      const before=route.points[Math.max(0,i-1)],after=route.points[Math.min(route.points.length-1,i+1)];
+    const vertices:number[]=[],indices:number[]=[],across=6,points=visibleRoutePoints(route,routes);
+    points.forEach((p,i)=>{
+      const before=points[Math.max(0,i-1)],after=points[Math.min(points.length-1,i+1)];
       const dx=after[0]-before[0],dz=after[2]-before[2],length=Math.hypot(dx,dz)||1;
+      const centerTerrainHeight=EXPANSION_GROUND.deckHeightAt(p[0],p[2])??terrainHeight(p[0],p[2]);
       for(let j=0;j<=across;j++){
         const offset=(j/across-.5)*route.widthM,x=p[0]-dz/length*offset,z=p[2]+dx/length*offset;
-        vertices.push(x,(EXPANSION_GROUND.deckHeightAt(x,z)??terrainHeight(x,z))+.045,z);
+        const sampledTerrainHeight=EXPANSION_GROUND.deckHeightAt(x,z)??terrainHeight(x,z);
+        vertices.push(x,routeSurfaceHeight(p,centerTerrainHeight,sampledTerrainHeight)+.045,z);
         if(i<route.points.length-1&&j<across){const a=i*(across+1)+j;indices.push(a,a+1,a+across+1,a+1,a+across+2,a+across+1);}
       }
     });
     const g=new BufferGeometry();g.setAttribute('position',new Float32BufferAttribute(vertices,3));g.setIndex(indices);g.computeVertexNormals();return g;
-  },[route]);
+  },[route,routes]);
   return <mesh geometry={geometry} receiveShadow><meshStandardMaterial color={route.allowedModes.includes('car')?'#686d5e':'#c4b387'} roughness={1} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1}/></mesh>;
 }
 /** Original north ground is rendered by KodasseryWorld; these chunks share only its edges. */
@@ -39,8 +44,7 @@ export const ExpansionGround=memo(function ExpansionGround(){return <>
     <CuboidCollider args={[3.5,.3,9]}/>
   </RigidBody>
   {EXPANSION_GROUND.chunks.map(chunk=><Chunk key={chunk.id} chunk={chunk}/>)}
-  {EXPANSION_LAYOUT.routes.map(route=><RouteRibbon key={route.id} route={route}/>)}
-  {V2_ROUTES.map(route=><RouteRibbon key={route.id} route={route}/>)}
+  {WORLD_ROUTES.map(route=><RouteRibbon key={route.id} route={route} routes={WORLD_ROUTES}/>)}
   {[...V2_LAYOUT.towns.filter(t=>!t.existing),V2_LAYOUT.park].map(site=>{
     const x=site.center[0]+7,z=site.center[2];
     return <ExpansionSign key={site.id} position={[x,terrainHeight(x,z),z]} label={`${site.label} · ${site.id==='chalakkudy'?'first street':'site'}`} width={4}/>;

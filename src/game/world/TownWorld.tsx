@@ -26,7 +26,7 @@ export function TownWorld() {
       </group>}/>
     </group>
     {CHALAKKUDY_STREET.buildings.filter(b => b.label).map(b => <group key={b.id} position={b.origin} rotation={[0, b.yaw, 0]}>
-      <ExpansionSign position={[b.kind === 'coffee' ? 3.2 : 0, b.kind === 'coffee' ? b.floorY : 1.25, b.depth / 2 - .5]} label={b.label} width={b.kind === 'coffee' ? 2.8 : 4.5}/>
+      <ExpansionSign position={[b.kind === 'coffee' ? 3.2 : 0, b.floorY, b.depth / 2 - .5]} label={b.label} width={b.kind === 'coffee' ? 2.8 : 4.5}/>
     </group>)}
   </group>;
 }

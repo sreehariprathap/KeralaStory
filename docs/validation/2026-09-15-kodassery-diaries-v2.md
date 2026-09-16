@@ -1,5 +1,21 @@
 # Kodassery Diaries v2.0 — implementation and review record
 
+## Latest: expansion sign and route-surface corrections — 15 September 2026
+
+A user-supplied screenshot of Athirappilly Upper View exposed two visual defects: the location-board support crossed its painted face, and the footpath paint competed with the vehicle-road paint at their junction. The shared board geometry now terminates its post below the board; the route renderer now suppresses only a foot trail's leading overlay while it remains inside a connected vehicle road's painted width. Terrain, collision and travel connectivity are unchanged.
+
+Three focused visual-geometry checks, including the actual Athirappilly junction, pass. Full checks: `npm run typecheck` PASS; `npm test` PASS (480 tests / 84 files); `npm run build` PASS. Please recheck `http://127.0.0.1:5000/?inspect` → **Athirappilly — upper view** in a hardware-accelerated browser. This automation environment cannot render WebGL, so no post-fix visual approval is claimed.
+
+## Latest: Athirappilly road grade correction — 15 September 2026
+
+The follow-up screenshot showed the approach road visibly crooked/cut into the hill. The rendered ribbon was using coarse terrain samples even where the authored road centerline was 6 m higher. It now keeps the authored route elevation along the centerline and derives only the shoulder slope from nearby terrain. The underlying route and collision data are unchanged.
+
+The new centerline-grade regression and the existing visual-geometry checks pass. Full checks: `npm run typecheck` PASS; `npm test` PASS (481 tests / 84 files); `npm run build` PASS. Please recheck **Athirappilly — upper view**; this automation environment cannot render WebGL, so visual acceptance remains pending.
+
+## Latest: Chalakkudy location-board post correction — 15 September 2026
+
+The first-street location boards now pass their actual deck height to the shared board component, so their support posts reach the foundation instead of beginning 1.25 m above it. `npm run typecheck`, `npm test` (477 tests / 83 files), and `npm run build` pass. This automation browser could not start the WebGL scene, so no rendered verification or Chalakkudy visual approval is claimed. Please still review `http://127.0.0.1:5000/?inspect` → **Chalakkudy — coffee street** for building scale, street proportions, porch arrival and walkability.
+
 ## Latest: Chalakkudy first street — 15 September 2026
 
 User authorized continuation with “proceed.” First-street placement is provisional; no asset-yard visual approval is inferred. The supplied coffee shop now appears in Chalakkudy, accompanied by three modest procedural shops and two houses. This is not the complete Tier A town. Other new towns, Silver Storm and vehicle additions remain unfinished.

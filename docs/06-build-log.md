@@ -1,5 +1,12 @@
 # Build log — observed implementation status
 
+## 15 September 2026 — multiplayer Luna-isolated slice
+
+- Implemented the unblocked plan tasks L03 and L04 without touching server contracts, app composition, physics, or world integration. L03 now parses direct or shared-link room codes and provides session-only, room-scoped token storage with recoverable storage warnings. L04 now buffers ordered snapshots with bounded capacity, interpolates render-time samples, handles short newest-sample gaps, and provides shortest-arc heading/vector interpolation.
+- Added focused regressions under `tests/multiplayer/` for direct/link lobby parsing, malformed input, storage failures, token scoping, snapshot ordering/eviction/extrapolation, vector interpolation, and heading wraparound.
+- The user-provided Luna labels do not match the current multiplayer plan: room/chat UI, seat HUD, guest labels, room-code dialog, and invite-copy controls map to later dependency-gated work rather than current L03/L04. They remain unimplemented until the documented Astra foundations (A09–A14 as applicable) exist.
+- Checks: focused multiplayer tests PASS (9 tests); `npm run typecheck` PASS; `npm test` PASS (88 files, 490 tests); `npm run build` PASS; `git diff --check` PASS. Existing Three.js CommonJS deprecation and large `WorldCanvas` chunk warnings remain.
+
 ## 15 September 2026 — multiplayer M0/A01 compatibility workspace
 
 - Added npm workspaces for the protocol, server-safe simulation, and Colyseus server boundaries. Pinned Colyseus core `0.18.14`, SDK `0.18.2`, schema `5.0.32`, WebSocket transport `0.18.2`, and server Rapier `0.19.2`.
@@ -247,3 +254,17 @@ Seven layout tests pass, including connectivity, grades, lengths, unique anchors
 - All six foundations have zero terrain relief and clear roads/water. Actual Rapier ray/capsule tests verify the coffee ramp and return walk. Conservative coffee shell/floor proxies are checked against extracted geometry; interior remains closed, forecourt open. Cached source materials/geometry/textures remain owned by the loader. World version advanced to `kodassery-diaries-v2-street-1`.
 - Fresh final checks: `npm test` PASS **477 tests / 83 files**; `npm run build` PASS including all workspace typechecks; `git diff --check` PASS. Focused street tests 4/4 PASS. Running game HTTP 200. Existing scene bundle/CJS warnings remain. No actual visual/performance acceptance claimed; no automated browser screenshot pass, as requested.
 - User review at `http://127.0.0.1:5000/?inspect` → **Chalakkudy — coffee street**: size/orientation of coffee model, street proportions/palette, porch arrival and walkability. This is a first street, not a complete Tier A city. No new commit this turn; preceding asset-yard work is preserved alongside the street changes.
+
+## 15 September 2026 — Chalakkudy location-board post correction
+
+- Corrected the shared location-board call in the first Chalakkudy street so every board starts at its building's actual deck height. The non-coffee boards previously supplied a raised position, leaving their posts floating above the foundation.
+- This is a visual-grounding correction only: no terrain, collision, landmark, asset-calibration, vehicle or save behavior changed. G2 asset approval and the Chalakkudy coffee-street review remain pending user input.
+- Checks: `npm run typecheck` PASS; `npm test` PASS (**477 tests / 83 files**); `npm run build` PASS. The existing Three.js CommonJS deprecation and 3.30 MB `WorldCanvas` chunk warnings remain. The local app opened, but this automated browser could not initialize the 3D scene because WebGL/hardware acceleration is unavailable; no rendered acceptance is claimed.
+
+## 15 September 2026 — screenshot-driven expansion sign and route-surface corrections
+
+- A user-supplied Athirappilly screenshot showed an expansion-sign post crossing the board face and competing footpath/vehicle-road paint at the upper-view junction. The shared board layout now ends each post at the board's lower edge, so supports cannot cover its painted text.
+- Added a shared visual-route rule that trims only a foot trail's leading overlay where it lies on a connected vehicle road. The underlying terrain, physical route connectivity and collision remain unchanged; the foot trail becomes visible once it leaves the road surface.
+- Added three focused visual-geometry regressions, including the actual Athirappilly junction. Checks: `npm run typecheck` PASS; `npm test` PASS (**480 tests / 84 files**); `npm run build` PASS. Existing Three.js CommonJS deprecation and 3.31 MB `WorldCanvas` chunk warnings remain. Await user recheck in a hardware-accelerated browser; no post-fix rendered acceptance is claimed.
+- Follow-up screenshot showed the road itself dipping into coarse terrain facets near Athirappilly. Measurement found a 6 m mismatch at the rendered ribbon centerline (`Y≈83.45` authored versus `Y≈77.45` terrain sample). The ribbon now preserves authored route elevation at its center and uses terrain only for shoulder cross-slope, preventing the road from appearing crooked or cut into the hill.
+- Added a centerline-grade regression. Checks: `npm run typecheck` PASS; `npm test` PASS (**481 tests / 84 files**); `npm run build` PASS. Existing CJS/large-chunk warnings remain; user visual recheck is still required.

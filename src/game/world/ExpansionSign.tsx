@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { CanvasTexture, DoubleSide, SRGBColorSpace } from 'three';
+import { locationBoardLayout } from './locationBoardGeometry';
 
 type ExpansionSignProps = {
   position: [number, number, number];
@@ -51,15 +52,15 @@ export function ExpansionSign({ position, label, width = 3 }: ExpansionSignProps
 
   useEffect(() => () => texture.dispose(), [texture]);
 
-  const boardHeight = width * 0.32;
+  const layout = locationBoardLayout(width);
   return (
     <group position={position}>
-      <mesh position={[0, 1, 0]} castShadow>
-        <cylinderGeometry args={[0.11, 0.15, 2, 8]} />
+      <mesh position={[0, layout.postCenterY, 0]} castShadow>
+        <cylinderGeometry args={[0.11, 0.15, layout.postHeight, 8]} />
         <meshStandardMaterial color="#6D4932" roughness={1} />
       </mesh>
-      <mesh position={[0, 1.8, 0]} castShadow>
-        <boxGeometry args={[width, boardHeight, 0.12]} />
+      <mesh position={[0, layout.boardCenterY, 0]} castShadow>
+        <boxGeometry args={[width, layout.boardHeight, 0.12]} />
         <meshStandardMaterial map={texture} roughness={1} side={DoubleSide} />
       </mesh>
     </group>
