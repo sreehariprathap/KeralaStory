@@ -187,3 +187,8 @@ Rapier route tests use actual rendered terrain arrays and architecture colliders
 - Baseline checks: `npm run typecheck` PASS; `npm test` PASS (**412 tests, 70 files**); `npm run build` PASS. Existing Three.js CommonJS deprecation and approximately 3.29 MB minified WorldCanvas chunk warnings remain.
 - Actual current app visually inspected in Chrome at `http://127.0.0.1:5000`: title screen, rendered Kodassery canopy/homestead background and four region entries. An initial DOM request timed out; subsequent screenshot inspection succeeded. No gameplay route, new location or performance acceptance is claimed from this planning-only inspection.
 - Status rule recorded: mark each implementation task Done only after its own checks and required visual/playtest evidence pass; otherwise retain Planned, Partial or Blocked with the missing condition.
+
+
+## MX-L3 — panorama helpers (15 September 2026)
+
+Owner: GPT-5.6 Luna, reviewed by Astra. Added `panoramaMath.ts` and six numerical tests. Computes a far plane from target distances and a clamped smoothstep visibility factor; rejects invalid vectors and ranges, including sparse vectors. Focused Vitest: 1 file / 6 tests pass. Helper milestone Done; runtime fog/camera integration remains MX-A6. No visual or performance claim.

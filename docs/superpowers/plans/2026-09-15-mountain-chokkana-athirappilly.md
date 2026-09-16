@@ -171,7 +171,7 @@ Only planning tasks are done at creation. Implementation boxes below stay unchec
 | MX-A4 | Astra | A2 | Chokkana drive and loop | Planned |
 | MX-A5 | Astra | A2 | Separate Athirappilly waterfall and trails | Planned |
 | MX-L2 | Luna | A2, A4 exclusions | Deterministic forest decor placements | Planned |
-| MX-L3 | Luna | A1 | Pure panorama math | Planned |
+| MX-L3 | Luna | A1 | Pure panorama math | Done |
 | MX-A6 | Astra | A3, A4, A5, L2, L3 | Whole-map summit rendering and sightlines | Planned |
 | MX-A7 | Astra | L1, A3, A4, A5 | Atlas, discovery, access and save integration | Planned |
 | MX-L4 | Luna | A6, A7 | Independent content/map/save regression tests | Planned |
@@ -320,9 +320,9 @@ export function createForestInstances(input: {
 
 Export `requiredFarPlane(eye:readonly number[], targets:readonly (readonly number[])[], margin:number):number` and `summitBlend(height:number,start:number,end:number):number`. Require finite three-component vectors, nonempty targets, margin≥1 and end>start; throw `RangeError` on invalid input. Return `max(distance(eye,target))*margin`, clamped to at least 1 m. For blend, clamp normalized height to [0,1], then return `t*t*(3-2*t)`. No React, Three.js, runtime fog mutation or package edits.
 
-- [ ] Add failing numerical tests, then implement the functions.
-- [ ] Include `requiredFarPlane([0,0,0],[[3,4,0]],1.2) === 6`; blend below/above limits is 0/1 and midpoint is 0.5; reject NaN and reversed bounds.
-- [ ] Run `npx vitest run tests/panoramaMath.test.ts`; return results. Astra supplies world-envelope corners and actual summit activation conditions in A6.
+- [x] Add failing numerical tests, then implement the functions.
+- [x] Include `requiredFarPlane([0,0,0],[[3,4,0]],1.2) === 6`; blend below/above limits is 0/1 and midpoint is 0.5; reject NaN and reversed bounds.
+- [x] Run `npx vitest run tests/panoramaMath.test.ts`; return results. Astra supplies world-envelope corners and actual summit activation conditions in A6.
 
 ### MX-L4 — Independent expansion regressions
 
