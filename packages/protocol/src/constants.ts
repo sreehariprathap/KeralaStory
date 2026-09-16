@@ -1,0 +1,12 @@
+export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+export const ROOM_CODE_LENGTH = 8;
+export const MAX_DISPLAY_NAME_GRAPHEMES = 24;
+export const MAX_CHAT_GRAPHEMES = 280;
+export const MAX_CHAT_HISTORY = 100;
+export const MAX_ROOM_OCCUPANTS = 10;
+export const ROOM_DISCONNECT_GRACE_MS = 60_000;
+export const EMPTY_ROOM_CLOSE_MS = 300_000;
+export const SIMULATION_HZ = 60;
+export const PATCH_HZ = 20;
+export const REMOTE_RENDER_BUFFER_MS = 100;
+export const MAX_REMOTE_EXTRAPOLATION_MS = 250;
