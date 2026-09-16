@@ -5,7 +5,7 @@ import { useRapier } from '@react-three/rapier';
 import type { RapierRigidBody } from '@react-three/rapier';
 import { Vector3 } from 'three';
 import type { ExplorerInput } from '../input/inputState';
-import type { InputMode } from '../../contracts';
+import type { CameraControl, InputMode } from '../../contracts';
 import { FEET_TO_CENTER } from '../player/controllerMath';
 import { followHeading } from './followHeading';
 
@@ -15,15 +15,16 @@ interface Props {
   input: RefObject<ExplorerInput>;
   azimuth: RefObject<number>;
   heading: RefObject<number>;
-  motion: RefObject<{ speed: number }>;
+  motion: RefObject<{ speed: number; riding?: boolean }>;
   mode: InputMode;
   sensitivity: number;
   reducedMotion: boolean;
   resetToken: number;
+  cameraControl: CameraControl;
 }
 
 /** Environmental sphere sweep excludes the player and sensor-only discoveries. */
-export function ThirdPersonCamera({ body, vehicleBody, input, azimuth, heading, motion, mode, sensitivity, reducedMotion, resetToken }: Props) {
+export function ThirdPersonCamera({ body, vehicleBody, input, azimuth, heading, motion, mode, sensitivity, reducedMotion, resetToken, cameraControl }: Props) {
   const { world, rapier } = useRapier();
   const pitch = useRef(0.26);
   const distance = useRef(4.5);
@@ -40,13 +41,20 @@ export function ThirdPersonCamera({ body, vehicleBody, input, azimuth, heading, 
     if (lastReset.current !== resetToken) { initialized.current = false; lastReset.current = resetToken; manualLookGrace.current = 0; pitch.current = 0.26; }
     if (mode === 'playing') {
       const controls = input.current;
+      // Mouse mode never applies to a mounted vehicle: its own steering already sets facing.
+      const mouseLook = cameraControl === 'mouse' && !motion.current.riding;
       const keyboardLook = Number(controls.keys.has('KeyQ')) - Number(controls.keys.has('KeyE'));
-      if (controls.lookX || controls.lookY || keyboardLook || controls.dragging) manualLookGrace.current = 1.2;
-      else manualLookGrace.current = Math.max(0, manualLookGrace.current - dt);
       azimuth.current -= controls.lookX * 0.0025 * sensitivity;
       pitch.current = Math.max(-0.12, Math.min(0.9, pitch.current + controls.lookY * 0.002 * sensitivity));
       azimuth.current += keyboardLook * 1.5 * dt;
-      if (!manualLookGrace.current && motion.current.speed > 0.06) azimuth.current = followHeading(azimuth.current, heading.current, dt);
+      if (mouseLook) {
+        // GTA-style free look: the camera never snaps back to face the movement heading.
+        manualLookGrace.current = 0;
+      } else {
+        if (controls.lookX || controls.lookY || keyboardLook || controls.dragging) manualLookGrace.current = 1.2;
+        else manualLookGrace.current = Math.max(0, manualLookGrace.current - dt);
+        if (!manualLookGrace.current && motion.current.speed > 0.06) azimuth.current = followHeading(azimuth.current, heading.current, dt);
+      }
       controls.lookX = 0;
       controls.lookY = 0;
     }

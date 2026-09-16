@@ -17,7 +17,7 @@ const save: SaveV1 = {
     id: 'local', displayName: 'മലയാളി യാത്രികൻ', avatarPresetId: 'canopy',
     colors: { skin: '#ba805b', hair: '#292a25', clothing: '#285943' },
   }, position: [1, 2, 3], headingRad: 0, safeSpawnId: 'spawn', visitedLandmarkIds: [],
-  settings: { quality: 'medium', muted: false, volume: 0.5, reducedMotion: false, sensitivity: 1 },
+  settings: { quality: 'medium', muted: false, volume: 0.5, reducedMotion: false, sensitivity: 1, cameraControl: 'auto' },
   updatedAt: '2026-09-14T00:00:00.000Z',
 };
 
@@ -40,6 +40,14 @@ describe('local save repository', () => {
   });
 
   it('returns null for missing save', () => expect(loadLocalSave(new MemoryStorage())).toEqual({ save: null, warning: null }));
+
+  it('defaults cameraControl to auto for a save recorded before the setting existed', () => {
+    const storage = new MemoryStorage();
+    const { cameraControl, ...settingsWithoutCameraControl } = save.settings;
+    void cameraControl;
+    storage.setItem('kerala-story:save:v1', JSON.stringify({ ...save, settings: settingsWithoutCameraControl }));
+    expect(loadLocalSave(storage).save?.settings.cameraControl).toBe('auto');
+  });
 
   it('recovers a valid backup when primary is corrupt', () => {
     const storage = new MemoryStorage();

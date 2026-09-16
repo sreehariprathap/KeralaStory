@@ -1,4 +1,4 @@
-export type InputSource = 'keyboard' | 'touch';
+export type InputSource = 'keyboard' | 'touch' | 'mouse';
 export type InputAction = 'jump' | 'toggleSprint' | 'interact';
 /** Mutable command bridge: DOM controls never directly move a body. */
 export interface InputCommands {

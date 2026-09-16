@@ -67,6 +67,15 @@ export function SettingsPanel({ settings, onChange, onResetPosition, controls, o
           onChange={handleSensitivity}
         />
         <span className="settings-panel__range-scale" aria-hidden="true"><span>{t('settings.lessResponsive')}</span><span>{t('settings.moreResponsive')}</span></span>
+
+        <label className="settings-panel__range-label">{t('settings.cameraControl')}</label>
+        <p className="settings-panel__hint">{t('settings.cameraControlHint')}</p>
+        <div className="settings-panel__control-options">
+          {(['auto', 'mouse'] as const).map((value) => <label className="settings-panel__control-option" key={value}>
+            <input type="radio" name="cameraControl" value={value} checked={settings.cameraControl === value} onChange={() => update('cameraControl', value)} />
+            <span>{t(value === 'auto' ? 'settings.cameraControlAuto' : 'settings.cameraControlMouse')}</span>
+          </label>)}
+        </div>
       </fieldset>
 
       {onControlsChange && <fieldset className="settings-panel__group">

@@ -21,12 +21,16 @@ export const ProfileSchema = z.object({
   colors: z.object({ skin: z.enum(SKIN_COLORS), hair: z.enum(HAIR_COLORS), clothing: z.enum(CLOTHING_COLORS) }),
 });
 export type ExplorerProfile = z.infer<typeof ProfileSchema>;
+export const CameraControlSchema = z.enum(['auto', 'mouse']);
+export type CameraControl = z.infer<typeof CameraControlSchema>;
 export const SettingsSchema = z.object({
   quality: z.enum(['low', 'medium', 'high']), muted: z.boolean(), volume: z.number().min(0).max(1),
   reducedMotion: z.boolean(), sensitivity: z.number().min(0.3).max(2),
+  // .default() keeps older saves, which predate this setting, parsing successfully.
+  cameraControl: CameraControlSchema.default('auto'),
 });
 export type GameSettings = z.infer<typeof SettingsSchema>;
-export const DEFAULT_SETTINGS: GameSettings = { quality: 'medium', muted: false, volume: 0.5, reducedMotion: false, sensitivity: 1 };
+export const DEFAULT_SETTINGS: GameSettings = { quality: 'medium', muted: false, volume: 0.5, reducedMotion: false, sensitivity: 1, cameraControl: 'auto' };
 export const SaveSchema = z.object({
   version: z.literal(1), worldVersion: z.string().min(1), profile: ProfileSchema,
   position: Vec3Schema, headingRad: z.number().finite(), safeSpawnId: z.string().min(1),
@@ -38,7 +42,7 @@ export interface Landmark { id: string; zoneId: ZoneId; label: string; position:
 export interface MapBounds { xMin: number; xMax: number; zMin: number; zMax: number }
 export interface ExplorerControllerProps {
   mode: InputMode; profile: ExplorerProfile; spawn: Vec3; initialHeading?: number; resetToken: number;
-  sensitivity: number; reducedMotion: boolean;
+  sensitivity: number; reducedMotion: boolean; cameraControl: CameraControl;
   onSnapshot: (snapshot: PlayerSnapshot) => void; onPause: () => void; onMap: () => void;
   onReady?: () => void;
   onError?: (message:string) => void;

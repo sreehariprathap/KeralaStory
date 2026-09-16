@@ -7,7 +7,7 @@ import type { Group } from 'three';
 import type { BicycleSave, ExplorerControllerProps, TravelMode, Vec3 } from '../../contracts';
 import { PARKING_SPOTS, nearestParking, safeGroundPosition, isCycleAllowed, isTravelAllowed } from '../../content/world/definition';
 import { useExplorerInput } from '../input/useExplorerInput';
-import { clearInput, headingFromMotion, readFollowMovement } from '../input/inputState';
+import { clearInput, headingFromMotion, readFollowMovement, readMovement } from '../input/inputState';
 import { ThirdPersonCamera } from '../camera/ThirdPersonCamera';
 import { ExplorerAvatar } from './ExplorerAvatar';
 import { CAPSULE_HALF_HEIGHT, CAPSULE_RADIUS, FEET_TO_CENTER, RUN_SPEED, WALK_SPEED, dampAngle, needsSafeReset } from './controllerMath';
@@ -21,11 +21,11 @@ import { interactionReason } from '../vehicle/mountState';
 import { configureTravelCollider } from './travelCollider';
 
 export function ExplorerController(props: ExplorerControllerProps) {
-  const { mode, profile, spawn, initialHeading = Math.PI, resetToken, sensitivity, reducedMotion } = props;
+  const { mode, profile, spawn, initialHeading = Math.PI, resetToken, sensitivity, reducedMotion, cameraControl } = props;
   const { world, rapier } = useRapier();
   const body = useRef<RapierRigidBody>(null),collider = useRef<RapierCollider>(null),visual=useRef<Group>(null),parkedVisual=useRef<Group>(null),carParkedVisual=useRef<Group>(null);
   const controller=useRef<KinematicCharacterController|null>(null),latest=useRef(props);latest.current=props;
-  const input=useExplorerInput(mode,props.onPause,props.onMap,props.inputCommands);
+  const input=useExplorerInput(mode,props.onPause,props.onMap,props.inputCommands,cameraControl);
   const azimuth=useRef(-initialHeading),heading=useRef(initialHeading),verticalSpeed=useRef(0);
   const motion=useRef({speed:0,signedSpeed:0,grounded:false,riding:false});
   const safePosition=useRef<Vec3>([...spawn]);
@@ -144,7 +144,8 @@ export function ExplorerController(props: ExplorerControllerProps) {
         report('bicycle.noClearance');
       }else if(reason==='brake')report('bicycle.brakeToDismount');
     }
-    const dt=Math.min(world.timestep,1/30),intent=readFollowMovement(input.current,azimuth.current);
+    // Mouse mode moves camera-relative every frame (GTA-style); auto mode lets the camera catch up to a held direction.
+    const dt=Math.min(world.timestep,1/30),intent=latest.current.cameraControl==='mouse'?readMovement(input.current,azimuth.current):readFollowMovement(input.current,azimuth.current);
     if(vehicle.current==='car'){input.current.sprintLocked=false;input.current.jumpQueued=false;return;}
     const desiredSpeed=playing?(intent.running?RUN_SPEED:WALK_SPEED):0;
     let vx=intent.x*desiredSpeed,vz=intent.z*desiredSpeed;
@@ -201,6 +202,6 @@ export function ExplorerController(props: ExplorerControllerProps) {
         <group visible={!(showRider&&vehicle.current==='car')} position={[0,showRider?.25:0,showRider?-.2:0]}><ExplorerAvatar profile={profile} reducedMotion={reducedMotion} motion={motion}/></group>
       </group>
     </RigidBody>
-    <ThirdPersonCamera body={body} vehicleBody={cameraCar} input={input} azimuth={azimuth} heading={heading} motion={motion} mode={mode} sensitivity={sensitivity} reducedMotion={reducedMotion} resetToken={resetToken}/>
+    <ThirdPersonCamera body={body} vehicleBody={cameraCar} input={input} azimuth={azimuth} heading={heading} motion={motion} mode={mode} sensitivity={sensitivity} reducedMotion={reducedMotion} resetToken={resetToken} cameraControl={cameraControl}/>
   </>;
 }
