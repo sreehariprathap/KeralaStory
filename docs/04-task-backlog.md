@@ -1,6 +1,6 @@
 # Task backlog and handoff system
 
-> **V2 execution update, 15 September 2026:** [Kodassery Diaries v2.0](superpowers/plans/2026-09-15-kodassery-diaries-v2.md) is active. G1 layout/site review is user-approved; V2-02 river/road terrain is next. V2-03 metadata inventory is complete, asset preparation remains open. The mountain status at the end of this older backlog is stale relative to working-tree code; see the [current evidence record](validation/2026-09-15-kodassery-diaries-v2.md) and build log. No new v2 terrain is yet activated.
+> **V2 execution update, 15 September 2026:** [Kodassery Diaries v2.0](superpowers/plans/2026-09-15-kodassery-diaries-v2.md) is active. V2-02 river/road terrain is live, user-approved and committed (`cb09c95`). V2-03 asset review/preparation remains partial; V2-04 now has Chalakkudy's first six-building street for user review, not a completed Tier A town. Other towns/park/cars remain later stages. See the [current evidence record](validation/2026-09-15-kodassery-diaries-v2.md) and build log; older mountain statuses below are historical.
 
 > Execution update: use [08-complete-app-plan.md](08-complete-app-plan.md) and [09-model-handoffs.md](09-model-handoffs.md) for the complete-app task sequence and Astra/Luna assignments. This original inventory is preserved; [06-build-log.md](06-build-log.md) records actual status.
 

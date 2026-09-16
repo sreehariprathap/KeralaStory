@@ -184,7 +184,7 @@ All tasks below start **Planned**. Astra alone writes shared contracts, canonica
 
 ### V2-02 — River and traversal foundation · Astra
 
-**Current status: Terrain blockout implemented; user visual/feel gate pending.** Live shared ground now reaches all four new inspection sites. River surfaces/queries/atlas share triangle geometry; riverbeds and dry road benches use the same collision mesh as terrain sampling. New access roads avoid river crossings, so no additional bridge deck is required in this blockout; existing bridge content is preserved. Chalakkudy joins the existing Chokkana road at its southern bend to avoid a conflicting elevated crossing. Buildings, town dressing and park assets remain subsequent stages.
+**Current status: Terrain blockout approved by user and committed as `cb09c95`.** User: “Looks good, Commit this and proceed.” Live shared ground now reaches all four new inspection sites. River surfaces/queries/atlas share triangle geometry; riverbeds and dry road benches use the same collision mesh as terrain sampling. New access roads avoid river crossings, so no additional bridge deck is required in this blockout; existing bridge content is preserved. Chalakkudy joins the existing Chokkana road at its southern bend to avoid a conflicting elevated crossing. Buildings, town dressing and park assets remain subsequent stages.
 
 **Depends on:** V2-01. **Writable:** new `src/game/world/RiverNetwork.tsx`, new `src/game/world/riverGeometry.ts`, layout/contracts from V2-01, `src/content/world/expansionGround.ts`, `src/game/world/expansionTerrain.ts`, `traversalGeometry.ts`, `ExpansionGround.tsx`, `AthirappillyWorld.tsx`, `Waterfall.tsx`, `waterfallGeometry.ts`, `KeralaWorld.tsx`, `src/game/player/controllerMath.ts`, `src/game/vehicle/clearance.ts`, `src/game/player/ExplorerController.tsx`, focused `tests/riverNetwork.test.ts` and existing expansion/traversal tests.
 
@@ -197,7 +197,7 @@ All tasks below start **Planned**. Astra alone writes shared contracts, canonica
 
 ### V2-03 — Asset intake batch · Luna; adaptation/calibration · Astra
 
-**Current status: Partial.** Luna's metadata intake is recorded in [asset intake](../../assets/2026-09-15-v2-intake.md). Mesh extraction, actual transformed dimensions, calibration and G2 approval remain open.
+**Current status: Partial — asset yard ready for G2 review.** See [asset intake](../../assets/2026-09-15-v2-intake.md) for precise transformed dimensions and extraction. `/v2-assets.html` previews all seven profiles with metre references and legacy material compatibility. Coffee presentation plane removed; fuel kit trimmed to 17,499 triangles; park helpers/deep skirts removed. Park curation/optimization, Bronco body/wheel separation, rigged-car axes and final collision footprints remain open. No production placement or vehicle registration yet.
 
 **Depends on:** None for inventory; V2-01/02 for placement. **Luna writable:** new `docs/assets/2026-09-15-v2-intake.md` only. **Astra writable:** `src/content/assets/models.ts`, `manifest.ts`, new `src/content/assets/v2AssetProfiles.ts`, `src/game/render/ModelAsset.tsx`, new `src/game/render/EnvironmentAsset.tsx`, derived assets under `public/assets/derived/` when needed.
 
@@ -209,6 +209,8 @@ All tasks below start **Planned**. Astra alone writes shared contracts, canonica
 **Gate G2:** User approves size/palette. Unusable geometry gets a named preparation task; core world work can continue independently.
 
 ### V2-04 — Settlement assembly · Astra; placement data · Luna
+
+**Current status: Partial — Chalakkudy first street ready for placement review.** User said “proceed” after the yard handoff; treated as permission to continue a provisional first street, not blanket G2 visual acceptance. Six grounded buildings: supplied coffee shop, tea shop, provision store, bakery and two houses. Conservative coffee shell/floor collision is tied to measured extracted geometry; forecourt/ramp are walkable and the interior stays closed. Pedestrian lane joins the canonical town center; Development inspection includes “Chalakkudy — coffee street.” Full Tier A density, riverfront, other towns and final palette remain open. Park/cars are not brought into the playable scene by this step.
 
 **Depends on:** V2-02/03 and G2. **Astra writable:** new `src/game/world/TownWorld.tsx`, `src/game/world/buildingFoundation.ts`, `src/game/world/KeralaWorld.tsx`, `AthirappillyWorld.tsx`, `RegionalDetails.tsx`. **Luna writable:** new `src/content/world/v2TownPlacements.ts` only, against frozen asset IDs, footprints and door-facing rules.
 

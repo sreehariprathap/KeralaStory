@@ -1,5 +1,6 @@
 import { ExpansionGround } from './ExpansionGround';
 import { RiverNetwork } from './RiverNetwork';
+import { TownWorld } from './TownWorld';
 import { MountainExpansion } from './MountainExpansion';
 import { ChokkanaWorld } from './ChokkanaWorld';
 import { AthirappillyWorld } from './AthirappillyWorld';
@@ -338,7 +339,7 @@ function KeralaGeometry({quality='medium',animated=true,locale='en'}:{quality?:'
     <ExpansionGround/><MountainExpansion locale={locale}/><ChokkanaWorld quality={quality} locale={locale}/><AthirappillyWorld quality={quality} animated={animated} locale={locale}/><KodasseryWorld quality={quality} animated={animated}/><RegionalDetails quality={quality} animated={animated}/>
     <RigidBody type="fixed" colliders="trimesh"><mesh geometry={ground} receiveShadow><meshStandardMaterial vertexColors roughness={1}/></mesh></RigidBody>
     {Object.entries(roads).map(([key,geometry])=><mesh key={key} geometry={geometry} receiveShadow><meshStandardMaterial color={key==='tar'||key==='cityTar'?PALETTE.tar:PALETTE.sand} roughness={1} side={DoubleSide}/></mesh>)}
-    <Water animated={animated}/><RiverNetwork animated={animated} quality={quality}/>
+    <Water animated={animated}/><RiverNetwork animated={animated} quality={quality}/><TownWorld/>
     {architecture.meshes.map(({color,geometry})=><mesh key={color} geometry={geometry} castShadow receiveShadow><meshStandardMaterial color={color} roughness={.92} side={DoubleSide}/></mesh>)}
     <RigidBody type="fixed" colliders={false}>{architecture.colliders.map((c,i)=><CuboidCollider key={i} args={c.size} position={c.position} rotation={c.rotation}/>)}</RigidBody>
     {architecture.signs.map(sign=><PaintedSign key={sign.english} sign={sign} locale={locale}/>)}

@@ -43,6 +43,6 @@ export const ExpansionGround=memo(function ExpansionGround(){return <>
   {V2_ROUTES.map(route=><RouteRibbon key={route.id} route={route}/>)}
   {[...V2_LAYOUT.towns.filter(t=>!t.existing),V2_LAYOUT.park].map(site=>{
     const x=site.center[0]+7,z=site.center[2];
-    return <ExpansionSign key={site.id} position={[x,terrainHeight(x,z),z]} label={`${site.label} · site`} width={4}/>;
+    return <ExpansionSign key={site.id} position={[x,terrainHeight(x,z),z]} label={`${site.label} · ${site.id==='chalakkudy'?'first street':'site'}`} width={4}/>;
   })}
 </>;});

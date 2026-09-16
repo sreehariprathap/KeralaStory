@@ -1,0 +1,22 @@
+@import '../ui/tokens.css';
+@import '@fontsource/noto-sans/400.css';
+@import '@fontsource/noto-sans/600.css';
+@import '@fontsource/noto-serif/600.css';
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper, #f4e8cc); color: var(--ink, #24382e); font: 16px/1.5 'Noto Sans', sans-serif; }
+header { padding: 20px 24px; border-bottom: 1px solid #9b896c; }
+h1 { margin: 8px 0; font: 600 26px/1.3 'Noto Serif', serif; }
+header p { margin: 0; }
+a { color: var(--forest, #285943); }
+main { display: grid; grid-template-columns: minmax(250px, 330px) 1fr; }
+.yard-controls { padding: 24px; }
+label { display: block; font-weight: 600; margin-bottom: 8px; }
+select, button { min-height: 44px; font: inherit; color: inherit; background: #fff7e5; border: 1px solid #9b896c; border-radius: 6px; padding: 8px 12px; }
+select { width: 100%; }
+.yard-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid #285943; outline-offset: 3px; }
+#viewport { min-width: 0; height: calc(100dvh - 154px); min-height: 440px; }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+#status { font-weight: 600; }
+@media (max-width: 760px) { main { display: flex; flex-direction: column-reverse; } #viewport { height: 55dvh; min-height: 320px; } }

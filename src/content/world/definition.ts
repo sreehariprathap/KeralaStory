@@ -1,10 +1,11 @@
 import { createExpansionGround } from './expansionGround';
 import { createV2Layout } from './v2Layout';
+import { createChalakkudyStreet } from './townLayout';
 import type { ExpansionLayout } from '../../contracts/worldExpansion';
 import { createExpansionLayout, areaAt, pointInPolygon } from './expansionLayout';
 import type { Landmark, MapBounds, TravelMode, Vec3, ZoneId } from '../../contracts';
 
-export const WORLD_VERSION = 'kodassery-diaries-v2-terrain-1';
+export const WORLD_VERSION = 'kodassery-diaries-v2-street-1';
 export const ORIGINAL_WORLD_BOUNDS: MapBounds = { xMin: -78, xMax: 88, zMin: -484, zMax: 92 };
 const PRE_V2_BOUNDS: MapBounds = { xMin: -680, xMax: 96.5, zMin: -740, zMax: 92 };
 let activeGround: ReturnType<typeof createExpansionGround> | undefined;
@@ -67,6 +68,7 @@ export const EXPANSION_LAYOUT:ExpansionLayout = {
 };
 export const EXPANSION_REST_SHELVES=EXPANSION_GROUND.restShelves.map(grounded);
 export const V2_ROUTES=EXPANSION_GROUND.v2!.routes.map(route=>({...route,points:route.points.map(grounded)}));
+export const CHALAKKUDY_STREET=createChalakkudyStreet(V2_LAYOUT.towns.find(t=>t.id==='chalakkudy')!.center,EXPANSION_GROUND.chunks.find(c=>c.id==='expansion-west')!);
 export function hasGroundAt(x:number,z:number):boolean {
   if(!Number.isFinite(x)||!Number.isFinite(z))return false;
   return (x>=-78&&x<=88&&z>=-499&&z<=92) || EXPANSION_GROUND.heightAt(x,z)!==null;
@@ -126,6 +128,8 @@ export function containsPoint(bounds: MapBounds, x: number, z: number): boolean 
 /** Highest authored elevated surface, excluding terrain and decorative geometry. */
 export function walkableDeckHeight(x: number, z: number): number | null {
   let height: number | null = containsPoint(JETTY_BOUNDS, x, z) ? JETTY_DECK_Y : EXPANSION_GROUND.deckHeightAt(x,z);
+  const townDeck=CHALAKKUDY_STREET.deckHeightAt(x,z);
+  if(townDeck!==null)height=Math.max(height??-Infinity,townDeck);
   if (containsPoint(QUAY_BOUNDS,x,z)) height=Math.max(height??-Infinity,QUAY_DECK_Y);
   if (Math.abs(x-QUAY_SOUTH_RAMP.x)<=2 && z>=QUAY_SOUTH_RAMP.deckZ && z<=QUAY_SOUTH_RAMP.landZ) {
     height=Math.max(height??-Infinity,QUAY_DECK_Y+(QUAY_SOUTH_RAMP.landY-QUAY_DECK_Y)*(z-QUAY_SOUTH_RAMP.deckZ)/(QUAY_SOUTH_RAMP.landZ-QUAY_SOUTH_RAMP.deckZ));

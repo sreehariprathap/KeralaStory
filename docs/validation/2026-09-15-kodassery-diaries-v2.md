@@ -1,5 +1,25 @@
 # Kodassery Diaries v2.0 — implementation and review record
 
+## Latest: Chalakkudy first street — 15 September 2026
+
+User authorized continuation with “proceed.” First-street placement is provisional; no asset-yard visual approval is inferred. The supplied coffee shop now appears in Chalakkudy, accompanied by three modest procedural shops and two houses. This is not the complete Tier A town. Other new towns, Silver Storm and vehicle additions remain unfinished.
+
+Review `http://127.0.0.1:5000/?inspect` → **Chalakkudy — coffee street**. Walk up the coffee forecourt, check its orientation/size beside the traveler and nearby houses, then follow the pedestrian lane back toward the town center/road. Interior is closed in this prototype. Please provide a street-level screenshot if scale, colors, roof shapes or entrance placement look wrong.
+
+Luna provided canonical-center-relative placement data and four focused tests. Astra implemented exact triangle-based foundations, shared render/collision boxes and deck queries, merged procedural geometry, optional GLB adapter and inspection integration. A separate Astra read-only integration review found no blocking issue. All six footprints have zero terrain relief and are clear of roads/water. The actual Rapier capsule traverses the coffee ramp both ways without jumping; ramp ray heights agree with the shared deck query. Coffee collision extents are checked against extracted source geometry. World geometry version is `kodassery-diaries-v2-street-1`.
+
+Street architecture is 1,020 merged procedural triangles plus the existing 15,884-triangle coffee asset. This is a geometry count, not a measured frame-rate claim. Optional GLB loading/failure keeps physical foundations and a visible fallback in place. No browser visual inspection performed: user owns looks/feel. Local game HTTP delivery returned 200; final full checks are recorded in the build log.
+
+## Latest: V2-03 asset preparation review — 15 September 2026
+
+Approved terrain checkpoint committed as `cb09c95`; user-added asset commit `ad0ec4c` preserved. The next review is `http://127.0.0.1:5000/v2-assets.html`. It is a development-only entry, like the layout review page, not a production game screen.
+
+One selected model loads at a time with orbit/view controls, measured width/height/depth and scale references. Coffee presentation plane, fuel presentation/car/text/fence geometry and park navigation/camera/deep skirt geometry are removed from clones only. Legacy Bronco/park diffuse colors/textures are adapted to the current loader. Original files are untouched. Every model remains a prototype.
+
+G2 is pending user review. Please verify coffee/fuel building sizes and colors, then vehicle orientation/scale. Park foundations and unrelated source-game props need further curation; Bronco paint/wheels and the rigged car's tall pose remain explicitly unresolved. Nothing has been inserted into the towns or car-spawn menu in this stage. Collision dimensions will not be frozen from unapproved source bounds.
+
+HTTP page delivery returned 200; this is not a rendered visual acceptance. Final engineering checks: `npm test` PASS (473 tests / 82 files), `npm run build` PASS including workspace typecheck, `git diff --check` PASS. Initial checks exposed a test-only TypeScript annotation and a 5-second fixture timeout when loading all seven source files under the full suite; both were corrected. Development script/CSS transforms returned output successfully, but the standalone Vite transform harness exited 13 during shutdown; it is not counted as a clean command pass. User still owns actual rendered review.
+
 ## Latest: V2-02 terrain blockout — 15 September 2026
 
 **User terrain/visual gate approved:** “Looks good, Commit this and proceed.” Approval covers the reviewed blockout, not future buildings, park or vehicles. Proceeding to V2-03 asset calibration.

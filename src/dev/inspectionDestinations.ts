@@ -1,6 +1,7 @@
 import type { Vec3 } from '../contracts';
 import {
   EXPANSION_LAYOUT,
+  CHALAKKUDY_STREET,
   LANDMARKS,
   V2_LAYOUT,
   hasGroundAt,
@@ -54,7 +55,7 @@ function plannedDestination(id: string, label: string, proposed: Vec3): Inspecti
   const available = hasGroundAt(x, z) && ((!isWater(x, z) && isSafeGroundSlope(x, z)) || deck !== null);
   return {
     id: `v2-site-${id}`,
-    label: `${label} — ${available ? 'planned site only' : 'terrain not built'}`,
+    label: `${label} — ${id === 'chalakkudy' ? 'first street blockout' : available ? 'planned site only' : 'terrain not built'}`,
     position: available
       ? [x, Math.max(terrainHeight(x, z), deck ?? -Infinity) + 0.1, z] as Vec3
       : proposed,
@@ -71,8 +72,11 @@ const plannedDestinations: InspectionDestination[] = [
   plannedDestination('silver-storm', V2_LAYOUT.park.label, V2_LAYOUT.park.center),
 ];
 
+const coffeeApproach = CHALAKKUDY_STREET.buildings.find(b => b.kind === 'coffee')!.approach;
+
 export const INSPECTION_DESTINATIONS: InspectionDestination[] = [
   ...existingDestinations,
   ...expansionDestinations,
   ...plannedDestinations,
+  { id: 'v2-chalakkudy-coffee', label: 'Chalakkudy — coffee street', position: coffeeApproach, headingRad: Math.PI, group: 'V2 planned sites', available: true },
 ];
