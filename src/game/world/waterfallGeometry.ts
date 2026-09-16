@@ -85,3 +85,22 @@ export function isWaterfallFootprint(x: number, z: number, margin = 0) {
   }
   return false;
 }
+
+export interface CascadeShape { x: number; z: number; topY: number; width: number; height: number }
+/** World-space broad curtains reuse the Silverthread water shader without its terrain datum. */
+export function cascadeGeometry(shape: CascadeShape, low = false) {
+  if (!Object.values(shape).every(Number.isFinite) || shape.width <= 0 || shape.height <= 0) throw new RangeError('Invalid cascade');
+  const positions: number[] = [], uv: number[] = [], foam: number[] = [], indices: number[] = [];
+  const columns = low ? 16 : 40, rows = low ? 12 : 24;
+  for (let row=0; row<=rows; row++) for (let col=0; col<=columns; col++) {
+    const u=col/columns,t=row/rows;
+    positions.push(shape.x+(u-.5)*shape.width,shape.topY-t*shape.height,shape.z+t*3+Math.sin(t*Math.PI)*.5);
+    uv.push(u,t*shape.height);foam.push(Math.pow(t,8)*.85+Math.exp(-t*30)*.25);
+    if(row<rows&&col<columns){const a=row*(columns+1)+col,b=a+columns+1;indices.push(a,b,a+1,a+1,b,b+1);}
+  }
+  const geometry=new BufferGeometry();
+  geometry.setAttribute('position',new Float32BufferAttribute(positions,3));
+  geometry.setAttribute('uv',new Float32BufferAttribute(uv,2));
+  geometry.setAttribute('waterFoam',new Float32BufferAttribute(foam,1));
+  geometry.setIndex(indices);geometry.computeVertexNormals();return geometry;
+}

@@ -1,5 +1,7 @@
 # Task backlog and handoff system
 
+> **V2 execution update, 15 September 2026:** [Kodassery Diaries v2.0](superpowers/plans/2026-09-15-kodassery-diaries-v2.md) is active. G1 layout/site review is user-approved; V2-02 river/road terrain is next. V2-03 metadata inventory is complete, asset preparation remains open. The mountain status at the end of this older backlog is stale relative to working-tree code; see the [current evidence record](validation/2026-09-15-kodassery-diaries-v2.md) and build log. No new v2 terrain is yet activated.
+
 > Execution update: use [08-complete-app-plan.md](08-complete-app-plan.md) and [09-model-handoffs.md](09-model-handoffs.md) for the complete-app task sequence and Astra/Luna assignments. This original inventory is preserved; [06-build-log.md](06-build-log.md) records actual status.
 
 The original inventory below was authored as **planned**; it is not a current implementation-status statement. See [06-build-log.md](06-build-log.md) for completed and partial work. Suggested ownership: **Core** for a stronger coding model with integration review; **Luna** for bounded work against stable contracts; **Art** for asset production/selection and visual review. These are task-sizing recommendations, not guarantees about any model's output.

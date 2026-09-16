@@ -1,6 +1,7 @@
+import { ORIGINAL_WORLD_BOUNDS } from '../src/content/world/definition';
 import { FEET_TO_CENTER, needsSafeReset } from '../src/game/player/controllerMath';
 import { describe, expect, it } from 'vitest';
-import { BRIDGE_DECK_Y, BRIDGE_PATH, BRIDGE_X, CITY_PATH, KODASSERY_PATH, riverCenter, RIVER_CENTERLINE, isRiver, VILLAGE_PATH, WATER_LEVEL, JETTY_BOUNDS, JETTY_DECK_Y, LANDMARKS, MAIN_PATH, MAP_BOUNDS, PARKING_SPOTS, REGIONS, SPAWN, WORLD_BOUNDS, WORLD_DEFINITION, containsPoint, getZoneAt, isCycleAllowed, isOnWalkableDeck, isWater, nearestParking, safeGroundPosition, terrainHeight, walkableDeckHeight } from '../src/content/world/definition';
+import { BRIDGE_DECK_Y, BRIDGE_PATH, BRIDGE_X, CITY_PATH, KODASSERY_PATH, riverCenter, RIVER_CENTERLINE, isRiver, VILLAGE_PATH, WATER_LEVEL, JETTY_BOUNDS, JETTY_DECK_Y, LANDMARKS, MAIN_PATH, MAP_BOUNDS, PARKING_SPOTS, REGIONS, SPAWN, WORLD_BOUNDS, WORLD_DEFINITION, containsPoint, getZoneAt, getZoneAtPosition, hasGroundAt, isCycleAllowed, isOnWalkableDeck, isWater, nearestParking, safeGroundPosition, terrainHeight, walkableDeckHeight } from '../src/content/world/definition';
 import * as legacy from '../src/content/world/kodassery';
 
 describe('canonical connected world topology', () => {
@@ -40,7 +41,7 @@ describe('canonical connected world topology', () => {
   it('provides valid parking in each region and an origin slot within mount range', () => {
     expect(Math.hypot(...PARKING_SPOTS[0].position.map((coordinate, i) => coordinate - SPAWN[i]))).toBeLessThan(2);
     for (const spot of PARKING_SPOTS) {
-      expect(spot.zoneId).toBe(getZoneAt(spot.position[2]));
+      expect(spot.zoneId).toBe(getZoneAtPosition(spot.position[0],spot.position[2]));
       expect(isCycleAllowed(spot.position[0], spot.position[2])).toBe(true);
       expect(safeGroundPosition(spot.position)).toEqual(spot.position);
       expect(nearestParking(spot.position).id).toBe(spot.id);
@@ -52,7 +53,7 @@ describe('canonical connected world topology', () => {
     expect(safeGroundPosition([BRIDGE_X, 2, -99])).toEqual([BRIDGE_X, BRIDGE_DECK_Y + 0.05, -99]);
     expect(safeGroundPosition([96, -100, 76])).toEqual([96, JETTY_DECK_Y + 0.05, 76]);
     expect(isOnWalkableDeck(96, 76)).toBe(true);
-    expect(containsPoint(WORLD_BOUNDS, 96, 76)).toBe(false);
+    expect(hasGroundAt(96, 76)).toBe(false);
     expect(containsPoint(MAP_BOUNDS, JETTY_BOUNDS.xMax, 76)).toBe(true);
     expect(isOnWalkableDeck(96, 78)).toBe(false);
     expect(walkableDeckHeight(BRIDGE_X, -134)).toBeGreaterThanOrEqual(BRIDGE_DECK_Y);
@@ -86,11 +87,11 @@ describe('connected Kerala Story world topology', () => {
     }
   });
 
-  it('carries the river centerline across the playable x extent', () => {
-    expect(RIVER_CENTERLINE[0][0]).toBeLessThanOrEqual(WORLD_BOUNDS.xMin);
-    expect(RIVER_CENTERLINE[RIVER_CENTERLINE.length - 1][0]).toBeGreaterThanOrEqual(WORLD_BOUNDS.xMax);
-    expect(isRiver(WORLD_BOUNDS.xMin, riverCenter(WORLD_BOUNDS.xMin))).toBe(true);
-    expect(isRiver(WORLD_BOUNDS.xMax, riverCenter(WORLD_BOUNDS.xMax))).toBe(true);
+  it('carries the Kurumali river across its original corridor without extending it into Chokkana', () => {
+    expect(RIVER_CENTERLINE[0][0]).toBeLessThanOrEqual(ORIGINAL_WORLD_BOUNDS.xMin);
+    expect(RIVER_CENTERLINE[RIVER_CENTERLINE.length - 1][0]).toBeGreaterThanOrEqual(ORIGINAL_WORLD_BOUNDS.xMax);
+    expect(isRiver(ORIGINAL_WORLD_BOUNDS.xMin, riverCenter(ORIGINAL_WORLD_BOUNDS.xMin))).toBe(true);
+    expect(isRiver(ORIGINAL_WORLD_BOUNDS.xMax, riverCenter(ORIGINAL_WORLD_BOUNDS.xMax))).toBe(true);
   });
 
   it('keeps the bridge deck above the water level', () => {

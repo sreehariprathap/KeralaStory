@@ -5,7 +5,7 @@ import type { RapierCollider, RapierRigidBody } from '@react-three/rapier';
 import type { KinematicCharacterController } from '@dimforge/rapier3d-compat';
 import type { Group } from 'three';
 import type { BicycleSave, ExplorerControllerProps, TravelMode, Vec3 } from '../../contracts';
-import { PARKING_SPOTS, nearestParking, safeGroundPosition, isCycleAllowed } from '../../content/world/definition';
+import { PARKING_SPOTS, nearestParking, safeGroundPosition, isCycleAllowed, isTravelAllowed, getAreaAt } from '../../content/world/definition';
 import { useExplorerInput } from '../input/useExplorerInput';
 import { clearInput, headingFromMotion, readMovement } from '../input/inputState';
 import { ThirdPersonCamera } from '../camera/ThirdPersonCamera';
@@ -84,7 +84,7 @@ export function ExplorerController(props: ExplorerControllerProps) {
     const position=rigidBody.translation(),feet:Vec3=[position.x,position.y-FEET_TO_CENTER,position.z];
     if(vehicle.current!=='foot'){report('Exit your vehicle before spawning a car.');return;}
     const candidates:[[number,number],[number,number],[number,number],[number,number]]=[[0,4],[2,4],[-2,4],[0,-4]];
-    for(const [right,forward] of candidates){const x=feet[0]+Math.cos(heading.current)*right+Math.sin(heading.current)*forward,z=feet[2]-Math.sin(heading.current)*right-Math.cos(heading.current)*forward;const valid=clearFeet(x,z,feet[1],'car',heading.current);if(valid){removeCar();const model=latest.current.carModelId??'admin';car.current=createCarPhysics(world,valid,heading.current,model);carMotion.current=car.current.motion;car.current.body.setEnabled(latest.current.mode==='playing'||latest.current.mode==='loading');carParked.current=valid;carParkedHeading.current=heading.current;setSpawnedCarModel(model);report('Car ready nearby. Press F to drive.');return;}}
+    for(const [right,forward] of candidates){const x=feet[0]+Math.cos(heading.current)*right+Math.sin(heading.current)*forward,z=feet[2]-Math.sin(heading.current)*right-Math.cos(heading.current)*forward;const valid=clearFeet(x,z,feet[1],'car',heading.current);if(valid&&isTravelAllowed('car',x,z)){removeCar();const model=latest.current.carModelId??'admin';car.current=createCarPhysics(world,valid,heading.current,model);carMotion.current=car.current.motion;car.current.body.setEnabled(latest.current.mode==='playing'||latest.current.mode==='loading');carParked.current=valid;carParkedHeading.current=heading.current;setSpawnedCarModel(model);report('Car ready nearby. Press F to drive.');return;}}
     report('No clear space to spawn the car.');
   },[props.carSpawnToken]);
 
@@ -93,7 +93,14 @@ export function ExplorerController(props: ExplorerControllerProps) {
     const position=rigidBody.translation();previous.current={...position};
     const playing=latest.current.mode==='playing';
     if(!playing&&latest.current.mode!=='loading'){rigidBody.setNextKinematicTranslation(position);motion.current.speed=0;return;}
-    car.current?.step({forward:playing?input.current.move.forward:0,steer:playing?input.current.move.x:0,brake:input.current.brake||!playing,nitro:playing&&vehicle.current==='car'&&(input.current.keys.has('ShiftLeft')||input.current.keys.has('ShiftRight'))},Math.min(world.timestep,1/30),vehicle.current==='car');
+    let blockedDrive=false;
+    if(car.current&&vehicle.current==='car'){
+      const p=car.current.body.translation(),v=car.current.body.linvel();
+      const nx=p.x+v.x*.5,nz=p.z+v.z*.5;
+      blockedDrive=!!getAreaAt(nx,nz)&&!isTravelAllowed('car',nx,nz);
+      if(blockedDrive)report('bicycle.walkOnly');
+    }
+    car.current?.step({forward:playing&&!blockedDrive?input.current.move.forward:0,steer:playing?input.current.move.x:0,brake:input.current.brake||!playing||blockedDrive,nitro:playing&&!blockedDrive&&vehicle.current==='car'&&(input.current.keys.has('ShiftLeft')||input.current.keys.has('ShiftRight'))},Math.min(world.timestep,1/30),vehicle.current==='car');
     if(needsSafeReset(position)){
       setTravel('foot');teleport(safePosition.current);validationPending.current=true;const slot=nearestParking(safePosition.current);parked.current={position:[...slot.position],headingRad:slot.headingRad};removeCar();return;
     }
@@ -126,7 +133,7 @@ export function ExplorerController(props: ExplorerControllerProps) {
         if(!vehiclePosition) return;
         const vehicleHeading=isCar?carParkedHeading.current:parked.current.headingRad;heading.current=vehicleHeading;
         const valid=isCar?(carMotion.current.grounded&&carMotion.current.speed<.5?vehiclePosition:null):clearFeet(vehiclePosition[0],vehiclePosition[2],vehiclePosition[1],true,vehicleHeading);
-        if(valid&&(isCar||isCycleAllowed(vehiclePosition[0],vehiclePosition[2]))){if(!isCar)bike.current=createBicycleState(heading.current);setTravel(nearby);teleport(valid);azimuth.current=-heading.current;report('');return;}
+        if(valid&&isTravelAllowed(isCar?'car':'bicycle',vehiclePosition[0],vehiclePosition[2])){if(!isCar)bike.current=createBicycleState(heading.current);setTravel(nearby);teleport(valid);azimuth.current=-heading.current;report('');return;}
         report('bicycle.noClearance');
       }else if(reason==='dismount'){
         let valid:Vec3|null=null;

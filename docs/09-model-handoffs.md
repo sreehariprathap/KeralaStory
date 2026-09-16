@@ -1,5 +1,7 @@
 # Model assignments and executable handoffs
 
+> **Active v2 handoffs:** use task ownership in [Kodassery Diaries v2.0](superpowers/plans/2026-09-15-kodassery-diaries-v2.md). Astra owns shared layout, terrain, physics and integration. Luna completed the bounded intake document, layout-review page and seven layout tests for the first stage. G1 is user-approved; town placement still requires V2-02 grounded terrain. [Current evidence](validation/2026-09-15-kodassery-diaries-v2.md).
+
 > **For agentic workers:** Use `superpowers:executing-plans` or `superpowers:subagent-driven-development`. Complete the checklist for each task and return evidence before integration.
 
 **Goal:** Execute [08-complete-app-plan.md](08-complete-app-plan.md) through bounded tasks with minimal Astra spend.

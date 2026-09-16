@@ -31,7 +31,7 @@ const rockData = [
 
 /** Painted bands travel in UV flow-distance; reduced motion freezes one stable
  * pose, and low quality uses fewer vertices and no secondary streak layer. */
-function waterMaterial(low: boolean, time: { value: number }) {
+export function waterMaterial(low: boolean, time: { value: number }) {
   const material = new MeshStandardMaterial({ color: '#4c9e99', roughness: .62, side: DoubleSide });
   material.onBeforeCompile = shader => {
     shader.uniforms.waterTime = time;

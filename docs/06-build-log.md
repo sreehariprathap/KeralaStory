@@ -201,3 +201,32 @@ Owner GPT-6 Astra; bounded read-only review GPT-5.6 Luna. Added typed area, rout
 Measured: summit 551.480 m planar / 562.343 m surface, +110 m, max grade 19.95%; main forest road 1131.411 / 1132.434 m, first 170 m flat, max grade 8%; access spur 44 m / +2 m, max 6.82%; return loop 284.301 / 284.391 m; falls trail 153.738 / 156.344 m, -26 m, max25.37%. Drivable bend radii >=14 m. Summit moved to (-130,-690); main road extends west of the original corridor as far south as -280 for travel separation.
 
 Seven layout tests pass, including connectivity, grades, lengths, unique anchors, separate water and finite layout values; typecheck passes. This completes authored blockout only. Rendered terrain, actual contacts, final grounded anchors, manual travel and panorama remain subsequent gates.
+
+## 15 September 2026 — Kodassery Diaries v2.0, first implementation stage
+
+- User authorized staged implementation and Luna handoffs, keeping visual/feel verification with the user. Kodaly keeps its harbor and lighthouse.
+- Astra added `worldV2.ts`, `v2Layout.ts` and the separate canonical `V2_LAYOUT` export: four town tiers, connected directed water from Malakkappara through Athirappilly to a two-way fork, proposed road profiles and an east-of-summit Silver Storm/pool footprint. This is a review blueprint; live terrain/bounds, collision and save version were not changed by this stage.
+- Luna implemented `/v2-layout.html` and its SVG/CSS, seven focused layout tests, and the supplied-asset intake document. Core reviewed and corrected north-up map orientation, labels, type issues and the factory-immutability test. All source GLBs remain untouched.
+- Reconciled previous expansion progress against actual working-tree files: terrain, mountain, forest, waterfall and summit visibility source exists beyond the old log's A1/L3 status. Runtime route/visual gates remain unaccepted. Expansion landmark records are still absent from canonical discovery assembly; carried into V2-08.
+- Checks: full typecheck PASS via build; `npm test` PASS (452 tests, 78 files); `npm run build` PASS. Existing large WorldCanvas chunk and Three.js CJS warnings remain. Review HTML/module return HTTP 200. Repository diff check flags pre-existing whitespace at `KodasseryWorld.tsx:180`, left untouched.
+- **V2-01 Review / G1 pending:** user reviews the layout at `http://127.0.0.1:5000/v2-layout.html`. **V2-03 Partial:** metadata inventory done; geometry extraction, calibrated dimensions and G2 visuals pending. Actual running visuals and driving remain user verification; no screenshot acceptance is claimed.
+- Details and next stage: [v2 evidence/review record](validation/2026-09-15-kodassery-diaries-v2.md). V2-02 terrain implementation follows accepted G1 placement; existing user work remains preserved on `feature/map-expansion`.
+
+## 15 September 2026 — development fast travel for expansion review
+
+- Added grouped inspection destinations: twelve existing landmarks, nine grounded mountain/forest/falls stops, and four v2 planned sites. Luna implemented `src/dev/inspectionDestinations.ts`; Astra wired the App dropdown through the existing reset lifecycle.
+- Malakkappara and Silver Storm are enabled as planned-site visits on current terrain; buildings/park are not yet implemented. Chalakkudy/Kodakara remain visibly disabled until their terrain exists. No teleport uses a proposed unsupported elevation. Existing Kodaly harbor/lighthouse navigation is retained.
+- Checks: catalog assertions PASS (25 unique records and expected availability/grounding); typecheck and build PASS; full tests PASS (452 tests, 78 files); App diff whitespace check PASS. Existing scene bundle/CJS warnings remain. User verifies actual arrivals at `http://127.0.0.1:5000/?inspect`; no browser/visual pass claimed.
+
+## 15 September 2026 — user acceptance of layout/site review
+
+- User replied “this looks right” after the development inspection update. Recorded G1 layout/site review approval; no screenshot supplied and no acceptance of unimplemented terrain, town assets, park or cars inferred.
+- Next implementation stage is V2-02: shared river/road terrain and physical traversal. Final grounded anchors remain outstanding. Existing 452-test/typecheck/build evidence belongs to the preceding code handoff; this acceptance update changes documentation only.
+
+## 15 September 2026 — V2-02 live terrain and river blockout
+
+- Astra integrated shared terrain/collision, riverbed cuts, downhill river surfaces/queries, four graded access roads and ground-derived parking. Bounds now cover the new sites; save geometry version is `kodassery-diaries-v2-terrain-1`. Existing Kodaly harbor/lighthouse retained. Roads avoid new river crossings; existing bridge retained.
+- Luna handled atlas geometry/site labels, review-page status copy and bounded river/terrain tests; Astra reviewed/integrated and added actual bidirectional walking and dynamic uphill/downhill car checks. Resolved a shared terrain seam and road/foot-trail permission overlap.
+- Chalakkudy and Kodakara inspection visits are now enabled alongside Malakkappara and Silver Storm. Sites have terrain/signs, not finished buildings or attractions.
+- Fresh verification: `npm test` PASS (464 tests, 81 files); `npm run build` PASS including workspace typechecks. Focused physical/terrain suite PASS (11 tests). Local HTTP 200. Existing CJS/large-bundle warnings remain. No commit made; unrelated dirty work and assets preserved.
+- User review requested for actual river/falls joins, site arrivals and driving feel at `http://127.0.0.1:5000/?inspect`. No rendered visual/performance acceptance claimed. Stop at this terrain gate before dressing; asset calibration and later v2 milestones remain open. See the latest section of the [validation record](validation/2026-09-15-kodassery-diaries-v2.md).

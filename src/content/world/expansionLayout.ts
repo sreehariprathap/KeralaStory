@@ -37,7 +37,7 @@ export function nearestRouteSample(route: ExpansionRoute, x: number, z: number):
 }
 
 /** Circular horizontal fillets, sampled at <=2m; exact tangency avoids sharp car bends. */
-function roundedPath(control: readonly XZ[], radius: number): XZ[] {
+export function roundedPath(control: readonly XZ[], radius: number): XZ[] {
   const result: XZ[] = [control[0]];
   const lineTo = (end: XZ) => {
     const start = result[result.length - 1], n = Math.max(1, Math.ceil(Math.hypot(end[0] - start[0], end[1] - start[1]) / 2));
@@ -48,6 +48,7 @@ function roundedPath(control: readonly XZ[], radius: number): XZ[] {
     const la = Math.hypot(b[0] - a[0], b[1] - a[1]), lb = Math.hypot(c[0] - b[0], c[1] - b[1]);
     const u: XZ = [(b[0] - a[0]) / la, (b[1] - a[1]) / la], v: XZ = [(c[0] - b[0]) / lb, (c[1] - b[1]) / lb];
     const turn = Math.atan2(u[0] * v[1] - u[1] * v[0], u[0] * v[0] + u[1] * v[1]);
+    if (Math.abs(turn) < 1e-6) { lineTo(b); continue; }
     const tangent = Math.tan(Math.abs(turn) / 2), inset = Math.min(radius * tangent, la * .4, lb * .4), r = inset / tangent;
     const start: XZ = [b[0] - u[0] * inset, b[1] - u[1] * inset];
     lineTo(start);

@@ -170,8 +170,6 @@ function Bridge(){
   </group></group>;
 }
 
-function MountainBackdrop(){return <group>{Array.from({length:14},(_,i)=>{const h=40+(Math.sin(i*2.4)+1)*38;return <mesh key={i} position={[-170+i*27,62+h/2,-570-(i%3)*30]} scale={[1,1,.8]}><coneGeometry args={[38+(i%3)*8,h,7]}/><meshStandardMaterial color={i%2?'#89a293':'#719183'} flatShading roughness={1}/></mesh>;})}</group>;}
-
 function WorldGeometry({quality='medium',animated=true}:{quality?:'low'|'medium'|'high';animated?:boolean}){
   const ground=useMemo(terrainGeometry,[]);const path=useMemo(()=>trailGeometry(TRAIL_POINTS,3.8),[]);
   const pathBranch=useMemo(()=>trailGeometry(new CatmullRomCurve3([new Vector3(7,0,-396),new Vector3(21,0,-391),new Vector3(31,0,-386)]).getPoints(35),2.4),[]);
@@ -179,7 +177,7 @@ function WorldGeometry({quality='medium',animated=true}:{quality?:'low'|'medium'
   const treeLeaves=useMemo(()=>quality==='low'?[...forest.leaves,...forest.importedFallbackLeaves].filter((_,i)=>Math.floor(i/4)%2===0):forest.leaves,[quality]);
   const colliderTrunks=[...forest.trunks,...forest.importedFallbackTrunks];
   return <>
-    <MountainBackdrop/><InstanceMesh data={forest.clouds} kind="cloud"/>
+    
     <RigidBody type="fixed" colliders="trimesh"><mesh geometry={ground} receiveShadow><meshStandardMaterial vertexColors roughness={1}/></mesh></RigidBody>
     <mesh geometry={path} receiveShadow><meshStandardMaterial color="#d5c396" roughness={1} side={DoubleSide}/></mesh>
     <mesh geometry={pathBranch} receiveShadow><meshStandardMaterial color="#c8b58b" roughness={1} side={DoubleSide}/></mesh>
