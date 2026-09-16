@@ -164,6 +164,9 @@ describe('supplied V2 GLB extraction and normalization', () => {
     const gltf = await new GLTFLoader().parseAsync(sanitizedGlb('/park/amusement_park.glb'), '');
     const prepared = prepareEnvironmentAsset(gltf.scene, V2_ASSET_PROFILES.find(asset => asset.id === 'silver-storm')!);
     expect(prepared.root.getObjectByName('CubeNavigationCollider')).toBeUndefined();
+    expect(prepared.drawMeshes).toBeLessThan(150);
+    expect(prepared.triangles).toBeLessThan(305000);
+    console.info(`Curated park: ${prepared.meshes} source meshes → ${prepared.drawMeshes} draw meshes; ${prepared.triangles} triangles; ${prepared.size.toArray().map(n => n.toFixed(2)).join(' × ')} m`);
     const remainingNames: string[] = [];
     prepared.root.traverse(node => remainingNames.push(node.name));
     expect(remainingNames.some(name => /^NavCollider__/.test(name))).toBe(false);

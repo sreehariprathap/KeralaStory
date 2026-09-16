@@ -9,6 +9,7 @@ export interface V2AssetProfile {
   removeNodes: readonly string[];
   removePatterns?: readonly RegExp[];
   note: string;
+  batchStatic?: boolean;
 }
 
 /** Metre-space coarse collision measured after the 5.6 m coffee extraction; interior stays closed. */
@@ -22,7 +23,7 @@ export const COFFEE_COLLISION_PROFILE = {
 export const V2_ASSET_PROFILES: readonly V2AssetProfile[] = [
   { id: 'coffee-shop', label: 'Chalakkudy coffee shop', url: '/assets/buildings/coffee_shop_isometric.glb', rotationY: 0, sizeAxis: 'y', sizeM: 5.6, removeNodes: ['Plane003_61'], note: 'Presentation plane removed; structural floor retained. Exterior furniture remains for this first review.' },
   { id: 'fuel-station', label: 'Roadside fuel station', url: '/assets/buildings/low_poly_fuel_station.glb', rotationY: 0, sizeAxis: 'y', sizeM: 5.2, removeNodes: ['Plane', 'Car003', 'Car001', 'WindowFront007', 'Text', 'Text001', 'Plane017', 'Plane018'], note: 'Presentation asphalt, cars, dense text and boundary fences removed. Simple local fuel signage will replace the text at placement; collision pending.' },
-  { id: 'silver-storm', label: 'Silver Storm source park', url: '/park/amusement_park.glb', rotationY: 0, sizeAxis: 'x', sizeM: 90, removeNodes: ['CubeNavigationCollider', 'SC_COL_CityRoadMod01_floor_005_081', 'SC_COL_CityRoadMod01_floor_005_189', 'SC_COL_CityRoadMod01_floor_005_190', 'SC_COL_CityRoadMod01_floor_005_191'], removePatterns: [/^NavCollider__/, /^camera__[124]_$/], note: 'Exported navigation/camera geometry and deep boundary skirts removed. Other game props and foundations still need curation before world placement; pool will be separate.' },
+  { id: 'silver-storm', batchStatic: true, label: 'Silver Storm source park', url: '/park/amusement_park.glb', rotationY: 0, sizeAxis: 'x', sizeM: 90, removeNodes: ['CubeNavigationCollider', 'SC_COL_CityRoadMod01_floor_005_081', 'SC_COL_CityRoadMod01_floor_005_189', 'SC_COL_CityRoadMod01_floor_005_190', 'SC_COL_CityRoadMod01_floor_005_191'], removePatterns: [/^NavCollider__/, /^camera__[124]_$/, /LootTrail|LiveFormStats/, /^sign_xxx/], note: 'Exported navigation/camera geometry and deep boundary skirts removed. Source-game health/loot markers and adult sign removed; static meshes batched by material. Other props and foundations still require visual approval; pool is separate.' },
   { id: 'bronco', label: 'Bronco', url: '/assets/cars/bronco.glb', rotationY: -Math.PI / 2, sizeAxis: 'z', sizeM: 4.4, removeNodes: [], note: 'Source colors restored. Body-only paint and moving tires require mesh separation; neither is implemented yet.' },
   { id: 'car-carton', label: 'Cartoon car', url: '/assets/cars/car_carton.glb', rotationY: 0, sizeAxis: 'z', sizeM: 3.8, removeNodes: [], note: 'Static size review. Wheel animation and driving integration follow later.' },
   { id: 'car', label: 'Car — rigged source', url: '/assets/cars/car.glb', rotationY: 0, sizeAxis: 'z', sizeM: 3.8, removeNodes: [], note: 'Tall source bounds need visual review before fixing vehicle axes and collision.' },

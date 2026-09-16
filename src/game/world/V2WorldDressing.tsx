@@ -5,23 +5,15 @@ import { V2_ASSET_PROFILES } from '../../content/assets/v2AssetProfiles';
 import { V2_LAYOUT, terrainHeight } from '../../content/world/definition';
 
 type V3 = readonly [number, number, number];
-type Building = { id: string; x: number; z: number; width: number; depth: number; height: number; wall: string; roof: string; label?: string };
+import { TOWN_BUILDINGS, buildingGround, parkPoolLayout, v2DressingBoxes, type Building } from '../../content/world/v2Dressing';
 
 const fuelProfile = V2_ASSET_PROFILES.find(asset => asset.id === 'fuel-station')!;
 const parkProfile = V2_ASSET_PROFILES.find(asset => asset.id === 'silver-storm')!;
 
-const TOWN_BUILDINGS: readonly Building[] = [
-  { id: 'kodakara-market', x: -250, z: -184, width: 10, depth: 8, height: 3.4, wall: '#e7d7b2', roof: '#a8573d', label: 'Kodakara Market' },
-  { id: 'kodakara-bakery', x: -222, z: -184, width: 9, depth: 8, height: 3.2, wall: '#d9bd8a', roof: '#bd7049', label: 'Kodakara Bakery' },
-  { id: 'kodakara-house-north', x: -270, z: -228, width: 10, depth: 9, height: 3.1, wall: '#f4e8cc', roof: '#aa573c' },
-  { id: 'kodakara-house-south', x: -180, z: -230, width: 10, depth: 9, height: 3.1, wall: '#d5dfb6', roof: '#9d6145' },
-  { id: 'malakkappara-tea', x: -532, z: -642, width: 9, depth: 7, height: 3, wall: '#e7d7b2', roof: '#8d583f', label: 'Malakkappara Tea Stop' },
-  { id: 'malakkappara-house-west', x: -585, z: -690, width: 10, depth: 8, height: 3.2, wall: '#f4e8cc', roof: '#a8573d' },
-  { id: 'malakkappara-house-east', x: -520, z: -712, width: 10, depth: 8, height: 3.2, wall: '#d5dfb6', roof: '#9d6145' },
-];
 
 function House({ building }: { building: Building }) {
-  const y = terrainHeight(building.x, building.z);
+  const ground = buildingGround(building);
+  const y = ground.max;
   return <group position={[building.x, y, building.z]}>
     <mesh position={[0, building.height / 2, 0]} castShadow receiveShadow>
       <boxGeometry args={[building.width, building.height, building.depth]} />
@@ -35,6 +27,7 @@ function House({ building }: { building: Building }) {
       <boxGeometry args={[building.width + .6, .24, building.depth + .6]} />
       <meshStandardMaterial color="#a98569" roughness={1} />
     </mesh>
+    <mesh position={[0, -(ground.max - ground.min) / 2, 0]} receiveShadow><boxGeometry args={[building.width, Math.max(.05, ground.max - ground.min), building.depth]} /><meshStandardMaterial color="#a98569" roughness={1}/></mesh>
     {building.label && <ExpansionSign position={[0, building.height * .62, building.depth / 2 + .08]} label={building.label} width={Math.min(4.2, building.width - 1)} />}
   </group>;
 }
@@ -56,18 +49,13 @@ function FuelStation() {
   </group>;
 }
 
-function ParkPool({ y }: { y: number }) {
-  const [minX, minZ] = [Math.min(...V2_LAYOUT.park.poolFootprint.map(point => point[0])), Math.min(...V2_LAYOUT.park.poolFootprint.map(point => point[1]))];
-  const [maxX, maxZ] = [Math.max(...V2_LAYOUT.park.poolFootprint.map(point => point[0])), Math.max(...V2_LAYOUT.park.poolFootprint.map(point => point[1]))];
-  const width = maxX - minX, depth = maxZ - minZ, cx = (minX + maxX) / 2, cz = (minZ + maxZ) / 2;
+function ParkPool() {
+  const { x: cx, z: cz, y, width, depth } = parkPoolLayout();
   return <group name="silver-storm-pool">
     <mesh position={[cx, y + .12, cz]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[width, depth]} /><meshStandardMaterial color="#55b8c2" roughness={.18} metalness={.08} /></mesh>
     <mesh position={[cx, y + .42, cz - depth / 2 - .7]} castShadow><boxGeometry args={[width + 2, .7, 1.4]} /><meshStandardMaterial color="#f1d2a3" roughness={1} /></mesh>
     <mesh position={[cx, y + .42, cz + depth / 2 + .7]} castShadow><boxGeometry args={[width + 2, .7, 1.4]} /><meshStandardMaterial color="#f1d2a3" roughness={1} /></mesh>
-    <RigidBody type="fixed" colliders={false}>
-      <CuboidCollider position={[cx, y + .35, cz - depth / 2 - .7]} args={[(width + 2) / 2, .35, .7]} />
-      <CuboidCollider position={[cx, y + .35, cz + depth / 2 + .7]} args={[(width + 2) / 2, .35, .7]} />
-    </RigidBody>
+    {[-1, 1].map(side => <mesh key={side} position={[cx + side * (width / 2 + .7), y + .42, cz]} castShadow><boxGeometry args={[1.4, .7, depth]} /><meshStandardMaterial color="#f1d2a3" roughness={1}/></mesh>)}
   </group>;
 }
 
@@ -82,11 +70,10 @@ function SilverStorm() {
         <mesh position={[-19, 12, -8]} rotation={[0, 0, -.5]} castShadow><cylinderGeometry args={[1.2, 1.2, 18, 10]} /><meshStandardMaterial color="#f08b58" roughness={.55} /></mesh>
         <mesh position={[18, 6, -12]} castShadow><cylinderGeometry args={[1.1, 1.4, 11, 10]} /><meshStandardMaterial color="#e8b653" roughness={.55} /></mesh>
       </group>} />
-      <ParkPool y={0} />
       <mesh position={[0, .22, 31]} receiveShadow><boxGeometry args={[48, .12, 10]} /><meshStandardMaterial color="#c1aa78" roughness={1} /></mesh>
       <ExpansionSign position={[0, 3.8, 29.8]} label="Silver Storm · ജല തീം പാർക്ക്" width={7} />
-      <RigidBody type="fixed" colliders={false}><CuboidCollider position={[0, .16, 31]} args={[24, .16, 5]} /></RigidBody>
     </group>
+    <ParkPool />
   </group>;
 }
 
@@ -103,7 +90,7 @@ function PalmRow({ positions }: { positions: readonly V3[] }) {
 export function V2WorldDressing() {
   return <group name="v2-town-and-park-dressing">
     <RigidBody type="fixed" colliders={false}>
-      {TOWN_BUILDINGS.map(building => <CuboidCollider key={building.id} position={[building.x, terrainHeight(building.x, building.z) + building.height / 2, building.z]} args={[building.width / 2, building.height / 2, building.depth / 2]} />)}
+      {v2DressingBoxes().map(box => <CuboidCollider key={box.id} position={box.position} rotation={box.rotation} args={[box.size[0] / 2, box.size[1] / 2, box.size[2] / 2]} />)}
     </RigidBody>
     {TOWN_BUILDINGS.map(building => <House key={building.id} building={building} />)}
     <FuelStation />

@@ -1,4 +1,5 @@
 import { Box3, Group, Mesh, Vector3, type Material, type Object3D } from 'three';
+import { batchStaticAsset } from './batchStaticAsset';
 import { clone } from 'three/addons/utils/SkeletonUtils.js';
 import type { V2AssetProfile } from '../../content/assets/v2AssetProfiles';
 
@@ -39,6 +40,8 @@ export function prepareEnvironmentAsset(source: Object3D, profile: V2AssetProfil
     object.material = Array.isArray(object.material) ? object.material.map(copy) : copy(object.material);
     object.castShadow = true; object.receiveShadow = true;
   });
-  return { root, size: sourceSize.multiplyScalar(scale), meshes, triangles: Math.round(triangles),
-    dispose: () => { owned.forEach(material => material.dispose()); } };
+  const disposeBatch = profile.batchStatic ? batchStaticAsset(root) : undefined;
+  let drawMeshes = 0; root.traverse(object => { if (object instanceof Mesh) drawMeshes++; });
+  return { root, drawMeshes, size: sourceSize.multiplyScalar(scale), meshes, triangles: Math.round(triangles),
+    dispose: () => { disposeBatch?.(); owned.forEach(material => material.dispose()); } };
 }

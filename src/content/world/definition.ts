@@ -1,11 +1,13 @@
 import { createExpansionGround } from './expansionGround';
 import { createV2Layout } from './v2Layout';
 import { createChalakkudyStreet } from './townLayout';
+import { createExpansionPlaces } from './expansionPlaces';
+import { createV2Places } from './v2Places';
 import type { ExpansionLayout } from '../../contracts/worldExpansion';
 import { createExpansionLayout, areaAt, pointInPolygon } from './expansionLayout';
 import type { Landmark, MapBounds, TravelMode, Vec3, ZoneId } from '../../contracts';
 
-export const WORLD_VERSION = 'kodassery-diaries-v2-street-1';
+export const WORLD_VERSION = 'kodassery-diaries-v2-dressing-2';
 export const ORIGINAL_WORLD_BOUNDS: MapBounds = { xMin: -78, xMax: 88, zMin: -484, zMax: 92 };
 const PRE_V2_BOUNDS: MapBounds = { xMin: -680, xMax: 96.5, zMin: -740, zMax: 92 };
 let activeGround: ReturnType<typeof createExpansionGround> | undefined;
@@ -84,7 +86,7 @@ export const VILLAGE_PATH:[number,number][]=[[0,-334],[8,-313],[11,-286],[2,-260
 export const CITY_PATH:[number,number][]=[[12,-64],[12,-55],[16,-48],[26,-25],[32,-4],[30,21],[38,43],[36,58],[47,68],[47,88]];
 export const MAIN_PATH:[number,number][]=[...KODASSERY_PATH,...VILLAGE_PATH.slice(1),[12,-64],...CITY_PATH.slice(1)];
 export const BRIDGE_PATH:[number,number][]=[[12,-134],[12,-64]];
-export const LANDMARKS:Landmark[]=[
+const LEGACY_LANDMARKS:Landmark[]=[
   {id:'origin',zoneId:'kodassery',label:'The first overlook',position:SPAWN,discoveryRadiusM:7,iconId:'mountain',description:'A quiet beginning, above the clouds.'},
   {id:'canopy',zoneId:'kodassery',label:'Canopy homestead',position:[18,terrainHeight(18,-415)+3,-415],discoveryRadiusM:12,iconId:'house',description:'Timber homes held in the arms of the forest.'},
   {id:'waterfall',zoneId:'kodassery',label:'Silverthread falls',position:[31,terrainHeight(31,-386),-386],discoveryRadiusM:11,iconId:'waves',description:'Follow the sound of water through the leaves.'},
@@ -98,6 +100,19 @@ export const LANDMARKS:Landmark[]=[
   {id:'lighthouse',zoneId:'kodaly',label:'Kodaly lighthouse',position:[65,terrainHeight(65,54),54],discoveryRadiusM:13,iconId:'lighthouse',description:'A red-and-white landmark watching over the coast.'},
   {id:'harbor',zoneId:'kodaly',label:'Kodaly harbor',position:[48,terrainHeight(48,77),77],discoveryRadiusM:16,iconId:'anchor',description:'From the misty hills to the sea. Stay a while.'},
 ];
+const v2Grounded = (id: string, zoneId: ZoneId, x: number, z: number): { id: string; zoneId: ZoneId; position: Vec3 } => ({
+  id, zoneId, position: [x, (EXPANSION_GROUND.deckHeightAt(x, z) ?? terrainHeight(x, z)) + 0.05, z],
+});
+/** Canonical discovery catalogue: legacy places remain stable, followed by expansion and V2 places. */
+export const LANDMARKS: Landmark[] = createV2Places({
+  legacy: [...LEGACY_LANDMARKS, ...createExpansionPlaces(EXPANSION_LAYOUT)],
+  // Kodaly already has the stable market/harbor landmarks; add only the three new town records.
+  towns: V2_LAYOUT.towns.filter(town => !town.existing).map(town => v2Grounded(town.id, town.regionId, town.center[0], town.center[2])),
+  silverStorm: v2Grounded('silver-storm', 'kodassery', V2_LAYOUT.park.center[0], V2_LAYOUT.park.center[2]),
+  fuelStation: v2Grounded('chalakkudy-fuel', 'kadambode', -372, -132),
+  coffeeShop: v2Grounded('chalakkudy-coffee', 'kadambode', -414, -120),
+  malakkapparaTeaStop: v2Grounded('malakkappara-tea', 'kodassery', -532, -642),
+});
 export const WORLD_REGIONS=[
   {id:'kodassery',name:'Kodassery Peaks',subtitle:'Misty canopy trails',number:'01',available:true},
   {id:'kadambode',name:'Kadambode',subtitle:'Paddy fields & a temple village',number:'02',available:true},

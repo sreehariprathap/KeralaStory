@@ -80,12 +80,13 @@ export function ExplorerController(props: ExplorerControllerProps) {
   const lastCarSpawn=useRef(props.carSpawnToken);
   useEffect(()=>{
     if(lastCarSpawn.current===props.carSpawnToken)return;lastCarSpawn.current=props.carSpawnToken;
-    const rigidBody=body.current;if(!rigidBody)return;
+    const finish=(ok:boolean,message:string)=>{report(message);latest.current.onCarSpawnResult?.({ok,message});};
+    const rigidBody=body.current;if(!rigidBody){finish(false,'The explorer is not ready yet.');return;}
     const position=rigidBody.translation(),feet:Vec3=[position.x,position.y-FEET_TO_CENTER,position.z];
-    if(vehicle.current!=='foot'){report('Exit your vehicle before spawning a car.');return;}
+    if(vehicle.current!=='foot'){finish(false,'Exit your vehicle before spawning a car.');return;}
     const candidates:[[number,number],[number,number],[number,number],[number,number]]=[[0,4],[2,4],[-2,4],[0,-4]];
-    for(const [right,forward] of candidates){const x=feet[0]+Math.cos(heading.current)*right+Math.sin(heading.current)*forward,z=feet[2]-Math.sin(heading.current)*right-Math.cos(heading.current)*forward;const valid=clearFeet(x,z,feet[1],'car',heading.current);if(valid&&isTravelAllowed('car',x,z)){removeCar();const model=latest.current.carModelId??'admin';car.current=createCarPhysics(world,valid,heading.current,model);carMotion.current=car.current.motion;car.current.body.setEnabled(latest.current.mode==='playing'||latest.current.mode==='loading');carParked.current=valid;carParkedHeading.current=heading.current;setSpawnedCarModel(model);report('Car ready nearby. Press F to drive.');return;}}
-    report('No clear space to spawn the car.');
+    for(const [right,forward] of candidates){const x=feet[0]+Math.cos(heading.current)*right+Math.sin(heading.current)*forward,z=feet[2]-Math.sin(heading.current)*right-Math.cos(heading.current)*forward;const valid=clearFeet(x,z,feet[1],'car',heading.current);if(valid&&isTravelAllowed('car',x,z)){const model=latest.current.carModelId??'admin';let replacement:CarPhysics;try{replacement=createCarPhysics(world,valid,heading.current,model);}catch{finish(false,'The car could not be prepared. Your current car is unchanged.');return;}removeCar();car.current=replacement;carMotion.current=car.current.motion;car.current.body.setEnabled(latest.current.mode==='playing'||latest.current.mode==='loading');carParked.current=valid;carParkedHeading.current=heading.current;setSpawnedCarModel(model);finish(true,'Car ready nearby. Close this panel and approach it to drive.');return;}}
+    finish(false,'No clear space to spawn the car. Move to open ground and try again.');
   },[props.carSpawnToken]);
 
   useBeforePhysicsStep(()=>{

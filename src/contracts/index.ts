@@ -47,6 +47,7 @@ export interface ExplorerControllerProps {
   returnBicycleToken?: number;
   carSpawnToken?: number;
   carModelId?: import('../content/assets/models').CarModelId;
+  onCarSpawnResult?: (result: { ok: boolean; message: string }) => void;
 }
 
 export const LocaleSchema = z.enum(['en', 'ml']);

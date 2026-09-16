@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ClientMessageSchema, ServerEventSchema } from '../src/index.ts';
+import { CLIENT_EVENT_TYPES, ClientMessageSchema, SERVER_EVENT_TYPES, ServerEventSchema } from '../src/index.ts';
 import {
   invalidClientMessages,
   invalidServerEvents,
@@ -8,6 +8,11 @@ import {
 } from './fixtures.ts';
 
 describe('protocol fixture catalogue', () => {
+  it('includes a valid fixture for every exported event type', () => {
+    expect(new Set(validClientMessages.map(([, message]) => message.type))).toEqual(new Set(CLIENT_EVENT_TYPES));
+    expect(new Set(validServerEvents.map(([, event]) => event.type))).toEqual(new Set(SERVER_EVENT_TYPES));
+  });
+
   it.each(validClientMessages)('accepts valid C2S %s fixture', (_name, message) => {
     expect(ClientMessageSchema.safeParse(message)).toMatchObject({ success: true });
   });

@@ -1,6 +1,7 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import { InputSchema, type AvatarAppearanceDto, type ReplicatedPlayerDto, type Vec3 } from '@kerala-story/protocol';
 import type { SimulationWorld } from './fixedStep';
+import { releaseVehicleSeat } from './vehicleSimulation';
 import { GRAVITY, INPUT_TIMEOUT_TICKS, JUMP_SPEED, PLAYER_CENTER_HEIGHT, PLAYER_HALF_HEIGHT, PLAYER_RADIUS, walkingVelocity } from './playerRules';
 import { findSafeSpawn, needsSafeReset } from './spawnRules';
 import { toTuple, toVector } from './worldDefinition';
@@ -35,6 +36,7 @@ export function addPlayer(sim: SimulationWorld, profile: PlayerProfile): Replica
 }
 export function removePlayer(sim: SimulationWorld, id: string): void {
   const player = sim.players.get(id); if (!player) return;
+  releaseVehicleSeat(sim, id);
   sim.physics.removeCharacterController(player.controller); sim.physics.removeRigidBody(player.body); sim.players.delete(id);
 }
 /** Reconnect retains body, transform, identity and sequence acknowledgment. */
@@ -45,7 +47,7 @@ export function setPlayerConnected(sim: SimulationWorld, id: string, connected: 
 }
 export function submitPlayerInput(sim: SimulationWorld, id: string, candidate: unknown): boolean {
   const player = sim.players.get(id), parsed = InputSchema.safeParse(candidate);
-  if (!player?.snapshot.connected || !parsed.success || parsed.data.sequence <= player.lastReceivedSequence || player.snapshot.travel.kind !== 'foot') return false;
+  if (!player?.snapshot.connected || !parsed.success || parsed.data.sequence <= player.lastReceivedSequence) return false;
   player.lastReceivedSequence = parsed.data.sequence;
   player.jumpQueued ||= parsed.data.actions.includes('jump') && !player.input?.actions.includes('jump');
   player.input = parsed.data; player.inputTick = sim.tick;

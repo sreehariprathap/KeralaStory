@@ -8,6 +8,7 @@ import type { AvatarMotion } from '../player/ExplorerAvatar';
 import type { CarModelId } from '../../content/assets/models';
 import type { CarMotion } from '../vehicle/carPhysics';
 import { createCarWheelAnimation } from '../vehicle/carWheelAnimation';
+import { VEHICLE_PROFILES } from '../../content/assets/vehicleProfiles';
 
 interface Props { url: string; height?: number; length?: number; rotationY?: number; name?: string; motion?: RefObject<AvatarMotion>; animation?: CharacterRig; carModel?: CarModelId; carMotion?: RefObject<CarMotion> }
 function LoadedModel({ url, height, length, rotationY = 0, name, motion, animation, carModel, carMotion }: Props) {
@@ -20,7 +21,8 @@ function LoadedModel({ url, height, length, rotationY = 0, name, motion, animati
     root.updateMatrixWorld(true);
     const bounds = new Box3().setFromObject(root, true);
     const size = bounds.getSize(new Vector3());
-    const scale = height ? height / size.y : Math.min((length ?? 3.8) / size.z, 1.8 / size.x, 1.7 / size.y);
+    const profile = carModel ? VEHICLE_PROFILES[carModel] : undefined;
+    const scale = height ? height / size.y : profile && !profile.legacyBoundsCap ? profile.length / size.z : Math.min((length ?? 3.8) / size.z, 1.8 / size.x, 1.7 / size.y);
     if (!Number.isFinite(scale) || scale <= 0) throw new Error(`Invalid model bounds: ${url}`);
     root.scale.setScalar(scale);
     scene.position.x -= (bounds.min.x + bounds.max.x) / 2;

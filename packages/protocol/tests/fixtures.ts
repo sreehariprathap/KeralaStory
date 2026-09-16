@@ -61,6 +61,8 @@ export const validServerEvents: ReadonlyArray<readonly [string, ServerEventDto]>
   ['roomSnapshot with seats and transforms', { type: 'roomSnapshot', payload: fullRoomSnapshot }],
   ['chatAccepted with Unicode sender', { type: 'chatAccepted', payload: { id: 7, senderId: guest, senderName: 'മായ 🌴', text: 'നമസ്കാരം കൂട്ടുകാരേ', sentAtMs: 1_728_000_000_123 } }],
   ['roomError', { type: 'roomError', payload: { code: 'ROOM_FULL', message: 'Room is full' } }],
+  ['roomWelcome with reconnect token', { type: 'roomWelcome', payload: { roomCode: 'ABCD2345', guestId: guest, reconnectToken: 'reconnect-token-012345678901234567890123' } }],
+  ['pong with client and server times', { type: 'pong', payload: { clientTimeMs: 1_728_000_000_000, serverTimeMs: 1_728_000_000_123 } }],
 ];
 
 export const invalidClientMessages: ReadonlyArray<readonly [string, string, unknown, string]> = [
@@ -69,6 +71,9 @@ export const invalidClientMessages: ReadonlyArray<readonly [string, string, unkn
   ['chat control character', 'payload.text', { type: 'chatSend', payload: { text: 'hello\u0000' } }, 'unsupported'],
   ['enter vehicle id', 'payload.vehicleId', { type: 'enterVehicle', payload: { vehicleId: 'Bad Vehicle' } }, 'Invalid string'],
   ['ready world version', 'payload.worldVersion', { type: 'ready', payload: { worldVersion: '' } }, 'Too small'],
+  ['exit vehicle unexpected field', 'payload', { type: 'exitVehicle', payload: { vehicleId: 'ferry-jeep' } }, 'Unrecognized key'],
+  ['leave unexpected field', 'payload', { type: 'leave', payload: { reason: 'done' } }, 'Unrecognized key'],
+  ['ping timestamp', 'payload.clientTimeMs', { type: 'ping', payload: { clientTimeMs: -1 } }, 'Too small'],
 ];
 
 export const invalidServerEvents: ReadonlyArray<readonly [string, string, unknown, string]> = [
@@ -76,4 +81,6 @@ export const invalidServerEvents: ReadonlyArray<readonly [string, string, unknow
   ['snapshot seat id', 'payload.players.0.travel.seatId', { type: 'roomSnapshot', payload: { ...fullRoomSnapshot, players: [{ ...player, travel: { kind: 'vehicle', vehicleId: 'ferry-jeep', seatId: 'captain' } }] } }, 'Invalid option'],
   ['error code', 'payload.code', { type: 'roomError', payload: { code: 'NOT_A_CODE', message: 'Bad request' } }, 'Invalid option'],
   ['chat message id', 'payload.id', { type: 'chatAccepted', payload: { id: -1, senderId: guest, senderName: 'Maya', text: 'hello', sentAtMs: 1 } }, 'Too small'],
+  ['room welcome token', 'payload.reconnectToken', { type: 'roomWelcome', payload: { roomCode: 'ABCD2345', guestId: guest, reconnectToken: 'too-short' } }, 'Too small'],
+  ['pong timestamp', 'payload.serverTimeMs', { type: 'pong', payload: { clientTimeMs: 1, serverTimeMs: -1 } }, 'Too small'],
 ];

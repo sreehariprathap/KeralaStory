@@ -12,5 +12,16 @@ export const CHARACTER_MODELS = [
 export const CAR_MODELS = [
   { id: 'admin', name: 'Admin car', url: '/assets/cars/admin-car.glb', rotationY: -Math.PI / 2 },
   { id: 'muscle', name: 'Classic muscle car', url: '/assets/cars/classic_muscle_car.glb', rotationY: 0 },
+  { id: 'car-carton', name: 'Cartoon car', url: '/assets/cars/car_carton.glb', rotationY: Math.PI },
+  { id: 'fennec', name: 'Fennec', url: '/assets/cars/fennec_-_rocket_league_car.glb', rotationY: -Math.PI / 2 },
+] as const;
+/** Source assets remain visible to review tooling but cannot spawn before calibration. */
+export const PENDING_CAR_MODELS = [
+  { id: 'bronco', name: 'Bronco', url: '/assets/cars/bronco.glb', reason: 'Body and tyres are fused; separate wheel geometry is required.' },
+  { id: 'car', name: 'Rigged car', url: '/assets/cars/car.glb', reason: 'Skinned source needs a corrected rest pose and wheel-bone calibration.' },
 ] as const;
 export type CarModelId = typeof CAR_MODELS[number]['id'];
+export const CAR_PICKER_CATALOG = [
+  ...CAR_MODELS.map(model => ({ ...model, available: true as const, reason: '' })),
+  ...PENDING_CAR_MODELS.map(model => ({ ...model, available: false as const })),
+];

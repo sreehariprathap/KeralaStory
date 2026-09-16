@@ -4,6 +4,7 @@ import type { Vec3 } from '../../contracts';
 import { FEET_TO_CENTER } from '../player/controllerMath';
 import type { CarIntent } from './carMotor';
 import { createNitroState, stepNitro } from './carNitro';
+import { VEHICLE_PROFILES } from '../../content/assets/vehicleProfiles';
 
 export const CAR_MASS_KG = 1100;
 export const CAR_SUSPENSION_REST = .32;
@@ -12,10 +13,7 @@ export interface CarMotion {
   nitroActive: boolean; nitroRemaining: number;
   wheelRotation: number[]; wheelSteering: number[]; wheelOffset: number[];
 }
-export const CAR_WHEELS = {
-  admin: [{x:.771,z:1.022,radius:.274,y:.274},{x:-.771,z:1.022,radius:.274,y:.274},{x:.771,z:-.534,radius:.302,y:.302},{x:-.771,z:-.534,radius:.302,y:.302}],
-  muscle: [{x:.65,z:1.095,radius:.258,y:.258},{x:-.65,z:1.095,radius:.258,y:.258},{x:.65,z:-1.059,radius:.258,y:.288},{x:-.65,z:-1.059,radius:.258,y:.288}],
-} as const;
+export const CAR_WHEELS = Object.fromEntries(Object.entries(VEHICLE_PROFILES).map(([id, profile]) => [id, profile.wheels])) as Record<CarModelId, typeof VEHICLE_PROFILES.admin.wheels>;
 export function createCarMotion(): CarMotion {
   return {speed:0,signedSpeed:0,throttle:0,grounded:false,nitroActive:false,nitroRemaining:0,wheelRotation:[0,0,0,0],wheelSteering:[0,0,0,0],wheelOffset:[0,0,0,0]};
 }
@@ -27,7 +25,7 @@ export function createCarPhysics(world: World, feet: Vec3, heading: number, mode
     .setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)}).setCcdEnabled(true).setLinearDamping(.12).setAngularDamping(6)
     .setAdditionalMassProperties(CAR_MASS_KG,{x:0,y:-.32,z:0},{x:1050,y:1650,z:850},{x:0,y:0,z:0,w:1}));
   // Keep a compact collision belly above the tyres' working travel on uneven tracks.
-  const chassis = model === 'admin' ? {x:.65,y:.52,z:1.35,offset:.26} : {x:.78,y:.34,z:1.72,offset:-.02};
+  const chassis = VEHICLE_PROFILES[model].chassis;
   world.createCollider(ColliderDesc.cuboid(chassis.x,chassis.y,chassis.z).setTranslation(0,chassis.offset,0).setDensity(0).setFriction(.4).setRestitution(.03),body);
   // Vehicle suspension reads mass before the first world step.
   body.recomputeMassPropertiesFromColliders();
