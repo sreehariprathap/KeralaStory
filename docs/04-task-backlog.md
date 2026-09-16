@@ -2,7 +2,7 @@
 
 > Execution update: use [08-complete-app-plan.md](08-complete-app-plan.md) and [09-model-handoffs.md](09-model-handoffs.md) for the complete-app task sequence and Astra/Luna assignments. This original inventory is preserved; [06-build-log.md](06-build-log.md) records actual status.
 
-All tasks are **planned**, none are implemented. Suggested ownership: **Core** for a stronger coding model with integration review; **Luna** for bounded work against stable contracts; **Art** for asset production/selection and visual review. These are task-sizing recommendations, not guarantees about any model's output.
+The original inventory below was authored as **planned**; it is not a current implementation-status statement. See [06-build-log.md](06-build-log.md) for completed and partial work. Suggested ownership: **Core** for a stronger coding model with integration review; **Luna** for bounded work against stable contracts; **Art** for asset production/selection and visual review. These are task-sizing recommendations, not guarantees about any model's output.
 
 Luna tasks should fit one focused session, normally one component, pure utility, or content fixture with a few supporting files. If a task needs engine research, new contracts, more than about three production files, or a new dependency, split it or move it to Core. Do not delegate an entire biome or ask a smaller model to invent the visual style.
 
@@ -103,3 +103,12 @@ Integrator fills every bracket before dispatch. Keep the context packet small: t
 ## Definition of done for every handoff
 
 The requested observable behavior works; unrelated behavior remains intact; no undeclared dependencies or schema drift; appropriate type/build/behavior checks pass; visual work has a real screenshot; documentation distinguishes completed behavior from placeholders. Merge small changes sequentially through the integrator. If a check fails, return the original task with the concrete failure instead of adding a vague cleanup task.
+
+## Mountain, Chokkana and Athirappilly expansion — 15 September 2026
+
+Task definitions and acceptance gates: [map expansion plan](superpowers/plans/2026-09-15-mountain-chokkana-athirappilly.md). This extends the existing world with a climbable summit and whole-map view, a forest driving loop, a separate Athirappilly destination and nine landmarks. Preserve all existing regions and Silverthread Falls.
+
+- Planning MX-P1–MX-P3: **Done**, including Luna read-only review.
+- Core MX-A1–MX-A8: **Planned**, GPT-6 Astra ownership.
+- Bounded MX-L1–MX-L4: **Planned**, GPT-5.6 Luna handoffs after contracts/dependencies are ready.
+- Mark tasks Done only after their acceptance gates pass; append actual results to the build log. Runtime expansion work has not started.

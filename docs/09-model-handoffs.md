@@ -416,3 +416,9 @@ it('rejects invalid dimensions', () => {
 ```
 
 For A01/A04-dependent data/physics tests, use the actual frozen fixtures when those tasks complete. Do not implement speculative schemas merely to run future handoffs today.
+
+## Map expansion handoffs — 15 September 2026
+
+Use [the expansion plan](superpowers/plans/2026-09-15-mountain-chokkana-athirappilly.md), sections 5–6, for MX task order, exact writable paths and acceptance checks. Core terrain, mountain, roads/driving, waterfalls, summit camera, map/save integration and final verification stay with GPT-6 Astra. GPT-5.6 Luna receives MX-L1 landmark/localization data, MX-L2 deterministic forest placements, MX-L3 pure panorama math and MX-L4 independent regression tests only after the listed dependencies are ready.
+
+Luna completed the read-only planning review (MX-P2); no implementation handoff is complete. Only Astra updates canonical contracts/composition and status records. Workers return files, actual check results and remaining issues; Astra marks Done after review and required visual/playtest evidence.
