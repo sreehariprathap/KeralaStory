@@ -1,3 +1,4 @@
+import { createExpansionLayout, areaAt } from './expansionLayout';
 import type { Landmark, MapBounds, Vec3, ZoneId } from '../../contracts';
 
 export const WORLD_VERSION = 'kerala-2000-connected-2';
@@ -24,6 +25,13 @@ export function terrainHeight(x:number,z:number):number{
   return 14-city*8+Math.sin(x*.03)*.3;
 }
 export function getZoneAt(z:number):ZoneId{return z<-334?'kodassery':z<-139?'kadambode':z<-62?'kurumali':'kodaly';}
+/** Authored blockout only until shared ground is activated. */
+export const EXPANSION_LAYOUT = createExpansionLayout({
+  junction: [-7, terrainHeight(-7, -446), -446],
+  panoramaTargets: [[18, terrainHeight(18,-415)+12,-415], [50,terrainHeight(50,-386)+16,-386], [-21,terrainHeight(-21,-288),-288], [25,terrainHeight(25,-238)+7,-238], [12,15,-99], [65,terrainHeight(65,54)+20,54]],
+});
+export function getAreaAt(x: number, z: number) { return areaAt(EXPANSION_LAYOUT, x, z); }
+export function getZoneAtPosition(x: number, z: number): ZoneId { return getAreaAt(x,z) ? 'kodassery' : getZoneAt(z); }
 export const SPAWN:Vec3=[0,terrainHeight(0,-460)+.05,-460];
 export const KODASSERY_PATH:[number,number][]=[[0,-481],[0,-460],[-7,-446],[-9,-429],[0,-413],[9,-399],[6,-384],[-3,-371],[0,-349],[0,-334]];
 export const VILLAGE_PATH:[number,number][]=[[0,-334],[8,-313],[11,-286],[2,-260],[-6,-238],[0,-211],[10,-184],[12,-157],[12,-134]];

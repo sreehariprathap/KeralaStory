@@ -192,3 +192,12 @@ Rapier route tests use actual rendered terrain arrays and architecture colliders
 ## MX-L3 — panorama helpers (15 September 2026)
 
 Owner: GPT-5.6 Luna, reviewed by Astra. Added `panoramaMath.ts` and six numerical tests. Computes a far plane from target distances and a clamped smoothstep visibility factor; rejects invalid vectors and ranges, including sparse vectors. Focused Vitest: 1 file / 6 tests pass. Helper milestone Done; runtime fog/camera integration remains MX-A6. No visual or performance claim.
+
+
+## MX-A1 — authored spatial contracts (15 September 2026)
+
+Owner GPT-6 Astra; bounded read-only review GPT-5.6 Luna. Added typed area, route, anchor and water contracts, deterministic layout, boundary-inclusive polygon and route sampling helpers. Canonical definition exports inactive EXPANSION_LAYOUT and X/Z-aware area queries; active ground bounds, original landmarks and save version preserved.
+
+Measured: summit 551.480 m planar / 562.343 m surface, +110 m, max grade 19.95%; main forest road 1131.411 / 1132.434 m, first 170 m flat, max grade 8%; access spur 44 m / +2 m, max 6.82%; return loop 284.301 / 284.391 m; falls trail 153.738 / 156.344 m, -26 m, max25.37%. Drivable bend radii >=14 m. Summit moved to (-130,-690); main road extends west of the original corridor as far south as -280 for travel separation.
+
+Seven layout tests pass, including connectivity, grades, lengths, unique anchors, separate water and finite layout values; typecheck passes. This completes authored blockout only. Rendered terrain, actual contacts, final grounded anchors, manual travel and panorama remain subsequent gates.

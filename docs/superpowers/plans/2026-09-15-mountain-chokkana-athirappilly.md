@@ -164,7 +164,7 @@ Only planning tasks are done at creation. Implementation boxes below stay unchec
 | MX-P1 | Astra | None | Inspect existing design, geography, rendering and task status | Done |
 | MX-P2 | Luna | P1 | Read-only regression/handoff review | Done |
 | MX-P3 | Astra | P1, P2 | Write and reconcile expansion plan/backlog/handoffs | Done |
-| MX-A1 | Astra | P3 | Freeze spatial contracts and blockout layout | In progress |
+| MX-A1 | Astra | P3 | Freeze spatial contracts and blockout layout | Done |
 | MX-A2 | Astra | A1 | Shared terrain, road surfaces, water and seamless connections | Planned |
 | MX-L1 | Luna | A1, A2 final anchors | Landmark records and locale copy | Planned |
 | MX-A3 | Astra | A2 | Playable mountain ascent/descent | Planned |
@@ -183,11 +183,11 @@ Core tasks are sequential with a single Astra writer. While Astra develops A3–
 
 **Writable:** `src/contracts/worldExpansion.ts`, `src/content/world/expansionLayout.ts`, `src/content/world/definition.ts`, `tests/world-topology.test.ts`, new `tests/expansionLayout.test.ts`.
 
-- [ ] Add the contracts above, nine anchors and area polygons; retain existing zone and landmark IDs.
-- [ ] Author route points to meet the 550–700 m summit and 0.9–1.2 km waterfall-road targets; record computed lengths/elevation profiles in the build log.
-- [ ] Implement polygon-based area and X/Z region lookup with deterministic seam ownership; retain original coordinate behavior outside the expansion.
-- [ ] Test points sharing Z but belonging to old corridor versus Chokkana; test polygon edges, unique IDs, finite coordinates and connection to the old route.
-- [ ] Freeze layout exports and record the reviewed file revision for Luna. Do not declare A1 done while later paths lack a viable slope profile.
+- [x] Add the contracts above, nine anchors and area polygons; retain existing zone and landmark IDs.
+- [x] Author route points to meet the 550–700 m summit and 0.9–1.2 km waterfall-road targets; record computed lengths/elevation profiles in the build log.
+- [x] Implement polygon-based area and X/Z region lookup with deterministic seam ownership; retain original coordinate behavior outside the expansion.
+- [x] Test points sharing Z but belonging to old corridor versus Chokkana; test polygon edges, unique IDs, finite coordinates and connection to the old route.
+- [x] Freeze layout exports and record the reviewed file revision for Luna. Do not declare A1 done while later paths lack a viable slope profile.
 
 **Gate:** `npx vitest run tests/world-topology.test.ts tests/expansionLayout.test.ts`; typecheck. Existing four-region behavior must remain covered while obsolete strip-only assumptions are updated explicitly.
 
