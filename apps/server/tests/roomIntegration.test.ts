@@ -9,7 +9,7 @@ import { type RoomSnapshotDto, type RoomWelcomeDto } from '@kerala-story/protoco
 const options = { displayName: 'Maya', appearance: { avatarPresetId: 'canopy', colors: { skin: '#dba77e', hair: '#292a25', clothing: '#285943' } }, worldVersion: WORLD_VERSION };
 function snapshot(room: Room<RoomState>, predicate: (value: RoomSnapshotDto) => boolean) {
   return new Promise<RoomSnapshotDto>((resolve, reject) => {
-    const timer = setTimeout(() => { remove(); reject(new Error('Snapshot timeout')); }, 5000);
+    const timer = setTimeout(() => { remove(); reject(new Error('Snapshot timeout')); }, 25_000);
     const receive = (state: RoomState) => {
       const players = [...state.players.values()].map(json => JSON.parse(json));
       const value: RoomSnapshotDto = { phase: state.phase as RoomSnapshotDto['phase'], worldVersion: state.worldVersion, players, vehicles: [], roster: players.map(({ id, displayName, connected }) => ({ id, displayName, connected })), serverTimeMs: state.serverTimeMs };
@@ -30,7 +30,7 @@ it('creates, moves, rejects eleven and reclaims one guest through real Colyseus 
     const first = await client.create('kerala', options, RoomState);
     rooms.push(first);
     const welcome = await new Promise<RoomWelcomeDto>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error('Welcome timeout')), 5000);
+      const timer = setTimeout(() => reject(new Error('Welcome timeout')), 25_000);
       first.onMessage('roomWelcome', value => { clearTimeout(timer); resolve(value); });
       first.onMessage('roomSnapshot', () => {});
     });

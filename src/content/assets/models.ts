@@ -19,6 +19,8 @@ export const CAR_MODELS = [
 export const PENDING_CAR_MODELS = [
   { id: 'bronco', name: 'Bronco', url: '/assets/cars/bronco.glb', reason: 'Body and tyres are fused; separate wheel geometry is required.' },
   { id: 'car', name: 'Rigged car', url: '/assets/cars/car.glb', reason: 'Skinned source needs a corrected rest pose and wheel-bone calibration.' },
+  { id: 'cyberpunk', name: 'Cyberpunk car', url: '/assets/cars/cyberpunk-car.glb', reason: 'No measured chassis/wheel offsets or wheel node names yet.' },
+  { id: 'mazda-rx7', name: 'Mazda RX-7', url: '/assets/cars/mazda_rx7_stylised.glb', reason: 'No measured chassis/wheel offsets or wheel node names yet.' },
 ] as const;
 export type CarModelId = typeof CAR_MODELS[number]['id'];
 export const CAR_PICKER_CATALOG = [

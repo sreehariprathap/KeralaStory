@@ -30,7 +30,7 @@ const save: SaveV2 = {
   headingRad: 0,
   safeSpawnId: 'spawn',
   visitedLandmarkIds: [],
-  settings: { quality: 'medium', muted: false, volume: 0.5, reducedMotion: false, sensitivity: 1 },
+  settings: { quality: 'medium', muted: false, volume: 0.5, reducedMotion: false, sensitivity: 1, cameraControl: 'auto' },
   updatedAt: '2026-09-15T00:00:00.000Z',
   bicycle: null,
 };
@@ -59,8 +59,8 @@ function readGlb(url: string, staticModel = true) {
 }
 
 describe('character model assets', () => {
-  it('catalogs both supplied self-contained car files', () => {
-    expect(CAR_MODELS).toHaveLength(2);
+  it('catalogs all supplied self-contained car files', () => {
+    expect(CAR_MODELS).toHaveLength(4);
     for (const model of CAR_MODELS) readGlb(model.url, false);
   });
   it('preserves a selected character model through the local save round trip', () => {

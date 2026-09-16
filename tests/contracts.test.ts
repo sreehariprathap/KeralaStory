@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getZoneAt, LANDMARKS, SLICE_BOUNDS, SPAWN, WORLD_REGIONS } from '../src/content/world/kodassery.ts';
+import { getZoneAtPosition, LANDMARKS, SLICE_BOUNDS, SPAWN, WORLD_REGIONS } from '../src/content/world/kodassery.ts';
 import { ProfileSchema, SaveSchema } from '../src/contracts/index.ts';
 
 const profile = {
@@ -42,7 +42,7 @@ describe('Kodassery world fixtures', () => {
     expect(new Set(ids).size).toBe(ids.length);
     for (const landmark of LANDMARKS) {
       expect(WORLD_REGIONS.some(region => region.id === landmark.zoneId)).toBe(true);
-      expect(landmark.zoneId).toBe(getZoneAt(landmark.position[2]));
+      expect(landmark.zoneId).toBe(getZoneAtPosition(landmark.position[0], landmark.position[2]));
       expect(landmark.position.every(Number.isFinite)).toBe(true);
       expect(landmark.position[0]).toBeGreaterThanOrEqual(SLICE_BOUNDS.xMin);
       expect(landmark.position[0]).toBeLessThanOrEqual(SLICE_BOUNDS.xMax);

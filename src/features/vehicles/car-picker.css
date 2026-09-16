@@ -12,6 +12,15 @@
   box-shadow: 0 1.25rem 4rem rgb(36 56 46 / 28%);
 }
 
+.car-picker--embedded {
+  width: auto;
+  max-height: none;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
 .car-picker__header,
 .car-picker__actions {
   display: flex;

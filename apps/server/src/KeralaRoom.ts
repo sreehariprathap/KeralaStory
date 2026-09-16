@@ -2,7 +2,9 @@ import { CloseCode, Room, ServerError, type AuthContext, type Client } from '@co
 import { ClientMessageSchema, type RoomErrorDto, type RoomSnapshotDto } from '@kerala-story/protocol';
 import { addPlayer, createSimulationWorld, disposeSimulationWorld, playerSnapshots, removePlayer, setPlayerConnected, stepSimulation, submitPlayerInput, type SimulationWorld } from '@kerala-story/simulation';
 import { Admission, AdmissionError, JoinOptionsSchema } from './admission.ts';
+import { ChatService } from './chatService.ts';
 import { InputQueue, ServerTicker } from './inputQueue.ts';
+import { liveRooms } from './liveRooms.ts';
 import { RoomMetrics } from './metrics.ts';
 import { projectSnapshot } from './patchProjector.ts';
 import { roomRegistry } from './roomRegistry.ts';
@@ -13,6 +15,7 @@ export class KeralaRoom extends Room<{ state: RoomState }> {
   readonly metrics = new RoomMetrics();
   readonly ticker = new ServerTicker();
   private readonly intentQueue = new InputQueue();
+  private readonly chat = new ChatService();
   private readonly dropped = new Map<string, string>();
   private simulation!: SimulationWorld;
   private admission!: Admission;
@@ -29,6 +32,7 @@ export class KeralaRoom extends Room<{ state: RoomState }> {
     this.admission = new Admission(this.simulation.definition.version, Date.now());
     this.state.worldVersion = this.simulation.definition.version;
     this.code = roomRegistry.register(this.roomId);
+    liveRooms.register({ roomId: this.roomId, code: this.code, metrics: this.metrics });
     this.onMessage('*', (client, type, payload) => this.message(client, type, payload));
     this.setSimulationInterval(delta => this.advance(delta), 1000 / 60);
   }
@@ -49,6 +53,7 @@ export class KeralaRoom extends Room<{ state: RoomState }> {
       this.metrics.increment(joined.reconnected ? 'reconnects' : 'joins');
       client.send('roomWelcome', { roomCode: this.code, guestId: joined.guest.id, reconnectToken: joined.token });
       client.send('roomSnapshot', this.snapshot());
+      for (const message of this.chat.history()) client.send('chatAccepted', message);
       this.publish();
     } catch (error) {
       throw new ServerError(400, error instanceof AdmissionError ? error.code : 'INVALID_MESSAGE');
@@ -75,7 +80,7 @@ export class KeralaRoom extends Room<{ state: RoomState }> {
   onLeave(client: Client, code?: number) {
     if (code === CloseCode.CONSENTED) {
       const id = this.admission.leave(client.sessionId, Date.now());
-      if (id) { removePlayer(this.simulation, id); this.intentQueue.remove(id); }
+      if (id) { removePlayer(this.simulation, id); this.intentQueue.remove(id); this.chat.removeGuest(id); }
     }
     this.dropped.delete(client.sessionId);
     this.publish();
@@ -94,13 +99,18 @@ export class KeralaRoom extends Room<{ state: RoomState }> {
         break;
       case 'leave': client.leave(CloseCode.CONSENTED); break;
       case 'ping': client.send('pong', { clientTimeMs: message.data.payload.clientTimeMs, serverTimeMs: Date.now() }); break;
-      case 'chatSend': this.metrics.increment('rejectedChat'); this.error(client, 'INVALID_MESSAGE'); break;
+      case 'chatSend': {
+        const result = this.chat.send(guest, message.data.payload.text, Date.now());
+        if ('error' in result) { this.metrics.increment('rejectedChat'); this.error(client, result.error); }
+        else this.broadcast('chatAccepted', result.message);
+        break;
+      }
       case 'enterVehicle': case 'exitVehicle': this.error(client, 'VEHICLE_DENIED'); break;
     }
   }
   private error(client: Client, code: RoomErrorDto['code']) { client.send('roomError', { code, message: code.replaceAll('_', ' ') }); }
   private expire() {
-    for (const id of this.admission.expire(Date.now())) { removePlayer(this.simulation, id); this.intentQueue.remove(id); }
+    for (const id of this.admission.expire(Date.now())) { removePlayer(this.simulation, id); this.intentQueue.remove(id); this.chat.removeGuest(id); }
   }
   advance(deltaMs: number) {
     this.expire();
@@ -119,6 +129,7 @@ export class KeralaRoom extends Room<{ state: RoomState }> {
   private publish() {
     const snapshot = this.snapshot();
     this.metrics.activeGuests = snapshot.players.filter(player => player.connected).length;
+    this.metrics.occupancy = this.admission.guests.size;
     projectSnapshot(this.state, snapshot);
     // Size is DTO projection bytes; transport-encoded patch bytes require a transport sample.
     this.metrics.sample('patchBytes', Buffer.byteLength(JSON.stringify(snapshot)));
@@ -126,6 +137,7 @@ export class KeralaRoom extends Room<{ state: RoomState }> {
   }
   onDispose() {
     roomRegistry.remove(this.code, this.roomId);
+    liveRooms.remove(this.roomId);
     this.metrics.closeReason ??= 'shutdown';
     if (this.simulation) disposeSimulationWorld(this.simulation);
   }

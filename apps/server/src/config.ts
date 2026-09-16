@@ -1,4 +1,4 @@
-export interface ServerConfig { port: number; host: string; origins: readonly string[]; maxPayload: number; production: boolean }
+export interface ServerConfig { port: number; host: string; origins: readonly string[]; maxPayload: number; production: boolean; metricsToken: string | null }
 export function readConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   const production = env.NODE_ENV === 'production';
   const origins = (env.ALLOWED_ORIGINS ?? (production ? '' : 'http://127.0.0.1:5000,http://localhost:5000')).split(',').map(value => value.trim()).filter(Boolean);
@@ -10,7 +10,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   if (production && !env.PUBLIC_WS_URL?.startsWith('wss://')) throw new Error('PUBLIC_WS_URL must use WSS in production');
   const port = Number(env.PORT ?? 2567);
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('Invalid PORT');
-  return { port, host: env.HOST ?? '127.0.0.1', origins, maxPayload: 4096, production };
+  return { port, host: env.HOST ?? '127.0.0.1', origins, maxPayload: 4096, production, metricsToken: env.METRICS_TOKEN?.trim() || null };
 }
 export function originAllowed(config: ServerConfig, origin: string | undefined) {
   return origin ? config.origins.includes(origin) : !config.production;

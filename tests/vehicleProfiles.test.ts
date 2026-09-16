@@ -19,9 +19,9 @@ async function loadGeometry(url: string) {
 }
 
 describe('measured vehicle calibration', () => {
-  it('keeps unresolved sources unavailable in the six-car catalog', () => {
-    expect(CAR_PICKER_CATALOG).toHaveLength(6);
-    expect(CAR_PICKER_CATALOG.filter(car => !car.available).map(car => car.id)).toEqual(['bronco', 'car']);
+  it('keeps unresolved sources unavailable in the eight-car catalog', () => {
+    expect(CAR_PICKER_CATALOG).toHaveLength(8);
+    expect(CAR_PICKER_CATALOG.filter(car => !car.available).map(car => car.id)).toEqual(['bronco', 'car', 'cyberpunk', 'mazda-rx7']);
   });
   it.each(['car-carton', 'fennec'] as const)('%s physics matches actual four wheel meshes', async id => {
     const model = CAR_MODELS.find(car => car.id === id)!;

@@ -45,10 +45,12 @@ export class MultiplayerRoomClient {
     await this.leave(false);
     const generation = ++this.generation;
     this.callbacks.onPhase('connecting');
+    let normalized: string | undefined;
+    let usedSavedToken = false;
     try {
       let room: Room<unknown, PatchedRoomState>;
       if (code) {
-        const normalized = normalizeRoomCode(code);
+        normalized = normalizeRoomCode(code);
         const url = new URL(this.endpoint); url.protocol = url.protocol === 'wss:' || url.protocol === 'https:' ? 'https:' : 'http:';
         url.pathname = `${url.pathname.replace(/\/$/, '')}/rooms/${normalized}`; url.search = ''; url.hash = '';
         const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
@@ -56,6 +58,7 @@ export class MultiplayerRoomClient {
         const data: unknown = await response.json();
         if (!data || typeof data !== 'object' || !('roomId' in data) || typeof data.roomId !== 'string') throw new Error('ROOM_NOT_FOUND');
         const saved = this.tokens.get(normalized); if (saved.warning) this.callbacks.onWarning?.(saved.warning);
+        usedSavedToken = Boolean(saved.token);
         room = await this.sdk.joinById<PatchedRoomState>(data.roomId, { ...profile, ...(saved.token ? { reconnectToken: saved.token } : {}) });
       } else room = await this.sdk.create<PatchedRoomState>('kerala', profile);
       if (generation !== this.generation) { await room.leave(); return; }
@@ -72,6 +75,8 @@ export class MultiplayerRoomClient {
       this.callbacks.onPhase('connected');
     } catch (error) {
       if (generation !== this.generation) return;
+      // A denied reconnect token can never succeed again; drop it so the next join starts fresh.
+      if (usedSavedToken && normalized && error instanceof Error && error.message === 'RECONNECT_DENIED') this.tokens.remove(normalized);
       this.callbacks.onPhase('error'); throw error;
     }
   }

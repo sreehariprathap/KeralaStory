@@ -8,7 +8,7 @@ let cleanup: (() => Promise<unknown>) | undefined;
 afterEach(async () => { await cleanup?.(); cleanup = undefined; });
 
 it('receives welcome and schema patches through the real SDK lifecycle', async () => {
-  const { server, transport } = await startGameServer({ port: 0, host: '127.0.0.1', allowedOrigins: [], maxPayload: 8192 });
+  const { server, transport } = await startGameServer({ port: 0, host: '127.0.0.1', origins: ['http://127.0.0.1:5000'], maxPayload: 8192, production: false, metricsToken: null });
   const address = transport.server!.address();
   if (!address || typeof address === 'string') throw new Error('Missing port');
   let welcome = '';

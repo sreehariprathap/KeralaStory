@@ -3,7 +3,10 @@ import { Server, createEndpoint, createRouter } from '@colyseus/core';
 import { WebSocketTransport } from '@colyseus/ws-transport';
 import { KeralaRoom } from './KeralaRoom.ts';
 import { IpLimiter, originAllowed, readConfig, type ServerConfig } from './config.ts';
+import { liveRooms } from './liveRooms.ts';
 import { roomRegistry } from './roomRegistry.ts';
+
+const START_TIME_MS = Date.now();
 
 export function createGameServer(config: ServerConfig = readConfig()) {
   const transport = new WebSocketTransport({ maxPayload: config.maxPayload, verifyClient: (info: { origin: string }) => originAllowed(config, info.origin || undefined) });
@@ -30,6 +33,19 @@ export async function startGameServer(config: ServerConfig = readConfig()) {
   http.removeAllListeners('request');
   const joins = new IpLimiter();
   http.on('request', (request, response) => {
+    // Operator-only endpoints: infra probes and metrics scrapers rarely send an Origin header, so
+    // they are handled before the browser-facing origin gate rather than exempted from it entirely.
+    const url = new URL(request.url ?? '/', 'http://localhost');
+    if (request.method === 'GET' && url.pathname === '/health') {
+      const body = JSON.stringify({ status: 'ok', rooms: liveRooms.size, uptimeSec: Math.round((Date.now() - START_TIME_MS) / 1000) });
+      response.writeHead(200, { 'content-type': 'application/json' }).end(body);
+      return;
+    }
+    if (request.method === 'GET' && url.pathname === '/metrics') {
+      if (!config.metricsToken || request.headers.authorization !== `Bearer ${config.metricsToken}`) { response.writeHead(config.metricsToken ? 401 : 404).end(); return; }
+      response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ rooms: liveRooms.snapshot() }));
+      return;
+    }
     if (!originAllowed(config, request.headers.origin)) { response.writeHead(403).end(); return; }
     if (request.method === 'POST' && !joins.accept(request.socket.remoteAddress ?? 'unknown', Date.now())) { response.writeHead(429).end(); return; }
     if (request.headers['transfer-encoding'] || Number(request.headers['content-length'] ?? 0) > config.maxPayload) { response.writeHead(413).end(); return; }

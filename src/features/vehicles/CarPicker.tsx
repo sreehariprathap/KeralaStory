@@ -17,21 +17,25 @@ export interface CarPickerProps {
   onSelect: (id: string) => void;
   onSpawn: () => void;
   onClose: () => void;
+  /** Omits the card's own border/header/close button when a host (e.g. a dialog) already provides them. */
+  embedded?: boolean;
 }
 
-export function CarPicker({ catalog, selectedId, status, busy, preview, onSelect, onSpawn, onClose }: CarPickerProps) {
+export function CarPicker({ catalog, selectedId, status, busy, preview, onSelect, onSpawn, onClose, embedded }: CarPickerProps) {
   const selected = catalog.find((entry) => entry.id === selectedId);
   const spawnDisabled = busy || !selected?.available;
 
   return (
-    <section className="car-picker" aria-labelledby="car-picker-title">
-      <header className="car-picker__header">
-        <div>
-          <p className="car-picker__eyebrow">Vehicles</p>
-          <h2 id="car-picker-title">Choose a car</h2>
-        </div>
-        <button className="button button-secondary car-picker__close" type="button" onClick={onClose}>Close</button>
-      </header>
+    <section className={`car-picker${embedded ? ' car-picker--embedded' : ''}`} aria-labelledby={embedded ? undefined : 'car-picker-title'}>
+      {!embedded && (
+        <header className="car-picker__header">
+          <div>
+            <p className="car-picker__eyebrow">Vehicles</p>
+            <h2 id="car-picker-title">Choose a car</h2>
+          </div>
+          <button className="button button-secondary car-picker__close" type="button" onClick={onClose}>Close</button>
+        </header>
+      )}
 
       {preview && <div className="car-picker__preview" aria-label="Selected car preview">{preview}</div>}
 
