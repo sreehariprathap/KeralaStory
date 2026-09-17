@@ -79,7 +79,7 @@ html,body,#root{width:100%;height:100%;overflow:hidden}button:disabled{cursor:wa
 .landmark-list{max-height:190px}
 @media(max-width:760px){.atlas-layout{grid-template-columns:1fr}.atlas-drawing.is-interactive{max-height:56dvh}.highlight-list{grid-template-columns:1fr;max-height:180px}}
 .uses-touch .hud-actions{grid-auto-flow:column;gap:8px}.uses-touch .hud-icon{width:44px;height:44px}
-.uses-touch .inspection-panel{z-index:8;top:8px;left:50%;transform:translateX(-50%);max-width:min(240px,40vw);padding:6px;gap:4px}.uses-touch .inspection-panel>small,.uses-touch .inspection-panel>output,.uses-touch .inspection-panel>strong,.uses-touch .inspection-panel>button{display:none}
+.uses-touch .inspection-panel{z-index:8;top:84px;left:50%;transform:translateX(-50%);max-width:min(240px,40vw);padding:6px;gap:4px}.uses-touch .inspection-panel>small,.uses-touch .inspection-panel>output,.uses-touch .inspection-panel>strong,.uses-touch .inspection-panel>button{display:none}
 /* Installed app and phone polish: no pull-to-refresh or tap flashes, and the HUD stays clear of notches and home bars. */
 html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
 body{background:#24382e}
@@ -115,3 +115,13 @@ body{background:#24382e}
 .soccer-touch__charge{position:absolute;left:18%;right:18%;bottom:9px;width:auto;height:4px}
 .uses-touch .nitro-status{display:none}
 .uses-touch.in-match .mobile-controls__right{bottom:calc(max(18px,env(safe-area-inset-bottom)) + clamp(76px,20vmin,96px) + 16px)}
+
+/* Touch: one small round minimap instead of the labelled map card. */
+.uses-touch .hud-map{width:auto;top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right))}
+.uses-touch .minimap-button{display:block;width:62px;height:62px;padding:0;border-radius:50%;overflow:hidden}
+.uses-touch .map-open-button{display:none}
+.uses-touch .minimap-button .map-compact .atlas-sheet{border-radius:50%}
+.uses-touch .minimap-button .map-compact .atlas-drawing{height:62px;max-height:62px;width:62px}
+.uses-touch .minimap-button .atlas-sheet-heading{display:none}
+.uses-touch .minimap-north{top:3px;font-size:9px;width:16px;height:16px}
+.uses-touch .hud-actions{top:84px}
