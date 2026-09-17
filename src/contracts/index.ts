@@ -17,7 +17,7 @@ export const ProfileSchema = z.object({
   id: z.string().min(1).max(80),
   displayName: z.string().trim().refine(s => Array.from(s).length >= 1 && Array.from(s).length <= 24, 'Use 1–24 characters').refine(s => !/[<>\u0000-\u001f]/.test(s), 'Use a plain-text name'),
   avatarPresetId: z.enum(['canopy', 'clay', 'river']),
-  characterModelId: z.enum(['uniform', 'nick', 'little-girl', 'young-tom', 'kid-boy', 'cartoon-kid', 'teenage-boy', 'anime-boy', 'friendly-anime-boy']).optional(),
+  characterModelId: z.enum(['uniform', 'nick', 'little-girl', 'young-tom', 'kid-boy', 'cartoon-kid', 'teenage-boy', 'anime-boy', 'friendly-anime-boy', 'messi']).optional(),
   colors: z.object({ skin: z.enum(SKIN_COLORS), hair: z.enum(HAIR_COLORS), clothing: z.enum(CLOTHING_COLORS) }),
 });
 export type ExplorerProfile = z.infer<typeof ProfileSchema>;
@@ -37,7 +37,7 @@ export const SaveSchema = z.object({
   visitedLandmarkIds: z.array(z.string()).max(500), settings: SettingsSchema, updatedAt: z.string().datetime(),
 });
 export type SaveV1 = z.infer<typeof SaveSchema>;
-export interface PlayerSnapshot { position: Vec3; headingRad: number; speed: number; grounded: boolean; travelMode?: TravelMode; sprintLocked?: boolean; canInteract?: boolean; bicycle?: BicycleSave; interactionMessage?: string; nitroActive?: boolean; nitroRemaining?: number; nitroAvailable?: boolean; gliderAvailable?: boolean; altitude?: number; climbing?: boolean }
+export interface PlayerSnapshot { position: Vec3; headingRad: number; speed: number; grounded: boolean; travelMode?: TravelMode; sprintLocked?: boolean; canInteract?: boolean; bicycle?: BicycleSave; interactionMessage?: string; nitroActive?: boolean; nitroRemaining?: number; nitroAvailable?: boolean; gliderAvailable?: boolean; soccerAvailable?: boolean; altitude?: number; climbing?: boolean }
 export interface Landmark { id: string; zoneId: ZoneId; label: string; position: Vec3; discoveryRadiusM: number; iconId: string; description: string }
 export interface MapBounds { xMin: number; xMax: number; zMin: number; zMax: number }
 export interface ExplorerControllerProps {

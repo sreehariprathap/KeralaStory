@@ -2,6 +2,12 @@ import { QueryFilterFlags } from '@dimforge/rapier3d-compat';
 import type { Collider, KinematicCharacterController, Vector, World } from '@dimforge/rapier3d-compat';
 import { GRAVITY, JUMP_SPEED } from './controllerMath';
 
+/** Bodies tagged `{ passThrough: true }` in userData (the football) never block the explorer. */
+export function isPassThrough(collider: Collider): boolean {
+  const data = collider.parent()?.userData as { passThrough?: boolean } | undefined;
+  return data?.passThrough === true;
+}
+
 export interface MotorState { grounded: boolean; verticalSpeed: number }
 export interface MotorIntent {
   xVelocity: number; zVelocity: number; jump: boolean;
@@ -32,7 +38,8 @@ export function computeExplorerMovement(controller: KinematicCharacterController
   if (state.verticalSpeed > 0 || intent.snap === false) controller.disableSnapToGround(); else controller.enableSnapToGround(0.25);
   const desired = { x: intent.xVelocity * dt, y: state.verticalSpeed * dt, z: intent.zVelocity * dt };
   const bodyHandle = collider.parent()?.handle;
-  controller.computeColliderMovement(collider, desired, QueryFilterFlags.EXCLUDE_SENSORS, undefined, candidate => candidate.parent()?.handle !== bodyHandle);
+  // Players run through the football instead of standing on it; the match nudges the ball itself.
+  controller.computeColliderMovement(collider, desired, QueryFilterFlags.EXCLUDE_SENSORS, undefined, candidate => candidate.parent()?.handle !== bodyHandle && !isPassThrough(candidate));
   const corrected = controller.computedMovement();
   state.grounded = controller.computedGrounded();
   if (state.grounded && state.verticalSpeed < 0) state.verticalSpeed = -2;

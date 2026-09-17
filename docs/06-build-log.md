@@ -356,3 +356,79 @@ Seven layout tests pass, including connectivity, grades, lengths, unique anchors
   - a stuck-car exit, a glider bail-out or water landing, and v2 river currents (these have tests only);
   - touch controls.
 - Pre-existing console error seen: `Wildlife.tsx:101` "Cannot set properties of undefined (_cacheIndex)".
+
+## Field atlas redesign and Leo Messi Stadium (single player)
+- The atlas (`src/features/map/`) was redrawn:
+  - A shaded relief raster (`mapRelief.ts`: elevation tints and north-west hillshade, built once, a slice of rows per frame).
+  - Roads, trails, rivers and area outlines drawn as smooth curves (`smoothPath.ts`), with river names written along the channels.
+  - Towns drawn as built-up districts with a street grid, real building roofs, and large city names.
+  - A marked football pitch.
+  - Highlight pins with a pulsing halo (`mapFeatures.ts`) for the paragliding launch, the football ground, stunt parks, river jumps, Silver Storm and Athirappilly Falls.
+  - Collision-aware labels at a constant on-screen size (`labelLayout.ts`).
+  - A scale bar.
+  - Smooth wheel and pinch zoom (1–8×, anchored on the cursor), drag to pan, tap for a waypoint, and "centre on me".
+  - A side panel with highlight cards (with distances) and city chips.
+  - The minimap reuses the same drawing.
+- Leo Messi Stadium, formerly "Kodakara Football Ground" (`src/content/world/stadiumLayout.ts`, `src/game/world/Stadium.tsx`):
+  - Site: about 100 m north of Kodakara. `scripts/probe-stadium.ts` picked it as the flattest open ground clear of roads, buildings and stunt parks. The terrain is levelled to 62.6 m under the pad (`v2Ground.ts`).
+  - The pitch uses `football_field.glb`, scaled so its markings form a true 40 × 60 m pitch. There are goals with nets and colliders, terraced stands (the west stand has an entrance), a roof, floodlights, and ad boards behind the goals.
+  - A join circle beside the halfway line. `isStuntGround` also covers the pad, so palms, forest and animals stay off it.
+- Football (`src/game/soccer/`): walking into the circle shows an offer (F / Enter to kick off, N for not now). A ball spawns at the centre spot.
+  - Running into the ball dribbles it.
+  - Holding K charges a kick (shown in a power bar); releasing kicks, harder and higher with more charge.
+  - Goals update a North–South scoreboard and show a "GOAL!" banner, then the ball returns to the centre.
+  - A ball that goes out is restarted on the pitch (a goal kick when it crosses a goal line).
+  - The match ends with "End match" or by walking well off the ground. Touch players get a Kick button.
+  - The explorer controller ignores the ball in collision (`userData.passThrough`), and publishes its pose each physics step (`explorerPose.ts`).
+- Checks run:
+  - `npm run typecheck` PASS; `vite build` PASS.
+  - `vitest`, excluding `.worktrees/`: 563 of 564 passed, including new `tests/soccerRules.test.ts` and `tests/mapDrawing.test.ts`.
+  - The one failure was `apps/server/tests/roomIntegration.test.ts` (snapshot timeout). It failed twice with the dev server and Chrome running, then passed on a later run. It also passed on a clean HEAD worktree. It is still intermittent.
+- Verified in the running app (`?inspect`, "Leo Messi Stadium — join circle"):
+  - the stadium renders, and the offer appears in the circle;
+  - F starts a match;
+  - dribbling carried the ball into the north goal (1–0);
+  - a charged K kick (54 % power) sent the ball out and it was restarted;
+  - the atlas shows relief, cities, highlights and labels;
+  - wheel zoom works.
+- NOT verified in the running app:
+  - pinch zoom and the touch Kick button;
+  - scoring with a kick, as opposed to a dribble;
+  - "End match", and the automatic end when walking away;
+  - frame cost on real hardware.
+- Known rough edges:
+  - The camera can get squeezed inside a goal net.
+  - The relief looks soft at high zoom (2.5 m per pixel).
+  - Multiplayer has no football.
+
+## 2026-09-16 — Messi character, football animation, flower beds
+
+- Messi is a new selectable character ("Messi", id `messi`). Its rig is `lionel_messi_qatar_2022_rigged.glb`, built by `node scripts/rig-characters.mjs lionel_messi_qatar_2022.glb`.
+  - The source is a T-pose. The fitted joints were measured from vertex slices.
+  - The script now accepts source names, so only the named rigs are rebuilt.
+  - The id was added to both profile schemas (app contracts and protocol).
+- Football animation (`src/game/soccer/soccerMotion.ts`). `SoccerMatch` writes kick, touch and goal counters, plus the charge. Only the local avatar's animator reads them.
+  - During a match: a ready stance with soft knees and arms a little out.
+  - Holding K winds the kicking leg back. Releasing it plays a strike and follow-through, even when the kick misses the ball.
+  - A dribble touch plays about every 0.55 s, and running with the ball uses quicker, shorter strides.
+  - After a goal, both arms point to the sky for 2.4 s.
+  - Messi kicks with his left foot; every other character kicks with the right. All rigged characters get these poses.
+- Flower beds (`FlowerBeds.tsx`, `flowerPlacement.ts`) use `flowers.glb`, `flowers (1).glb` and the 16 clumps in `flowers_pack_4.glb`.
+  - Beds grow in a 2.2–5.5 m ring on one side of trunks: palms, the Kodassery forest and the Chokkana forest.
+  - Meadow clumps grow above 110 m within 175 m of the summit. The 14 m viewpoint terrace stays clear.
+  - Beds keep off roads and trails (the palms' route rules, now `isClearOfRoutes`), water, decks, sports ground and the glider launch. A physics ray then rejects anything over buildings.
+  - This gives about 4.1k beds, about 600 of them on the peak. Only beds near the camera are drawn.
+  - The heavy aster clump (about 95k vertices) is drawn within 40 m on medium and 60 m on high, and never on low.
+- Refactors that keep behaviour the same:
+  - The Chokkana forest generator moved to `chokkanaForest.ts`.
+  - The variant baker moved from `CoconutGroves.tsx` to `render/bakeVariant.ts`.
+- Checks run:
+  - `npm run typecheck` PASS; `vite build` PASS.
+  - `npm test`: 774 of 774 passed, including new `tests/soccerAnimation.test.ts`, `tests/flowerPlacement.test.ts` and the Messi cases in `tests/generatedRigs.test.ts`.
+- NOT verified in the running app: the browser automation could not attach to Chrome. Messi's deformation, the football poses and how the flowers look and cost on real hardware all need a playtest.
+- The stadium was renamed Leo Messi Stadium. A "MESSI STADIUM" banner (sky blue and white with a sun on each side) hangs on an entrance arch over the west gate (both faces) and along the front of the east stand roof. The seat rows now use sky blue and white. Verified in the running app: the roof banner and the arch banner render, and the offer reads "Play football at Leo Messi Stadium?".
+- A goat (`public/assets/living-beings/goat.glb`, CC-BY-4.0 by sambasivarao) wanders at Leo Messi Stadium (`src/game/world/StadiumGoat.tsx`, route in `goatRoute.ts`).
+  - It loops round the forecourt outside the west gate, rounds the south end of the west stand and walks its terraces, hopping between tiers and pausing to graze. The model has no animation, so the walk is a procedural bob and waddle.
+  - `tests/stadiumGoat.test.ts` checks the route never enters the pitch or run-off. The goat has no collider and ignores the player.
+  - The stand's back wall is now a 2.3 m rail, so the terraces (and the goat) can be seen from outside.
+  - Verified in the running app, using renders from a camera placed next to the goat: it faces its walking direction and walks the terraces and forecourt.

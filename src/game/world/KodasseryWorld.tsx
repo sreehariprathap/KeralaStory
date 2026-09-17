@@ -135,6 +135,10 @@ function generateForest(){
   };
 }
 const forest=generateForest();
+/** Ground positions of every Kodassery forest tree (procedural and imported). */
+export function kodasseryTreeSpots(){
+  return [...forest.trunks,...forest.importedFallbackTrunks].map(t=>({x:t.position[0],z:t.position[2]}));
+}
 /** Kept as a parity check against the authored visual generator. */
 export function authoredForestColliderBoxes() {
   return [...forest.trunks,...forest.importedFallbackTrunks].filter(t=>Math.min(...TRAIL_POINTS.map(p=>Math.hypot(p.x-t.position[0],p.z-t.position[2])))<15).map(t=>({position:t.position,size:[1,t.scale[1],1]}));

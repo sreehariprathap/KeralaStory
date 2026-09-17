@@ -27,6 +27,9 @@ import { measureBikeTilt } from '../vehicle/bikeGrounding';
 import { createStuntState, landStunt, stepStuntAir, wrapAngle } from '../vehicle/bikeStunts';
 import { GLIDER, createGliderState, gliderLanding, headingToward, stepGlider, turnToward, type GliderState } from '../vehicle/gliderMotor';
 import { GliderVisual, type GliderPose } from '../vehicle/GliderVisual';
+import { explorerPose } from './explorerPose';
+import { soccerMotion } from '../soccer/soccerMotion';
+import { isInStadiumJoin } from '../../content/world/stadiumLayout';
 import { buoyantVerticalSpeed, isSunk, isSwimming, swimVelocity } from './swimming';
 
 const BIKE_HOP_SPEED=7.5;
@@ -48,7 +51,7 @@ export function ExplorerController(props: ExplorerControllerProps) {
   const controller=useRef<KinematicCharacterController|null>(null),latest=useRef(props);latest.current=props;
   const input=useExplorerInput(mode,props.onPause,props.onMap,props.inputCommands,cameraControl);
   const azimuth=useRef(-initialHeading),heading=useRef(initialHeading),verticalSpeed=useRef(0);
-  const motion=useRef({speed:0,signedSpeed:0,grounded:false,riding:false,lean:0,pedaling:true,swimming:false});
+  const motion=useRef({speed:0,signedSpeed:0,grounded:false,riding:false,lean:0,pedaling:true,swimming:false,soccer:soccerMotion});
   const swimming=useRef(false),swimStroke=useRef(0),bikeLost=useRef(false);
   const safePosition=useRef<Vec3>([...spawn]);
   const tick=useRef(0),ready=useRef(false),riding=useRef(false),vehicle=useRef<TravelMode>('foot'),[showRider,setShowRider]=useState(false);
@@ -380,6 +383,7 @@ export function ExplorerController(props: ExplorerControllerProps) {
     if(!riding.current&&swimming.current){motion.current.speed=swimStroke.current*2.2;motion.current.signedSpeed=motion.current.speed;}
     else if(!riding.current&&motion.current.speed>.06)heading.current=headingFromMotion(dx,dz);
     const feet:Vec3=[p.x,p.y-FEET_TO_CENTER,p.z];
+    Object.assign(explorerPose,{ready:true,x:p.x,y:p.y,z:p.z,feetY:feet[1],headingRad:heading.current,speed:motion.current.speed,vx:dx/dt,vz:dz/dt,grounded:motion.current.grounded,swimming:swimming.current,travelMode:vehicle.current});
     if(!riding.current&&motion.current.grounded&&!swimming.current&&!needsSafeReset(p)&&(!isWater(p.x,p.z)||isOnWalkableDeck(p.x,p.z)))safePosition.current=feet;
     tick.current++;
     if(!ready.current&&!validationPending.current&&motion.current.grounded&&tick.current>=3){ready.current=true;latest.current.onReady?.();}
@@ -390,7 +394,7 @@ export function ExplorerController(props: ExplorerControllerProps) {
       const carDistance=carParked.current?Math.hypot(p.x-carParked.current[0],p.z-carParked.current[2]):Infinity;
       const reason=interactionReason(vehicle.current,motion.current.grounded,Math.min(bicycleDistance,carDistance),3.5);
       const gliderFlying=vehicle.current==='glider',below=gliderFlying?Math.max(hasGroundAt(p.x,p.z)?terrainHeight(p.x,p.z):-Infinity,waterLevelAt(p.x,p.z)??-Infinity):-Infinity;
-      latest.current.onSnapshot({position:feet,gliderAvailable:vehicle.current==='foot'&&motion.current.grounded&&isInGliderLaunch(p.x,p.z),altitude:gliderFlying&&Number.isFinite(below)?Math.max(0,feet[1]-below):undefined,climbing:gliderFlying&&(glider.current?.verticalSpeed??0)>.2,headingRad:heading.current,speed:motion.current.speed,grounded:motion.current.grounded,travelMode:vehicle.current,sprintLocked:input.current.sprintLocked,canInteract:reason==='mount'||reason==='dismount',bicycle:vehicle.current==='bicycle'?{position:feet,headingRad:heading.current}:parked.current,nitroActive:vehicle.current==='car'?carMotion.current.nitroActive:vehicle.current==='bicycle'&&bike.current.nitro.active,nitroRemaining:vehicle.current==='car'?carMotion.current.nitroRemaining:vehicle.current==='bicycle'?bike.current.nitro.remaining:0,nitroAvailable:vehicle.current==='car'||(vehicle.current==='bicycle'&&!!bikeModel(bikeModelRef.current).tuning.nitro),interactionMessage:tick.current<messageUntil.current&&message.current?message.current:vehicle.current==='foot'&&carDistance<bicycleDistance&&reason==='mount'?'Press F to enter car.':''});
+      latest.current.onSnapshot({position:feet,gliderAvailable:vehicle.current==='foot'&&motion.current.grounded&&isInGliderLaunch(p.x,p.z),soccerAvailable:vehicle.current==='foot'&&motion.current.grounded&&isInStadiumJoin(p.x,p.z),altitude:gliderFlying&&Number.isFinite(below)?Math.max(0,feet[1]-below):undefined,climbing:gliderFlying&&(glider.current?.verticalSpeed??0)>.2,headingRad:heading.current,speed:motion.current.speed,grounded:motion.current.grounded,travelMode:vehicle.current,sprintLocked:input.current.sprintLocked,canInteract:reason==='mount'||reason==='dismount',bicycle:vehicle.current==='bicycle'?{position:feet,headingRad:heading.current}:parked.current,nitroActive:vehicle.current==='car'?carMotion.current.nitroActive:vehicle.current==='bicycle'&&bike.current.nitro.active,nitroRemaining:vehicle.current==='car'?carMotion.current.nitroRemaining:vehicle.current==='bicycle'?bike.current.nitro.remaining:0,nitroAvailable:vehicle.current==='car'||(vehicle.current==='bicycle'&&!!bikeModel(bikeModelRef.current).tuning.nitro),interactionMessage:tick.current<messageUntil.current&&message.current?message.current:vehicle.current==='foot'&&carDistance<bicycleDistance&&reason==='mount'?'Press F to enter car.':''});
     }
   });
   useFrame((_,delta)=>{

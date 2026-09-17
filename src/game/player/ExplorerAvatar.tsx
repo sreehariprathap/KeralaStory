@@ -5,9 +5,10 @@ import type { Group } from 'three';
 import type { ExplorerProfile } from '../../contracts';
 import { CHARACTER_MODELS } from '../../content/assets/models';
 import { ImportedAvatar } from './ImportedAvatar';
+import type { SoccerMotion } from '../soccer/soccerMotion';
 
-/** `lean` is the forward torso pitch applied by the vehicle (radians); legs and arms compensate for it. */
-export interface AvatarMotion { speed: number; grounded: boolean; riding?: boolean; lean?: number; pedaling?: boolean; swimming?: boolean }
+/** `lean` is the forward torso pitch applied by the vehicle (radians); legs and arms compensate for it. `soccer` is set for the local explorer only. */
+export interface AvatarMotion { speed: number; grounded: boolean; riding?: boolean; lean?: number; pedaling?: boolean; swimming?: boolean; soccer?: SoccerMotion }
 interface Props {
   profile: ExplorerProfile;
   moving?: boolean;

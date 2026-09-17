@@ -24,7 +24,9 @@ export const ASSET_MANIFEST: readonly AssetRecord[] = [
   ...BIKE_MODELS.flatMap(model => 'url' in model ? [{ id: `bike-${model.id}`, status: 'prototype' as const, sourcePath: `public${model.url}`, license: null, kind: 'vehicle' as const }] : []),
   ...['coconut_tree.glb', 'coconut_tree (1).glb', 'low_poly_coconut_1.glb', 'low_poly_coconut_2.glb', 'low_poly_coconut_3.glb', 'stylized_palm__coconut_tree_pack.glb']
     .map(file => ({ id: `coconut-${file.replace(/\W+/g, '-').replace(/-glb$/, '')}`, status: 'prototype' as const, sourcePath: `public/assets/Coconut-trees/${file}`, license: null, kind: 'environment' as const })),
-  ...['cartoon_dog.glb', 'chicken_character.glb', 'cow.glb', 'elephant.glb', 'toon_cat_free.glb']
+  ...['flowers.glb', 'flowers (1).glb', 'flowers_pack_4.glb']
+    .map(file => ({ id: `flowers-${file.replace(/\W+/g, '-').replace(/-glb$/, '')}`, status: 'prototype' as const, sourcePath: `public/assets/grass/${file}`, license: null, kind: 'environment' as const })),
+  ...['cartoon_dog.glb', 'chicken_character.glb', 'cow.glb', 'elephant.glb', 'goat.glb', 'toon_cat_free.glb']
     .map(file => ({ id: `animal-${file.replace(/\.glb$/, '').replace(/_/g, '-')}`, status: 'prototype' as const, sourcePath: `public/assets/living-beings/${file}`, license: null, kind: 'character' as const })),
   ...['coin.glb', 'coins_and_money.glb', 'pumping_heart_model.glb']
     .map(file => ({ id: `collectable-${file.replace(/\.glb$/, '').replace(/_/g, '-')}`, status: 'prototype' as const, sourcePath: `public/assets/collectables/${file}`, license: null, kind: 'environment' as const })),

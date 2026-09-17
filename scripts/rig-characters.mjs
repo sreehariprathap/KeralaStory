@@ -1,5 +1,6 @@
 // Rebuild derived rigs without decoding/recompressing the supplied textures.
-// Original GLBs are never overwritten. Run: node scripts/rig-characters.mjs
+// Original GLBs are never overwritten. Run: node scripts/rig-characters.mjs [source.glb ...]
+// Passing source names rebuilds only those rigs.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { Box3, Matrix3, Matrix4, Quaternion, Vector3 } from 'three';
@@ -12,11 +13,14 @@ const profiles = [
   { source: 'cartoon_kid.glb', output: 'cartoon_kid_rigged.glb', shoulder: [.10,.685,0], elbow: [.255,.685,0], wrist: [.39,.685,0], hip: [.055,.415,0], knee: [.055,.225,0], ankle: [.055,.05,0], skirt: false },
   { source: 'arms_out_in_uniform.glb', output: 'arms_out_in_uniform_rigged.glb', shoulder: [.095,.698,.043], elbow: [.20,.697,.043], wrist: [.305,.694,.043], hip: [.062,.44,.06], knee: [.067,.21,.065], ankle: [.075,.06,.06], skirt: true, armDepth: .08, armUpperFade: .045 },
   { source: 'kid_boy.glb', output: 'kid_boy_rigged.glb', shoulder: [.105,.655,.012], elbow: [.23,.545,.012], wrist: [.325,.455,.012], hip: [.045,.385,.015], knee: [.045,.205,.015], ankle: [.045,.05,.015], skirt: false },
+  // T-pose, realistic eight-head proportions; the arms sit slightly behind the torso centre.
+  { source: 'lionel_messi_qatar_2022.glb', output: 'lionel_messi_qatar_2022_rigged.glb', shoulder: [.11,.793,-.03], elbow: [.265,.795,-.03], wrist: [.40,.795,-.022], hip: [.065,.46,-.01], knee: [.064,.27,-.02], ankle: [.068,.055,-.02], skirt: false },
   { source: 'the_little_girl.glb', output: 'the_little_girl_rigged.glb', shoulder: [.083,.663,0], elbow: [.24,.655,0], wrist: [.38,.65,0], hip: [.043,.43,0], knee: [.043,.205,0], ankle: [.043,.05,0], skirt: true },
 ];
 const smooth = (lo, hi, value) => { const t = Math.max(0, Math.min(1, (value-lo)/(hi-lo))); return t*t*(3-2*t); };
 
-for (const profile of profiles) {
+const only = process.argv.slice(2);
+for (const profile of profiles.filter(p => !only.length || only.includes(p.source))) {
   const file = readFileSync(new URL(profile.source, assets));
   const jsonLength = file.readUInt32LE(12);
   const doc = JSON.parse(file.subarray(20,20+jsonLength).toString());

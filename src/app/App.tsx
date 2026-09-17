@@ -1,5 +1,5 @@
 import { Component, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ArrowRight, ArrowUpRight, Compass, MapTrifold, Mountains, Pause, GearSix, ArrowCounterClockwise, House, Footprints, FlagPennant, CaretDown, X, Tree, Car, Motorcycle, Wind } from '@phosphor-icons/react';
+import { ArrowRight, ArrowUpRight, Compass, MapTrifold, Mountains, Pause, GearSix, ArrowCounterClockwise, House, Footprints, FlagPennant, CaretDown, X, Tree, Car, Motorcycle, Wind, SoccerBall } from '@phosphor-icons/react';
 import { CAR_MODELS, CAR_PICKER_CATALOG, type CarModelId } from '../content/assets/models';
 import { BIKE_MODELS, BIKE_PICKER_CATALOG, type BikeModelId } from '../content/assets/bikeProfiles';
 import { CarPicker } from '../features/vehicles/CarPicker';
@@ -25,6 +25,8 @@ import { LoadingView } from '../ui/LoadingView';
 import { LoadError } from '../ui/LoadError';
 import { needsSafeReset, FEET_TO_CENTER } from '../game/player/controllerMath';
 import { bearingToWaypoint } from '../features/map/mapGeometry';
+import type { SoccerSceneProps } from './WorldCanvas';
+import type { KickControl, SoccerEvent } from '../game/soccer/SoccerMatch';
 
 const WorldCanvas=lazy(()=>import('./WorldCanvas').then(m=>({default:m.WorldCanvas})));
 const AvatarPreview=lazy(()=>import('./WorldCanvas').then(m=>({default:m.AvatarPreview})));
@@ -60,6 +62,9 @@ export function App(){
   const [bikeSpawnToken,setBikeSpawnToken]=useState(0);
   const [gliderLaunchToken,setGliderLaunchToken]=useState(0);const [gliderDismissed,setGliderDismissed]=useState(false);
   const [bikeModelId,setBikeModelId]=useState<BikeModelId>('roadster');
+  const [soccerActive,setSoccerActive]=useState(false);const [soccerDismissed,setSoccerDismissed]=useState(false);
+  const [soccerScore,setSoccerScore]=useState({north:0,south:0});const [soccerBanner,setSoccerBanner]=useState<{text:TranslationKey;id:number}|null>(null);
+  const kick=useRef<KickControl>({held:false}).current;const chargeBar=useRef<HTMLElement|null>(null);
   const carPaintable=Boolean(VEHICLE_PROFILES[carModelId].paint);
   useEffect(()=>{document.documentElement.lang=locale;},[locale]);
   const inspectMode=import.meta.env.DEV&&new URLSearchParams(window.location.search).has('inspect');
@@ -151,6 +156,29 @@ export function App(){
     setSpawn([...destination.position]);setInitialHeading(destination.headingRad);
     setResetToken(n=>n+1);setDiscovery(null);setMenu('none');setMode('playing');
   };
+  // Football: walk into the circle at Kodakara, kick off, play until you leave the ground or end the match.
+  const soccerOffer=active&&mode==='playing'&&!!snapshot.soccerAvailable&&!soccerDismissed&&!soccerActive;
+  useEffect(()=>{if(!snapshot.soccerAvailable)setSoccerDismissed(false);},[snapshot.soccerAvailable]);
+  const startSoccer=useCallback(()=>{setSoccerScore({north:0,south:0});setSoccerBanner(null);setSoccerActive(true);setSoccerDismissed(true);},[]);
+  const endSoccer=useCallback(()=>{setSoccerActive(false);kick.held=false;setSoccerBanner({text:'soccer.ended',id:Date.now()});},[kick]);
+  useEffect(()=>{
+    if(!soccerOffer)return;
+    const keydown=(event:KeyboardEvent)=>{
+      if(event.repeat)return;
+      if(event.code==='KeyF'||event.code==='Enter'){event.preventDefault();startSoccer();}
+      else if(event.code==='KeyN'){event.preventDefault();setSoccerDismissed(true);}
+    };
+    window.addEventListener('keydown',keydown);
+    return()=>window.removeEventListener('keydown',keydown);
+  },[soccerOffer,startSoccer]);
+  useEffect(()=>{if(!active)setSoccerActive(false);},[active]);
+  useEffect(()=>{if(!soccerBanner)return;const id=setTimeout(()=>setSoccerBanner(null),soccerBanner.text==='soccer.goal'?2200:2600);return()=>clearTimeout(id);},[soccerBanner]);
+  const onSoccerEvent=useCallback((event:SoccerEvent)=>{
+    if(event.kind==='goal'){setSoccerScore(score=>({...score,[event.end]:score[event.end]+1}));setSoccerBanner({text:'soccer.goal',id:Date.now()});}
+    else if(event.kind==='out')setSoccerBanner({text:'soccer.out',id:Date.now()});
+    else endSoccer();
+  },[endSoccer]);
+  const soccer=useMemo<SoccerSceneProps>(()=>({active:soccerActive,kick,onEvent:onSoccerEvent,chargeBar}),[soccerActive,kick,onSoccerEvent]);
   const retry=()=>{setSceneError(null);setReady(false);setSceneKey(n=>n+1);if(active)setMode('loading');};
   const openCarControls=()=>{setMode('paused');setMenu('car');};
   const closeCarControls=()=>{setMenu('none');if(active)setMode('playing');};
@@ -164,7 +192,7 @@ export function App(){
 
   return <LocaleProvider locale={locale}><main className={`experience ${active?'is-exploring':'is-entry'} ${touch?'uses-touch':''}`} data-mode={mode} data-travel-mode={snapshot.travelMode??'foot'} data-player-position={snapshot.position.map(n=>n.toFixed(3)).join(",")} data-player-grounded={snapshot.grounded}>
     <AudioDirector settings={settings} mode={mode} player={snapshot}/><div className="world-viewport" aria-label="3D Kerala exploration world">
-      <SceneBoundary key={sceneKey} onRetry={retry} onError={onSceneError} onExit={exit}><Suspense fallback={null}><WorldCanvas locale={locale} active={active} settings={settings} controller={controller} onReady={onWorldReady} onError={onSceneError} playerRef={snapshotRef} collectedIds={collectState.collectedIds} onCollect={onCollect}/></Suspense></SceneBoundary>
+      <SceneBoundary key={sceneKey} onRetry={retry} onError={onSceneError} onExit={exit}><Suspense fallback={null}><WorldCanvas locale={locale} active={active} settings={settings} controller={controller} onReady={onWorldReady} onError={onSceneError} playerRef={snapshotRef} collectedIds={collectState.collectedIds} onCollect={onCollect} soccer={soccer}/></Suspense></SceneBoundary>
     </div>
     {!active&&<div className="entry-shell">
       <header className="entry-header"><LanguageToggle value={locale} onChange={value=>updatePreferences({...preferences,locale:value})}/><a className="wordmark" href="#" onClick={e=>e.preventDefault()} aria-label="Kodassery Diaries home"><Tree size={29} weight="light"/><span>KODASSERY DIARIES</span></a><button className="entry-nav" onClick={()=>setMenu('atlas')}>Explore the world <ArrowUpRight size={17}/></button><button className="entry-settings" aria-label="Open settings" onClick={()=>setMenu('settings')}><GearSix size={21}/></button></header>
@@ -180,8 +208,16 @@ export function App(){
         <MobileControls enabled={mode === 'playing'} commands={commands} sprintLocked={snapshot.sprintLocked ?? false} />
       )}
       {gliderOffer&&<div className="glider-offer" role="dialog" aria-labelledby="glider-offer-title"><Wind size={26} weight="light"/><div><strong id="glider-offer-title">{t('glider.offerTitle')}</strong><p>{t('glider.offerBody')}</p><div className="glider-offer__actions"><button className="button button-primary" onClick={launchGlider}>{!touch&&<kbd>F</kbd>}{t('glider.yes')}</button><button className="button button-secondary" onClick={()=>setGliderDismissed(true)}>{!touch&&<kbd>N</kbd>}{t('glider.notNow')}</button></div></div></div>}
+      {soccerOffer&&<div className="glider-offer" role="dialog" aria-labelledby="soccer-offer-title"><SoccerBall size={26} weight="light"/><div><strong id="soccer-offer-title">{t('soccer.offerTitle')}</strong><p>{t('soccer.offerBody')}</p><div className="glider-offer__actions"><button className="button button-primary" onClick={startSoccer}>{!touch&&<kbd>F</kbd>}{t('soccer.yes')}</button><button className="button button-secondary" onClick={()=>setSoccerDismissed(true)}>{!touch&&<kbd>N</kbd>}{t('soccer.notNow')}</button></div></div></div>}
+      {soccerActive&&<div className="soccer-hud" role="group" aria-label="Football match">
+        <div className="soccer-score" aria-live="polite"><span>{t('soccer.northGoal')}</span><strong>{soccerScore.north}</strong><i>–</i><strong>{soccerScore.south}</strong><span>{t('soccer.southGoal')}</span></div>
+        <div className="soccer-power"><small>{t('soccer.power')}</small><span className="soccer-power__track"><span ref={node=>{chargeBar.current=node;}} className="soccer-power__fill"/></span></div>
+        {!touch&&<small className="soccer-hint">{t('soccer.controls')}</small>}
+        <div className="soccer-actions">{touch&&<button className="button button-primary soccer-kick" onPointerDown={()=>{kick.held=true;}} onPointerUp={()=>{kick.held=false;}} onPointerCancel={()=>{kick.held=false;}} onPointerLeave={()=>{kick.held=false;}}><SoccerBall size={18}/> {t('soccer.kick')}</button>}<button className="button button-secondary" onClick={endSoccer}>{t('soccer.endMatch')}</button></div>
+      </div>}
+      {soccerBanner&&mode==='playing'&&<div key={soccerBanner.id} className={`soccer-banner ${soccerBanner.text==='soccer.goal'?'is-goal':''}`} role="status">{t(soccerBanner.text)}</div>}
       {snapshot.travelMode==='glider'&&<div className={`glider-status ${snapshot.climbing?'is-climbing':''}`} role="status"><Wind size={15}/><span>{t('glider.altitude')} {Math.round(snapshot.altitude??0)} m{snapshot.climbing?` · ▲ ${t('glider.rising')}`:''}</span>{!touch&&<small>{t('glider.controls')}</small>}</div>}
-      {mode==='playing'&&!gliderOffer&&(snapshot.canInteract||snapshot.interactionMessage)&&<div className="bicycle-prompt" role="status">{snapshot.interactionMessage?(snapshot.interactionMessage in ENGLISH_CATALOG?t(snapshot.interactionMessage as TranslationKey):snapshot.interactionMessage):<><kbd>{touch?'●':'F'}</kbd> {t(snapshot.travelMode==='car'?'controls.exitCar':snapshot.travelMode==='bicycle'?'controls.dismount':'controls.mount')}{snapshot.travelMode!=='foot'&&<small>S / ↓ · {t('controls.brake')}</small>}</>}</div>}
+      {mode==='playing'&&!gliderOffer&&!soccerOffer&&(snapshot.canInteract||snapshot.interactionMessage)&&<div className="bicycle-prompt" role="status">{snapshot.interactionMessage?(snapshot.interactionMessage in ENGLISH_CATALOG?t(snapshot.interactionMessage as TranslationKey):snapshot.interactionMessage):<><kbd>{touch?'●':'F'}</kbd> {t(snapshot.travelMode==='car'?'controls.exitCar':snapshot.travelMode==='bicycle'?'controls.dismount':'controls.mount')}{snapshot.travelMode!=='foot'&&<small>S / ↓ · {t('controls.brake')}</small>}</>}</div>}
       {(snapshot.travelMode==='car'||snapshot.travelMode==='bicycle'&&snapshot.nitroAvailable)&&<div className={`nitro-status ${snapshot.nitroActive?'is-active':''}`} role="status"><Car size={15}/><span>SHIFT · NITRO {snapshot.nitroActive?'ACTIVE':'READY'}</span></div>}
       {location&&mode==='playing'&&<div className="discovery-toast" role="status"><div><Compass size={24}/><span>{t('app.placeDiscovered')}</span></div><h2>{localizedPlace(location.id,locale)}</h2><p>{t(({origin:'landmark.originDescription',canopy:'landmark.canopyDescription',waterfall:'landmark.waterfallDescription',paddy:'landmark.paddyDescription',temple:'landmark.templeDescription','tea-shop':'landmark.teaShopDescription','river-bridge':'landmark.riverBridgeDescription','fishing-bank':'landmark.fishingBankDescription',market:'landmark.marketDescription',lighthouse:'landmark.lighthouseDescription',harbor:'landmark.harborDescription','spice-garden':'landmark.spiceGardenDescription'} as Record<string,TranslationKey>)[location.id]??`landmark.${location.id}Description` as TranslationKey)}</p></div>}
     </div>}

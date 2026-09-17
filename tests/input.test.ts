@@ -31,6 +31,29 @@ it('mouse-mode movement (readMovement) tracks a moving camera azimuth every fram
  c.clear('keyboard');c.setMove('keyboard',0,1);
  expect(readFollowMovement(s,Math.PI/2).x).toBeCloseTo(-1);
 });
+it('auto-mode re-anchors keyboard movement to the current camera whenever the held keys change',()=>{
+ const s=createInputState(),c=createInputCommands(s);
+ // Hold D: the player runs right (+x) and the follow camera swings behind them (azimuth -π/2).
+ c.setMove('keyboard',1,0);
+ expect(readFollowMovement(s,0).x).toBeCloseTo(1);
+ const behind=-Math.PI/2;
+ expect(readFollowMovement(s,behind).x).toBeCloseTo(1);
+ // Add W: forward-right is measured from the camera the player now sees, not from the old one.
+ c.setMove('keyboard',1,1);
+ const diagonal=readFollowMovement(s,behind);
+ const cameraForward={x:-Math.sin(behind),z:-Math.cos(behind)},cameraRight={x:Math.cos(behind),z:-Math.sin(behind)};
+ expect(diagonal.x*cameraForward.x+diagonal.z*cameraForward.z).toBeCloseTo(Math.SQRT1_2);
+ expect(diagonal.x*cameraRight.x+diagonal.z*cameraRight.z).toBeCloseTo(Math.SQRT1_2);
+ // Key repeats with the same keys keep the lock while the camera swings again.
+ c.setMove('keyboard',1,1);
+ expect(readFollowMovement(s,behind-Math.PI/4)).toEqual(diagonal);
+});
+it('touch movement keeps its gesture lock while the stick moves',()=>{
+ const s=createInputState(),c=createInputCommands(s);
+ c.setMove('touch',0,1);readFollowMovement(s,0);
+ c.setMove('touch',.2,.9);
+ expect(s.movementAzimuth).toBe(0);
+});
 it('accumulates mouse look deltas across frames until a consumer clears them',()=>{
  const s=createInputState(),c=createInputCommands(s);c.addLook('mouse',10,-4);c.addLook('mouse',5,2);
  expect(s.lookX).toBeCloseTo(15);expect(s.lookY).toBeCloseTo(-2);

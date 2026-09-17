@@ -63,8 +63,10 @@ export function createInputCommands(input: ExplorerInput, enabled: () => boolean
       if (!enabled()) return;
       if (!Number.isFinite(x) || !Number.isFinite(forward)) return;
       const length = Math.max(1, Math.hypot(x, forward));
+      // A key added or released (W+D after D) is a new direction relative to the camera the player sees now.
+      const keysChanged = source === 'keyboard' && (input.move.x !== x / length || input.move.forward !== forward / length);
       input.move = {x:x/length,forward:forward/length};
-      if (input.source !== source || (!x && !forward && !input.sprintLocked)) input.movementAzimuth = null;
+      if (input.source !== source || keysChanged || (!x && !forward && !input.sprintLocked)) input.movementAzimuth = null;
       input.source = source;
       if (forward < -.2) input.sprintLocked = false;
     },

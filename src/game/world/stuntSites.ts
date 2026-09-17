@@ -9,6 +9,7 @@ import { staticForestBoxes } from '../../content/world/staticForest';
 import { v2DressingBoxes } from '../../content/world/v2Dressing';
 import { traversalBoxes } from './traversalGeometry';
 import { STUNT_SITES } from './stuntSites.data';
+import { isStadiumGround } from '../../content/world/stadiumLayout';
 
 export type RampModelId = 'kicker' | 'wedge' | 'curve';
 
@@ -80,7 +81,7 @@ function getObstacles(): Obstacles {
 const NO_GO = [JETTY_BOUNDS, QUAY_BOUNDS, BRIDGE_BOUNDS, KODASSERY_BOUNDS];
 
 /** Open, dry, gentle ground that is off roads and clear of every known structure. */
-function isOpenGround(x: number, z: number, water: 'none' | 'allowed' = 'none') {
+export function isOpenGround(x: number, z: number, water: 'none' | 'allowed' = 'none') {
   if (water === 'none' && (isWater(x, z) || !isCarTerrainAllowed(x, z))) return false;
   if (isOnWalkableDeck(x, z) || NO_GO.some(b => containsPoint(b, x, z))) return false;
   if (V2_LAYOUT.towns.some(t => pointInPolygon(x, z, t.footprint))) return false;
@@ -253,6 +254,7 @@ export function stuntSites(): StuntSite[] {
   return STUNT_SITES;
 }
 
+/** Also covers the football ground: scatter and wildlife treat both as reserved sports ground. */
 export function isStuntGround(x: number, z: number, margin = 0) {
-  return stuntSites().some(site => site.clear.some(c => Math.hypot(c.x - x, c.z - z) < c.radius + margin));
+  return isStadiumGround(x, z, margin) || stuntSites().some(site => site.clear.some(c => Math.hypot(c.x - x, c.z - z) < c.radius + margin));
 }

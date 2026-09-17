@@ -13,6 +13,7 @@ import {
 import { createExpansionPlaces } from '../content/world/expansionPlaces';
 import { stuntSites } from '../game/world/stuntSites';
 import { GLIDER_LAUNCH } from '../content/world/gliderSites';
+import { STADIUM, stadiumToWorld } from '../content/world/stadiumLayout';
 
 export type InspectionDestination = {
   id: string;
@@ -89,12 +90,16 @@ const stuntDestinations: InspectionDestination[] = stuntSites().map(site => ({
 const gliderBackX = GLIDER_LAUNCH.position[0] - Math.sin(GLIDER_LAUNCH.headingRad) * 5, gliderBackZ = GLIDER_LAUNCH.position[2] + Math.cos(GLIDER_LAUNCH.headingRad) * 5;
 const gliderApproach: Vec3 = [gliderBackX, terrainHeight(gliderBackX, gliderBackZ) + 0.1, gliderBackZ];
 
+// West of the football join circle, facing east into it (heading π/2 walks +x).
+const stadiumApproach = stadiumToWorld(STADIUM.join.u - 5, STADIUM.join.v);
+
 export const INSPECTION_DESTINATIONS: InspectionDestination[] = [
   ...existingDestinations,
   ...expansionDestinations,
   ...plannedDestinations,
   ...stuntDestinations,
   { id: 'glider-launch', label: 'Kodassery Summit — paragliding launch', position: gliderApproach, headingRad: GLIDER_LAUNCH.headingRad, group: 'Mountain and forest expansion', available: true },
+  { id: 'kodakara-stadium', label: `${STADIUM.label} — join circle`, position: [stadiumApproach.x, terrainHeight(stadiumApproach.x, stadiumApproach.z) + 0.1, stadiumApproach.z], headingRad: Math.PI / 2, group: 'V2 planned sites', available: true },
   // South road, facing north up to the banyan (heading 0 walks −z).
   { id: 'kodaly-banyan', label: 'Kodaly — Banyan circle', position: [30, terrainHeight(30, 30) + 0.1, 30], headingRad: 0, group: 'Existing landmarks', available: true },
   { id: 'kodaly-banyan-far', label: 'Kodaly — Banyan from the harbour road', position: [36, terrainHeight(36, 58) + 0.1, 58], headingRad: 0, group: 'Existing landmarks', available: true },

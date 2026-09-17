@@ -8,6 +8,7 @@ export const CHARACTER_MODELS = [
   { id: 'teenage-boy', name: 'Achu', url: '/assets/characters/anime-style_teenage_boy_rigged.glb', rig: 'relaxed', rotationY: 0 },
   { id: 'anime-boy', name: 'Appu', url: '/assets/characters/anime_boy_for_blender..glb', rig: 'appu', rotationY: Math.PI },
   { id: 'friendly-anime-boy', name: 'Kichu', url: '/assets/characters/friendly_anime_boy_rigged.glb', rig: 'relaxed', rotationY: 0 },
+  { id: 'messi', name: 'Messi', url: '/assets/characters/lionel_messi_qatar_2022_rigged.glb', rig: 'messi', rotationY: 0 },
 ] as const;
 export const CAR_MODELS = [
   { id: 'admin', name: 'Admin car', url: '/assets/cars/admin-car.glb', rotationY: -Math.PI / 2 },

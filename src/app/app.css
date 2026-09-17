@@ -32,3 +32,49 @@ html,body,#root{width:100%;height:100%;overflow:hidden}button:disabled{cursor:wa
 .glider-status small{grid-column:1/-1;font-size:9px;opacity:.8}.glider-status.is-climbing{background:color-mix(in srgb,var(--gold) 70%,#263f30)}
 .uses-touch .glider-offer{bottom:220px}
 @media(orientation:portrait) and (max-width:760px){.uses-touch .glider-offer{top:150px;bottom:auto}.glider-status{top:auto;bottom:230px;right:12px}}
+
+/* Football match */
+.soccer-hud{position:absolute;top:122px;left:50%;transform:translateX(-50%);display:flex;flex-wrap:wrap;align-items:center;justify-content:center;column-gap:14px;row-gap:2px;padding:6px 8px 6px 14px;background:#1e3326d9;border:1px solid #d7dfc755;border-radius:6px;color:#f1eed3;z-index:8;box-shadow:0 6px 20px #1b2a2130;max-width:min(640px,calc(100vw - 32px))}
+.soccer-score{display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.6px;text-transform:uppercase}
+.soccer-score strong{font-family:'Noto Serif',serif;font-size:24px;line-height:1;letter-spacing:0;min-width:1.2ch;text-align:center;font-variant-numeric:tabular-nums}
+.soccer-score i{font-style:normal;opacity:.6;font-size:20px}
+.soccer-power{display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.5px;text-transform:uppercase}
+.soccer-power__track{display:block;width:110px;height:6px;border-radius:3px;background:#f1eed333;overflow:hidden}
+.soccer-power__fill{display:block;height:100%;background:linear-gradient(90deg,var(--gold),#e8912d,#c9452b);transform-origin:left;transform:scaleX(0)}
+.soccer-hint{flex-basis:100%;order:9;font-size:10px;opacity:.75;text-align:center}
+.soccer-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.soccer-actions .button{min-height:32px;padding-inline:10px;font-size:12px;gap:6px}
+.soccer-kick{min-width:96px;touch-action:none;user-select:none}
+.soccer-banner{position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);padding:10px 22px;border-radius:6px;background:#1e3326d9;color:#f1eed3;font-size:16px;letter-spacing:.5px;z-index:8;pointer-events:none;animation:soccer-pop .35s ease-out}
+.soccer-banner.is-goal{font-family:'Noto Serif',serif;font-size:56px;letter-spacing:4px;background:none;color:var(--gold);text-shadow:0 3px 0 #1e3326,0 8px 26px #0008}
+@keyframes soccer-pop{from{transform:translate(-50%,-50%) scale(.6);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
+@media(prefers-reduced-motion:reduce){.soccer-banner{animation:none}}
+.soccer-actions .button-secondary{background:transparent;color:#f1eed3;border-color:#f1eed380}.soccer-actions .button-secondary:hover{background:#f1eed31a}
+@media(max-width:760px){.soccer-hud{top:150px;padding:6px 10px}.soccer-score strong{font-size:22px}.soccer-power__track{width:110px}}
+
+/* Field atlas v3: shaded relief, smooth roads, cities and highlighted spots. */
+.map-modal{width:min(1240px,calc(100vw - 32px))}
+.atlas-layout{grid-template-columns:minmax(360px,1.35fr) minmax(320px,1fr);gap:28px}
+.atlas-sheet{background:#a4cbc5;border-color:#8fa987;box-shadow:0 10px 30px #23402f1f}
+.atlas-sheet-heading{background:#f4eed8;position:relative;z-index:1}
+.atlas-drawing.is-interactive{max-height:min(72dvh,700px);width:100%;height:auto;margin-inline:auto;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.atlas-drawing.is-interactive:active{cursor:grabbing}
+.atlas-drawing text{font-family:'Noto Sans',system-ui,sans-serif}
+.map-pin-halo{transform-box:fill-box;transform-origin:center;animation:map-halo 2.4s ease-in-out infinite}
+@keyframes map-halo{0%,100%{transform:scale(.8);opacity:.28}50%{transform:scale(1.15);opacity:.08}}
+@media(prefers-reduced-motion:reduce){.map-pin-halo{animation:none}}
+.map-tools{bottom:40px;right:12px;padding:2px;box-shadow:0 4px 12px #23402f26}
+.map-sheet-foot,.atlas-sheet .map-note{background:#f4eed8;margin:0;padding:8px 10px}
+.map-section-title{margin:18px 0 6px;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:#647259;font-weight:600}
+.highlight-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px;max-height:210px;overflow:auto;scrollbar-width:thin;scrollbar-color:#9da87d #eee8cb}
+.highlight-list button{display:flex;align-items:center;gap:9px;padding:7px 8px;border:1px solid #cdd3b3;border-left:3px solid var(--spot);border-radius:5px;background:#fbf7e8;color:var(--ink);text-align:left;min-height:44px}
+.highlight-list button:hover,.highlight-list button.selected{background:#eef0d8}
+.highlight-icon{flex-shrink:0;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--spot);color:#fffaf0}
+.highlight-list strong{display:block;font-size:12px;font-weight:600;line-height:1.25}
+.highlight-list small{display:block;font-size:10px;color:#6f7b5f;margin-top:2px}
+.city-chips{display:flex;flex-wrap:wrap;gap:6px}
+.city-chips button{display:inline-flex;align-items:center;gap:6px;border:1px solid #c7b48e;background:#f3e9cf;color:#5b4526;border-radius:999px;padding:6px 11px;font-size:11px;font-weight:600;letter-spacing:.3px;min-height:34px}
+.city-chips button:hover{background:#eadcbc}
+.map-legend i.highlight{background:#e8912d;border-color:#b8661d}
+.map-legend i.city{border-radius:2px;background:#eadcbc;border-color:#b99c6c}
+.landmark-list{max-height:190px}
+@media(max-width:760px){.atlas-layout{grid-template-columns:1fr}.atlas-drawing.is-interactive{max-height:56dvh}.highlight-list{grid-template-columns:1fr;max-height:180px}}

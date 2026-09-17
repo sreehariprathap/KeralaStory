@@ -3,6 +3,7 @@ import type { WorldV2Layout } from '../../contracts/worldV2';
 import { roundedPath, pointInPolygon } from './expansionLayout';
 import { createRouteField } from '../../game/world/expansionTerrain';
 import { createRiverField } from '../../game/world/riverGeometry';
+import { STADIUM, stadiumRectDistance } from './stadiumLayout';
 
 const smooth = (t: number) => { const u = Math.max(0, Math.min(1, t)); return u * u * (3 - 2 * u); };
 
@@ -45,6 +46,9 @@ export function createV2GroundProfile(layout: WorldV2Layout) {
       const blend = 1 - smooth(Math.hypot(dx, dz) / 25);
       y = y * (1 - blend) + site.center[1] * blend;
     }
+    // The football ground is levelled like a town site, with a shorter blend.
+    const pitchBlend = 1 - smooth(stadiumRectDistance(x, z, STADIUM.pad.halfWidth, STADIUM.pad.halfLength) / STADIUM.pad.blend);
+    if (pitchBlend > 0) y = y * (1 - pitchBlend) + STADIUM.groundY * pitchBlend;
     const bank = river.nearest(x, z), surface = river.surfaceAt(x, z);
     if (bank) {
       const blend = 1 - smooth((bank.distance - bank.halfWidth) / 20);
