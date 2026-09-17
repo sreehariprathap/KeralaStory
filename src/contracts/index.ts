@@ -68,5 +68,11 @@ export const BicycleSaveSchema = z.object({ position: Vec3Schema, headingRad: z.
 export type BicycleSave = z.infer<typeof BicycleSaveSchema>;
 export const SaveV2Schema = SaveSchema.extend({ version: z.literal(2), locale: LocaleSchema, bicycle: BicycleSaveSchema.nullable() });
 export type SaveV2 = z.infer<typeof SaveV2Schema>;
-export type LocalSave = SaveV1 | SaveV2;
+export const CollectSaveSchema = z.object({
+  coins: z.number().int().min(0), dateKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), collectedIds: z.array(z.string()).max(400),
+});
+export type CollectSave = z.infer<typeof CollectSaveSchema>;
+export const SaveV3Schema = SaveV2Schema.extend({ version: z.literal(3), collect: CollectSaveSchema });
+export type SaveV3 = z.infer<typeof SaveV3Schema>;
+export type LocalSave = SaveV1 | SaveV2 | SaveV3;
 export type { InputCommands, InputSource, InputAction } from './input';

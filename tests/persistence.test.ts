@@ -26,7 +26,7 @@ describe('local save repository', () => {
     const storage = new MemoryStorage();
     expect(writeLocalSave(save, storage).ok).toBe(true);
     expect(loadLocalSave(storage).save?.profile.displayName).toBe(save.profile.displayName);
-    expect(loadLocalSave(storage).save?.version).toBe(2);
+    expect(loadLocalSave(storage).save?.version).toBe(3);
     expect(loadLocalSave(storage).save?.locale).toBe('en');
     expect(loadLocalSave(storage).save?.bicycle).toBeNull();
   });
@@ -35,7 +35,7 @@ describe('local save repository', () => {
     const storage = new MemoryStorage();
     writeLocalSave(save, storage);
     const loaded = loadLocalSave(storage).save;
-    expect(loaded?.version).toBe(2);
+    expect(loaded?.version).toBe(3);
     expect(loaded?.visitedLandmarkIds).toEqual(save.visitedLandmarkIds);
   });
 
@@ -60,16 +60,16 @@ describe('local save repository', () => {
 
   it('preserves future primary versions', () => {
     const storage = new MemoryStorage();
-    storage.setItem('kerala-story:save:v1', JSON.stringify({ version: 3, data: 'future' }));
+    storage.setItem('kerala-story:save:v1', JSON.stringify({ version: 4, data: 'future' }));
     expect(writeLocalSave(save, storage).ok).toBe(false);
-    expect(storage.getItem('kerala-story:save:v1')).toContain('"version":3');
+    expect(storage.getItem('kerala-story:save:v1')).toContain('"version":4');
   });
 
   it('recovers backup while preserving a future primary version', () => {
     const storage = new MemoryStorage();
     writeLocalSave(save, storage);
     writeLocalSave({ ...save, position: [4, 5, 6] }, storage);
-    const future = JSON.stringify({ version: 3, profile: { displayName: 'future' } });
+    const future = JSON.stringify({ version: 4, profile: { displayName: 'future' } });
     storage.setItem('kerala-story:save:v1', future);
     const result = loadLocalSave(storage);
     expect(result.save?.position).toEqual([1, 2, 3]);

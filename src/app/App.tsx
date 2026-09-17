@@ -4,7 +4,7 @@ import { CAR_MODELS, CAR_PICKER_CATALOG, type CarModelId } from '../content/asse
 import { BIKE_MODELS, BIKE_PICKER_CATALOG, type BikeModelId } from '../content/assets/bikeProfiles';
 import { CarPicker } from '../features/vehicles/CarPicker';
 import { CAR_PAINT_COLORS, VEHICLE_PROFILES } from '../content/assets/vehicleProfiles';
-import { DEFAULT_SETTINGS, type ExplorerControllerProps, type ExplorerProfile, type GameSettings, type InputMode, type PlayerSnapshot, type SaveV2, type Vec3, type Preferences, type InputCommands, type BicycleSave } from '../contracts';
+import { DEFAULT_SETTINGS, type ExplorerControllerProps, type ExplorerProfile, type GameSettings, type InputMode, type PlayerSnapshot, type SaveV3, type Vec3, type Preferences, type InputCommands, type BicycleSave } from '../contracts';
 import { LANDMARKS, SPAWN, WORLD_REGIONS, WORLD_VERSION, getZoneAtPosition, getAreaAt, safeGroundPosition } from '../content/world/kodassery';
 import { INSPECTION_DESTINATIONS } from '../dev/inspectionDestinations';
 import { ProfileForm } from '../features/profile/ProfileForm';
@@ -12,6 +12,7 @@ import { SettingsPanel } from '../features/settings/SettingsPanel';
 import { ExplorerMap } from '../features/map/ExplorerMap';
 import { ModalShell } from '../ui/ModalShell';
 import { loadLocalSave, writeLocalSave, clearLocalSave } from '../persistence/localSaveRepository';
+import { createCollectState } from '../game/collectables/collectState';
 
 import { LocaleProvider, translate, localizedPlace, localizedRegion, type TranslationKey, ENGLISH_CATALOG } from '../features/i18n/translate';
 import { LanguageToggle } from '../features/i18n/LanguageToggle';
@@ -35,7 +36,7 @@ class SceneBoundary extends Component<{children:ReactNode;onRetry:()=>void;onErr
   render(){return this.state.error?<div className="scene-error"><Mountains size={40}/><h2>The trail couldn’t load.</h2><p>Your saved explorer is safe. Try loading the scene again.</p><button className="button button-primary" onClick={this.props.onRetry}>Retry scene</button><button className="button button-secondary" onClick={this.props.onExit}>Return to title</button></div>:this.props.children;}
 }
 
-function safeSavedPosition(save:SaveV2|null):Vec3{
+function safeSavedPosition(save:SaveV3|null):Vec3{
   return save?safeGroundPosition(save.position):SPAWN;
 }
 export function App(){
@@ -85,7 +86,7 @@ export function App(){
   const persist=useCallback(()=>{
     if(!active||profile.id==='preview'||!restored.current)return;
     const last=safeRef.current;
-    const save:SaveV2={version:2,locale,bicycle:snapshotRef.current.bicycle??bicycleSpawn,worldVersion:WORLD_VERSION,profile,position:last.position,headingRad:last.headingRad,safeSpawnId:'origin',visitedLandmarkIds:visitedRef.current,settings,updatedAt:new Date().toISOString()};
+    const save:SaveV3={version:3,collect:createCollectState(),locale,bicycle:snapshotRef.current.bicycle??bicycleSpawn,worldVersion:WORLD_VERSION,profile,position:last.position,headingRad:last.headingRad,safeSpawnId:'origin',visitedLandmarkIds:visitedRef.current,settings,updatedAt:new Date().toISOString()};
     const result=writeLocalSave(save);if(!result.ok)setWarning(result.warning);else setSaved(save);
   },[active,profile,settings,locale,bicycleSpawn]);
   useEffect(()=>{if(!active)return;persist();const timer=setInterval(persist,5000);const hide=()=>{if(document.hidden)persist();};document.addEventListener('visibilitychange',hide);return()=>{clearInterval(timer);document.removeEventListener('visibilitychange',hide);};},[active,persist]);
@@ -173,7 +174,7 @@ export function App(){
     {inspectMode&&active&&<aside className="inspection-panel"><strong>Development inspection</strong><button onClick={()=>onSceneError('Simulated graphics interruption for recovery testing.')}>Test scene recovery</button>
       <select aria-label="Inspect landmark" defaultValue="" onChange={e=>{inspectDestination(e.currentTarget.value);e.currentTarget.value='';}}>
         <option value="" disabled>Fast travel to an area</option>
-        {(['Existing landmarks','Mountain and forest expansion','V2 planned sites'] as const).map(group=><optgroup key={group} label={group}>{INSPECTION_DESTINATIONS.filter(place=>place.group===group).map(place=><option key={place.id} value={place.id} disabled={!place.available}>{place.landmarkId?localizedPlace(place.landmarkId,locale):place.label}</option>)}</optgroup>)}
+        {(['Existing landmarks','Mountain and forest expansion','V2 planned sites','Stunt parks'] as const).map(group=><optgroup key={group} label={group}>{INSPECTION_DESTINATIONS.filter(place=>place.group===group).map(place=><option key={place.id} value={place.id} disabled={!place.available}>{place.landmarkId?localizedPlace(place.landmarkId,locale):place.label}</option>)}</optgroup>)}
       </select>
       <output>{snapshot.position.map(n=>n.toFixed(1)).join(', ')} · {snapshot.grounded?'grounded':'airborne'}</output><output data-render-metrics="true">Measuring renderer…</output><small>Planned sites show current terrain only. Unbuilt terrain is unavailable.</small><small>Cheats: hold <kbd>C</kbd> + 1–{CAR_MODELS.length} to spawn a car, <kbd>B</kbd> + 1–{BIKE_MODELS.length} to spawn a bike ({BIKE_MODELS.map((m,i)=>`${i+1} ${m.name}`).join(', ')}).</small></aside>}
 
