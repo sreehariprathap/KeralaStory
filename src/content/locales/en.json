@@ -240,5 +240,7 @@
   "car.spawn": "Spawn / reset car",
   "car.notSaved": "Off-road prototype · not saved",
   "car.interact": "Vehicle",
-  "controls.exitCar": "Get out of car"
+  "controls.exitCar": "Get out of car",
+  "wallet.coins": "Coins",
+  "wallet.hearts": "Hearts today"
 }

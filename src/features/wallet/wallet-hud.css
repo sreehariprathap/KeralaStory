@@ -1,0 +1,9 @@
+.wallet-hud{position:absolute;top:92px;left:29px;display:flex;flex-direction:column;gap:5px;padding:9px 15px;border-radius:7px;background:#f4efdaed;border:1px solid #eef0d2;box-shadow:0 3px 15px #213b3015;color:var(--ink);font-variant-numeric:tabular-nums;transition:transform .18s ease}
+.wallet-hud.is-bumped{transform:scale(1.07)}
+.wallet-hud__coins{display:flex;align-items:center;gap:7px;font-size:17px;color:#7a5f1d}
+.wallet-hud__coins svg{color:var(--gold)}
+.wallet-hud__hearts{display:flex;align-items:center;gap:6px;font-size:11px;color:#6b7a5e}
+.wallet-hud__hearts svg{color:var(--terracotta)}
+.wallet-hud small{font-size:9px;letter-spacing:.6px;color:#6b7a5e;text-transform:uppercase}
+@media(max-width:760px){.wallet-hud{top:58px;left:12px;padding:6px 10px}.wallet-hud__coins{font-size:14px}.wallet-hud small{display:none}}
+@media(prefers-reduced-motion:reduce){.wallet-hud{transition:none}}
