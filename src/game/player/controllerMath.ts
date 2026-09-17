@@ -1,4 +1,4 @@
-import { waterLevelAt, hasGroundAt, isWater, terrainHeight, walkableDeckHeight } from '../../content/world/kodassery';
+import { hasGroundAt, terrainHeight, walkableDeckHeight } from '../../content/world/kodassery';
 
 export const PHYSICS_STEP_SECONDS = 1 / 60;
 export const CAPSULE_RADIUS = 0.26;
@@ -22,8 +22,8 @@ export function needsSafeReset(position: { x: number; y: number; z: number }): b
   // Recover only after the entire capsule has fallen below local ground. This
   // leaves contact/mesh interpolation room and accepts elevated platforms.
   if (y + FEET_TO_CENTER < terrainHeight(x, z)) return true;
-  // Bridges and piers above water remain usable; entering the water does not.
-  return isWater(x, z) && y - FEET_TO_CENTER <= (waterLevelAt(x,z)??-Infinity);
+  // Open water is swimmable; only falling below the terrain (or off the map) needs recovery.
+  return false;
 }
 
 export function dampAngle(current: number, target: number, factor: number): number {

@@ -27,7 +27,7 @@ export function createRiverMesh(reach: RiverReach): RiverMesh {
 export function createRiverField(reaches: readonly RiverReach[]) {
   const meshes = reaches.filter(r => r.id !== 'kurumali-existing').map(createRiverMesh);
   type Triangle = { a: number[]; b: number[]; c: number[] };
-  type Segment = { a: readonly number[]; b: readonly number[]; wa: number; wb: number };
+  type Segment = { a: readonly number[]; b: readonly number[]; wa: number; wb: number; kind: RiverReach['kind'] };
   const triangles = new Map<string, Triangle[]>(), segments = new Map<string, Segment[]>(), cell = 48;
   const index = <T,>(map: Map<string, T[]>, value: T, minX: number, maxX: number, minZ: number, maxZ: number) => {
     for (let x = Math.floor(minX / cell); x <= Math.floor(maxX / cell); x++) for (let z = Math.floor(minZ / cell); z <= Math.floor(maxZ / cell); z++) {
@@ -40,17 +40,28 @@ export function createRiverField(reaches: readonly RiverReach[]) {
   }
   for (const reach of reaches.filter(r => r.kind !== 'waterfall')) for (let i = 1; i < reach.points.length; i++) {
     const a = reach.points[i - 1], b = reach.points[i], wa = reach.widthsM[i - 1], wb = reach.widthsM[i], pad = Math.max(wa, wb) + 24;
-    index(segments, { a, b, wa, wb }, Math.min(a[0], b[0]) - pad, Math.max(a[0], b[0]) + pad, Math.min(a[2], b[2]) - pad, Math.max(a[2], b[2]) + pad);
+    index(segments, { a, b, wa, wb, kind: reach.kind }, Math.min(a[0], b[0]) - pad, Math.max(a[0], b[0]) + pad, Math.min(a[2], b[2]) - pad, Math.max(a[2], b[2]) + pad);
   }
   const nearest = (x: number, z: number) => {
-    let result: { distance: number; halfWidth: number; height: number } | null = null;
-    for (const { a, b, wa, wb } of segments.get(`${Math.floor(x / cell)},${Math.floor(z / cell)}`) ?? []) {
-      const dx = b[0] - a[0], dz = b[2] - a[2];
+    let result: { distance: number; halfWidth: number; height: number; segment: Segment } | null = null;
+    for (const segment of segments.get(`${Math.floor(x / cell)},${Math.floor(z / cell)}`) ?? []) {
+      const { a, b, wa, wb } = segment, dx = b[0] - a[0], dz = b[2] - a[2];
       const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[2]) * dz) / (dx * dx + dz * dz || 1)));
       const distance = Math.hypot(x - a[0] - t * dx, z - a[2] - t * dz);
-      if (!result || distance < result.distance) result = { distance, halfWidth: (wa + (wb - wa) * t) / 2, height: a[1] + (b[1] - a[1]) * t };
+      if (!result || distance < result.distance) result = { distance, halfWidth: (wa + (wb - wa) * t) / 2, height: a[1] + (b[1] - a[1]) * t, segment };
     }
     return result;
+  };
+  /** Surface current (m/s) at a point: downstream along the reach, faster on steep reaches, slack near banks and in pools. */
+  const flowAt = (x: number, z: number): { x: number; z: number } => {
+    const hit = nearest(x, z);
+    if (!hit || hit.distance > hit.halfWidth + 1) return { x: 0, z: 0 };
+    const { a, b, kind } = hit.segment, dx = b[0] - a[0], dz = b[2] - a[2], length = Math.hypot(dx, dz) || 1;
+    const slope = Math.max(0, a[1] - b[1]) / length;
+    const speed = kind === 'pool' ? .35 : Math.min(3.2, 1.1 + slope * 60);
+    const edge = Math.min(1, hit.distance / Math.max(1, hit.halfWidth));
+    const scale = speed * (1 - .7 * edge * edge);
+    return { x: dx / length * scale, z: dz / length * scale };
   };
   const surfaceAt = (x: number, z: number): number | null => {
     let height: number | null = null;
@@ -63,5 +74,5 @@ export function createRiverField(reaches: readonly RiverReach[]) {
     }
     return height;
   };
-  return { meshes, nearest, surfaceAt };
+  return { meshes, nearest, surfaceAt, flowAt };
 }

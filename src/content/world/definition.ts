@@ -30,6 +30,16 @@ export function waterLevelAt(x:number,z:number):number|null {
   return isRiver(x,z)||(x>=-78 && z>=-499 && (z>90||x>83)) ? WATER_LEVEL : null;
 }
 export function isWater(x:number,z:number){return waterLevelAt(x,z)!==null;}
+/** Water surface a body at `feetY` is in, or null. A bridge or pier only keeps you dry while you stand on it, not beneath it. */
+export function openWaterSurfaceAt(x:number,z:number,feetY:number):number|null{
+  const deck=walkableDeckHeight(x,z);
+  return deck!==null&&feetY>=deck-.5?null:waterLevelAt(x,z);
+}
+/** Surface current in m/s at a water point; still water (sea, ponds) has none. */
+export function waterFlowAt(x:number,z:number):{x:number;z:number}{
+  if(!isWater(x,z))return {x:0,z:0};
+  return EXPANSION_GROUND.v2?.river.flowAt(x,z) ?? {x:0,z:0};
+}
 export function originalTerrainHeight(x:number,z:number):number{
   if(z<=-334)return 76-(z+458)*.105+Math.sin(x*.065)*1.3+Math.sin((z+458)*.045)*.65;
   const hill=(z+334)/204;
@@ -232,13 +242,21 @@ export function isCycleAllowed(x: number, z: number): boolean {
 /** Cars may leave the road ribbons and climb any authored dry terrain. Only
  * unsupported gaps, water and near-vertical terrain are rejected. */
 export function isCarTerrainAllowed(x: number, z: number): boolean {
+  return carTerrain(x, z, false);
+}
+/** Where a moving vehicle may go: like cars, but open water is enterable (the vehicle sinks there). */
+export function isVehicleTerrainAllowed(x: number, z: number): boolean {
+  return carTerrain(x, z, true);
+}
+function carTerrain(x: number, z: number, waterPassable: boolean): boolean {
   if (!hasGroundAt(x, z)) return false;
   if (isOnWalkableDeck(x, z)) return true;
-  if (isWater(x, z)) return false;
+  if (isWater(x, z)) return waterPassable;
   const y = terrainHeight(x, z);
   const samples = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
   return samples.every(([dx, dz]) => {
-    if (!hasGroundAt(x + dx, z + dz) || isWater(x + dx, z + dz)) return false;
+    if (!hasGroundAt(x + dx, z + dz)) return false;
+    if (isWater(x + dx, z + dz)) return waterPassable;
     return Math.abs(terrainHeight(x + dx, z + dz) - y) <= 1.75;
   });
 }
@@ -246,6 +264,8 @@ export function isCarTerrainAllowed(x: number, z: number): boolean {
 /** Vehicle callers must check the intended position before movement or mounting. */
 export function isTravelAllowed(mode:TravelMode,x:number,z:number):boolean {
   if(mode==='foot')return (hasGroundAt(x,z)&&!isWater(x,z)) || isOnWalkableDeck(x,z);
+  // Gliders fly over rivers; they only need to stay above the map.
+  if(mode==='glider')return hasGroundAt(x,z);
   // Bikes ride anywhere a car can; isCycleAllowed still describes the paved network.
   return isCarTerrainAllowed(x,z);
 }

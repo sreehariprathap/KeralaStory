@@ -242,5 +242,22 @@
   "car.interact": "Vehicle",
   "controls.exitCar": "Get out of car",
   "wallet.coins": "Coins",
-  "wallet.hearts": "Hearts today"
+  "wallet.hearts": "Hearts today",
+  "glider.offerTitle": "Paraglide from Kodassery Summit?",
+  "glider.offerBody": "Glide across the valley and land wherever you like. Circle the rising air to climb.",
+  "glider.yes": "Yes, fly",
+  "glider.notNow": "Not now",
+  "glider.launched": "Glide! A/D steer · W dive · S flare",
+  "glider.landed": "Landed. The glider is packed away.",
+  "glider.rough": "Rough landing! The glider is packed away.",
+  "glider.splash": "Splash! The glider is lost. Swim to the bank.",
+  "glider.edge": "Edge of the map. Turning back.",
+  "glider.landToPack": "Land to pack the glider away",
+  "glider.walkIn": "Stand inside the circle to launch",
+  "glider.altitude": "Altitude",
+  "glider.controls": "A/D steer · W dive · S flare",
+  "glider.rising": "Rising air",
+  "glider.bailed": "You let go of the glider. It is lost.",
+  "vehicle.bikeSank": "Your bike sank. Spawn a new one from the menu.",
+  "vehicle.carSank": "Your car sank. Spawn a new one from the menu."
 }

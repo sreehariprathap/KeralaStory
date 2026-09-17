@@ -242,5 +242,22 @@
   "car.interact": "വാഹനം",
   "controls.exitCar": "കാറിൽ നിന്ന് ഇറങ്ങുക",
   "wallet.coins": "നാണയങ്ങൾ",
-  "wallet.hearts": "ഇന്നത്തെ ഹൃദയങ്ങൾ"
+  "wallet.hearts": "ഇന്നത്തെ ഹൃദയങ്ങൾ",
+  "glider.offerTitle": "",
+  "glider.offerBody": "",
+  "glider.yes": "",
+  "glider.notNow": "",
+  "glider.launched": "",
+  "glider.landed": "",
+  "glider.rough": "",
+  "glider.splash": "",
+  "glider.edge": "",
+  "glider.landToPack": "",
+  "glider.walkIn": "",
+  "glider.altitude": "",
+  "glider.controls": "",
+  "glider.rising": "",
+  "glider.bailed": "",
+  "vehicle.bikeSank": "",
+  "vehicle.carSank": ""
 }

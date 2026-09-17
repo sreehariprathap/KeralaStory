@@ -291,3 +291,68 @@ Seven layout tests pass, including connectivity, grades, lengths, unique anchors
 - Checks actually run: `npm run typecheck` PASS; `npm run build` PASS; `npm test` PASS (**712 tests / 118 files**) on a clean run. `apps/server/tests/roomIntegration.test.ts` fails intermittently on real Colyseus connections; it is unrelated to this work and predates it. Migration of a real browser save to v3 was observed live at `http://127.0.0.1:5000/`, and the midnight rollover was exercised directly against the save logic.
 - NOT yet verified in the running 3D scene: the automated Chrome instance has no WebGL and falls back to the no-3D notice, so coin and heart visuals, in-world pickup, the burst labels, HUD placement, the reachability of all ten heart spots on foot, and the frame cost of 100 coins still need a user check in a real browser.
 - Out of scope here and still open: nothing to spend coins on, no reward drops for stunts or activities (money bundles are defined at 25 but never spawned), no mini missions, and no multiplayer ownership of collectables.
+
+## 16 September 2026 — Paragliding from Kodassery Summit
+
+- Added a walk-in launch circle on the summit (`src/content/world/gliderSites.ts`, `src/game/world/GliderSites.tsx`): a 4 m saffron ring, a launch arrow, a windsock and a "Paragliding" board. The launch point and heading are derived from `summitPosition` and the direction to Kodassery junction, not hard-coded.
+- Standing in the circle on foot shows "Paraglide from Kodassery Summit?" with **Yes, fly** (F / Enter) and **Not now** (N). "Not now" hides the card until the player leaves the circle.
+- New `'glider'` travel mode. The pure motor (`src/game/vehicle/gliderMotor.ts`) is shared by the browser and the server:
+  - Cruise 11 m/s with a sink of 1.4 m/s (about 8:1). W dives (16 m/s), S flares (7 m/s), A/D turn at up to 0.9 rad/s.
+  - Launch holds altitude for 1.5 s.
+  - Rough landings above 13 m/s only show a message.
+  - River landings move the player to the nearest dry bank.
+  - Near the map edge the glider turns back toward the middle of the world.
+  - A glider wedged in scenery for 2 s is brought down.
+- Five thermals are placed from world data: summit trail shoulder, Chokkana ridge, Chokkana tea stop, Malakkappara and Kodakara. Each lifts up to 4 m/s with an edge falloff and fades out 70 m above the summit. They are drawn as rising motes with two circling kites and culled beyond 260 m.
+- Visuals: a procedural pack on the rider's back, with the canopy GLB (`public/assets/adventure/parachute_-_low_poly.glb`, registered in the manifest) scaled to a 4.2 m span. The model's harness bar rests on top of the pack and the canopy banks into turns. The pack and canopy are removed on landing. The chase camera pulls back to 8 m and lifts so the arch stays in frame.
+- HUD: an altitude chip with a "Rising air" state and the control hint. `glider.*` keys were added to both locale catalogs; Malayalam values are left blank per the worksheet.
+- Multiplayer:
+  - `TravelSchema` gains `{ kind: 'glider' }`. There is a new `launchGlider` client message and a `GLIDER_DENIED` error code.
+  - The simulation validates the launch (on foot, grounded, inside the circle) and simulates flight authoritatively with the same motor and thermals. The replay harness also accepts `launchGlider`.
+  - The room routes the message.
+  - `RemoteExplorer` draws the pack and canopy for gliding guests and infers bank from the heading rate. `MultiplayerLocalController` sends the launch and stick intent.
+- Checks actually run: `npm run typecheck` PASS; `npm test` PASS (**744 tests / 122 files**); `vite build` PASS.
+  - New tests cover the motor, thermals, the launch site (including clearing the lip) and the thermal reachability chain (`tests/gliderMotor.test.ts`, `tests/gliderSites.test.ts`), plus the protocol and authoritative flight: refused launch, launch → glide → land → walk, climbing in a thermal, and a deterministic replay (`packages/simulation/tests/glider.test.ts`).
+  - `apps/server/tests/roomIntegration.test.ts` failed at the pre-change baseline and passed on the final run; it is still intermittent.
+- Verified in the running app (headless Chrome with SwiftShader at `http://127.0.0.1:5174/?inspect`):
+  - the card appears only inside the circle, and "Not now" re-arms after the player leaves and returns;
+  - F launches, the altitude HUD updates, and steering banks the canopy;
+  - diving into the hillside lands the player back on foot with the pack removed;
+  - thermal motes are visible from the summit.
+- NOT verified in the running app:
+  - climbing in a thermal (covered by tests only, because scripted piloting at headless frame rates was unreliable);
+  - a river landing, the map-edge turn-back, and touch controls;
+  - a second client seeing the canopy (the lobby UI is still not wired into `App.tsx`);
+  - frame cost on real hardware.
+- The black quad beside the summit circle predates this work (it is present with the glider dressing hidden).
+
+## Swimming, river currents, sinking vehicles, and exit at any time (single player)
+- Water can be entered now. `needsSafeReset` no longer resets a player who is in water. It still resets a player who falls below the terrain or leaves the map.
+  - `src/game/player/swimming.ts` holds the swim rules: buoyancy that settles the feet 1.25 m below the surface, a swim speed of 2.2 m/s (3.4 m/s sprinting), and hysteresis between 1.1 m and 0.9 m of depth so wading stays walking.
+  - Space in water is a lunge under normal gravity, used to pull out onto low banks.
+  - Swimmers can't cross into the open sea past the ground bounds.
+- Currents: `createRiverField().flowAt` and `waterFlowAt` push swimmers downstream along each reach.
+  - Speed is about 1.1 m/s on flat reaches, up to 3.2 m/s on steep ones, and 0.35 m/s in pools. The current is weaker near the banks. The sea and ponds have no current.
+- `openWaterSurfaceAt` counts a bridge or pier deck only when the player stands on it, so swimmers pass under bridges.
+- Vehicles can now enter water (`isVehicleTerrainAllowed`). A ridden or parked bike, or a car, whose wheels are more than 0.5 m under the surface is lost (`vehicle.bikeSank` / `vehicle.carSank`). Spawning a new one, or returning the bike to a parking spot, restores it.
+  - A glider that touches water is lost, and the pilot swims. The old behaviour teleported the pilot to the bank.
+- F always gets the rider off:
+  - at speed;
+  - mid-air (a bike is left on the ground below it, or lost if that ground is water);
+  - while gliding (bail out; the wing is lost, `glider.bailed`);
+  - when the vehicle is stuck. The exit tries each side, then behind and in front, then any open spot without dry footing, then (for a car) the roof, then the nearest dry ground.
+  - `interactionReason` no longer returns `brake`.
+- Both avatar types have a swim animation: front crawl while moving and treading water at rest.
+- The multiplayer server simulation (`packages/simulation`) is unchanged, so guests in a room still cannot swim.
+- Checks actually run: `npm run typecheck` PASS; `vitest` PASS (538 tests / 87 files, excluding `.worktrees/`); `vite build` PASS.
+  - A full `npm test` also collects the `.worktrees/ten-player-multiplayer` copy, where 2 tests timed out after 30 s. This work does not change that copy.
+- Verified in the running app (`?inspect`):
+  - jumping off the Kurumali bridge splashes in and floats at the surface;
+  - the swimmer drifts downstream and passes under the bridge;
+  - stroking adds to the drift, and the crawl pose shows;
+  - F at speed on a bike and F mid-hop both work.
+- NOT verified in the running app:
+  - a bike or car actually sinking. The Kurumali banks near the bridge have a 2 m terrain step, and the bike can't turn on the bridge deck, so I couldn't drive a vehicle into water there.
+  - a stuck-car exit, a glider bail-out or water landing, and v2 river currents (these have tests only);
+  - touch controls.
+- Pre-existing console error seen: `Wildlife.tsx:101` "Cannot set properties of undefined (_cacheIndex)".

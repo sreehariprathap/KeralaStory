@@ -32,7 +32,7 @@ export function createNickAnimation(root: Object3D, rig: CharacterRig = 'nick') 
       const dt = Math.max(0, Math.min(delta, .05));
       const speed = Number.isFinite(motion.speed) ? Math.max(0, motion.speed) : 0;
       stride += (Math.min(speed / 4.5, 1) - stride) * (1 - Math.exp(-12 * dt));
-      if (speed > .05 || motion.riding) phase += dt * (motion.riding ? 6 : 5 + speed * 1.4);
+      if (speed > .05 || motion.riding || motion.swimming) phase += dt * (motion.riding ? 6 : motion.swimming ? 3 + speed * .8 : 5 + speed * 1.4);
       root.getWorldQuaternion(rootRotation);
       for (const joint of joints) joint.bone.quaternion.copy(joint.rest);
       root.updateMatrixWorld(true);
@@ -43,6 +43,10 @@ export function createNickAnimation(root: Object3D, rig: CharacterRig = 'nick') 
           // The torso is pitched forward by `lean`; pull the thighs forward by the same amount so they stay put.
           const lean = motion.lean ?? 0, pedal = motion.pedaling === false ? 0 : 1;
           bend = joint.part === 'Hip' ? -1.05 - lean + wave * .25 * pedal : joint.part === 'Knee' ? 1.25 - wave * .3 * pedal : joint.part === 'Shoulder' ? -.9 - lean * 1.2 : lean > 0 ? -.15 : -.3;
+        } else if (motion.swimming) {
+          // Front crawl while stroking, a slow scull while treading water.
+          const crawl = Math.min(speed / 2.2, 1);
+          bend = joint.part === 'Hip' ? wave * (.12 + .2 * crawl) : joint.part === 'Knee' ? .15 + Math.max(0, wave) * .25 : joint.part === 'Shoulder' ? (crawl > .1 ? -Math.PI + wave * Math.PI * crawl : -.5 + wave * .3) : -.2;
         } else if (!motion.grounded) {
           bend = joint.part === 'Hip' ? joint.side * .25 : joint.part === 'Knee' ? .5 : joint.part === 'Shoulder' ? -.55 : -.35;
         } else {

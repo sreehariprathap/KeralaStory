@@ -7,7 +7,7 @@ import { CHARACTER_MODELS } from '../../content/assets/models';
 import { ImportedAvatar } from './ImportedAvatar';
 
 /** `lean` is the forward torso pitch applied by the vehicle (radians); legs and arms compensate for it. */
-export interface AvatarMotion { speed: number; grounded: boolean; riding?: boolean; lean?: number; pedaling?: boolean }
+export interface AvatarMotion { speed: number; grounded: boolean; riding?: boolean; lean?: number; pedaling?: boolean; swimming?: boolean }
 interface Props {
   profile: ExplorerProfile;
   moving?: boolean;
@@ -48,6 +48,16 @@ function ProceduralAvatar({ profile, moving = false, reducedMotion = false, spee
       if(rightLeg.current)rightLeg.current.rotation.x=-.65-lean-pedal;
       if(leftArm.current)leftArm.current.rotation.x=-1-lean*1.2;
       if(rightArm.current)rightArm.current.rotation.x=-1-lean*1.2;
+      if(torso.current)torso.current.position.y=0;
+      return;
+    }
+    if(motion?.current.swimming){
+      // Front crawl while stroking, a slow scull while treading water.
+      const crawl=Math.min(actualSpeed/2.2,1),kick=Math.sin(phase.current*1.6)*(.12+.2*crawl);
+      if(leftLeg.current)leftLeg.current.rotation.x=kick;
+      if(rightLeg.current)rightLeg.current.rotation.x=-kick;
+      if(leftArm.current)leftArm.current.rotation.x=crawl>.1?-Math.PI+Math.sin(phase.current*.6)*Math.PI:-.4+Math.sin(phase.current*.4)*.35;
+      if(rightArm.current)rightArm.current.rotation.x=crawl>.1?-Math.PI-Math.sin(phase.current*.6)*Math.PI:-.4-Math.sin(phase.current*.4)*.35;
       if(torso.current)torso.current.position.y=0;
       return;
     }
