@@ -18,6 +18,7 @@ export const validClientMessages: ReadonlyArray<readonly [string, ClientMessageD
   ['input', { type: 'input', payload: { sequence: 42, moveX: -1, moveZ: 0.5, actions: ['jump', 'interact'] } }],
   ['enterVehicle with seat', { type: 'enterVehicle', payload: { vehicleId: 'ferry-jeep', preferredSeat: 'rearLeft' } }],
   ['exitVehicle', { type: 'exitVehicle', payload: {} }],
+  ['launchGlider', { type: 'launchGlider', payload: {} }],
   ['chatSend with maximum Unicode message', { type: 'chatSend', payload: { text: maximumChatMessage } }],
   ['ready', { type: 'ready', payload: { worldVersion: 'kerala-2000s-v1' } }],
   ['leave', { type: 'leave', payload: {} }],
@@ -72,6 +73,7 @@ export const invalidClientMessages: ReadonlyArray<readonly [string, string, unkn
   ['enter vehicle id', 'payload.vehicleId', { type: 'enterVehicle', payload: { vehicleId: 'Bad Vehicle' } }, 'Invalid string'],
   ['ready world version', 'payload.worldVersion', { type: 'ready', payload: { worldVersion: '' } }, 'Too small'],
   ['exit vehicle unexpected field', 'payload', { type: 'exitVehicle', payload: { vehicleId: 'ferry-jeep' } }, 'Unrecognized key'],
+  ['launch glider unexpected field', 'payload', { type: 'launchGlider', payload: { position: [0, 0, 0] } }, 'Unrecognized key'],
   ['leave unexpected field', 'payload', { type: 'leave', payload: { reason: 'done' } }, 'Unrecognized key'],
   ['ping timestamp', 'payload.clientTimeMs', { type: 'ping', payload: { clientTimeMs: -1 } }, 'Too small'],
 ];

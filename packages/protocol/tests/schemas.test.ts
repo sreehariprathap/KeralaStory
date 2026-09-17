@@ -6,6 +6,8 @@ import {
   ClientMessageSchema,
   InputSchema,
   RoomCodeSchema,
+  RoomErrorCodeSchema,
+  TravelSchema,
   ServerEventSchema,
   createRoomCode,
   normalizeRoomCode,
@@ -38,11 +40,17 @@ describe('multiplayer protocol schemas', () => {
     expect(sanitizePlainText('  നല്ല ദിവസം  ')).toBe('നല്ല ദിവസം');
   });
 
+  it('replicates gliding as a travel kind with no extra fields', () => {
+    expect(TravelSchema.safeParse({ kind: 'glider' }).success).toBe(true);
+    expect(TravelSchema.safeParse({ kind: 'glider', altitude: 40 }).success).toBe(false);
+    expect(RoomErrorCodeSchema.safeParse('GLIDER_DENIED').success).toBe(true);
+  });
+
   it('rejects malformed server events before they reach a renderer', () => {
     expect(ServerEventSchema.safeParse({ type: 'roomError', payload: { code: 'ROOM_FULL', message: 'Room is full' } }).success).toBe(true);
     expect(ServerEventSchema.safeParse({ type: 'chatAccepted', payload: { id: -1 } }).success).toBe(false);
     expect(ServerEventSchema.safeParse({ type: 'roomSnapshot', payload: { phase: 'playing' } }).success).toBe(false);
     expect(ChatMessageSchema.safeParse({ id: 1, senderId: 'guest_abcdefgh', senderName: '<b>Maya</b>', text: 'hello', sentAtMs: 1 }).success).toBe(false);
-    expect(CLIENT_EVENT_TYPES).toEqual(['input', 'enterVehicle', 'exitVehicle', 'chatSend', 'ready', 'leave', 'ping']);
+    expect(CLIENT_EVENT_TYPES).toEqual(['input', 'enterVehicle', 'exitVehicle', 'launchGlider', 'chatSend', 'ready', 'leave', 'ping']);
   });
 });

@@ -11,6 +11,9 @@ import { translate, MALAYALAM_CATALOG, type TranslationKey } from '../../feature
 import { RegionalDetails } from './RegionalDetails';
 import { CoconutGroves } from './CoconutGroves';
 import { Wildlife } from './Wildlife';
+import { StuntParks } from './StuntParks';
+import { GliderSites } from './GliderSites';
+import { isStuntGround } from './stuntSites';
 import { memo, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
@@ -291,7 +294,7 @@ function generatePlants() {
   const landmarks:[[number,number],number][]=[[[25,-238],19],[[48,-233],10],[[-10,-194],8],[[13,-28],10],[[41,-17],10],[[17,-6],8],[[47,7],10],[[65,54],8],[[48,77],15]];
   for(let i=0;i<260;i++) {
     const x=-70+r()*145,z=-331+r()*420;
-    if(isWater(x,z)||z>-64&&x>72||x<-10&&x>-51&&z>-320&&z<-260)continue;
+    if(isWater(x,z)||z>-64&&x>72||x<-10&&x>-51&&z>-320&&z<-260||isStuntGround(x,z,3))continue;
     let roadDistance=Infinity;for(let j=1;j<path.length;j++){const a=path[j-1],c=path[j],dx=c[0]-a[0],dz=c[1]-a[1],f=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz)));roadDistance=Math.min(roadDistance,Math.hypot(x-a[0]-f*dx,z-a[1]-f*dz));}
     if(roadDistance<7||landmarks.some(([[lx,lz],radius])=>Math.hypot(x-lx,z-lz)<radius))continue;
     const y=terrainHeight(x,z),h=7+r()*5,lean=(r()-.5)*.25,yaw=r()*Math.PI*2;
@@ -344,7 +347,7 @@ function KeralaGeometry({quality='medium',animated=true,locale='en'}:{quality?:'
     <ExpansionGround/><MountainExpansion locale={locale}/><ChokkanaWorld quality={quality} locale={locale}/><AthirappillyWorld quality={quality} animated={animated} locale={locale}/><KodasseryWorld quality={quality} animated={animated}/><RegionalDetails quality={quality} animated={animated}/>
     <RigidBody type="fixed" colliders="trimesh"><mesh geometry={ground} receiveShadow><meshStandardMaterial vertexColors roughness={1}/></mesh></RigidBody>
     {Object.entries(roads).map(([key,geometry])=><mesh key={key} geometry={geometry} receiveShadow><meshStandardMaterial color={key==='tar'||key==='cityTar'?PALETTE.tar:PALETTE.sand} roughness={1} side={DoubleSide}/></mesh>)}
-    <Water animated={animated}/><RiverNetwork animated={animated} quality={quality}/><TownWorld/><V2WorldDressing/><CoconutGroves quality={quality}/><Wildlife quality={quality}/>
+    <Water animated={animated}/><RiverNetwork animated={animated} quality={quality}/><TownWorld/><V2WorldDressing/><CoconutGroves quality={quality}/><Wildlife quality={quality}/><StuntParks/><GliderSites animated={animated}/>
     {architecture.meshes.map(({color,geometry})=><mesh key={color} geometry={geometry} castShadow receiveShadow><meshStandardMaterial color={color} roughness={.92} side={DoubleSide}/></mesh>)}
     <RigidBody type="fixed" colliders={false}>{collision.map(c=><CuboidCollider key={c.id} args={[c.size[0]/2,c.size[1]/2,c.size[2]/2]} position={c.position} rotation={c.rotation}/>)}</RigidBody>
     {architecture.signs.map(sign=><PaintedSign key={sign.english} sign={sign} locale={locale}/>)}

@@ -1,5 +1,5 @@
 import { Component, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ArrowRight, ArrowUpRight, Compass, MapTrifold, Mountains, Pause, GearSix, ArrowCounterClockwise, House, Footprints, FlagPennant, CaretDown, X, Tree, Car, Motorcycle } from '@phosphor-icons/react';
+import { ArrowRight, ArrowUpRight, Compass, MapTrifold, Mountains, Pause, GearSix, ArrowCounterClockwise, House, Footprints, FlagPennant, CaretDown, X, Tree, Car, Motorcycle, Wind } from '@phosphor-icons/react';
 import { CAR_MODELS, CAR_PICKER_CATALOG, type CarModelId } from '../content/assets/models';
 import { BIKE_MODELS, BIKE_PICKER_CATALOG, type BikeModelId } from '../content/assets/bikeProfiles';
 import { CarPicker } from '../features/vehicles/CarPicker';
@@ -58,6 +58,7 @@ export function App(){
   const [carModelId,setCarModelId]=useState<CarModelId>('admin');
   const [carColor,setCarColor]=useState<string>(CAR_PAINT_COLORS[0].value);
   const [bikeSpawnToken,setBikeSpawnToken]=useState(0);
+  const [gliderLaunchToken,setGliderLaunchToken]=useState(0);const [gliderDismissed,setGliderDismissed]=useState(false);
   const [bikeModelId,setBikeModelId]=useState<BikeModelId>('roadster');
   const carPaintable=Boolean(VEHICLE_PROFILES[carModelId].paint);
   useEffect(()=>{document.documentElement.lang=locale;},[locale]);
@@ -113,6 +114,20 @@ export function App(){
   const exit=()=>{persist();setActive(false);setMode('menu');setMenu('none');setDiscovery(null);};
   const resume=()=>{setMenu('none');setMode('playing');};
   const resetPosition=()=>{setSpawn([...SPAWN]);setResetToken(n=>n+1);setMode('playing');setMenu('none');};
+  const gliderOffer=active&&mode==='playing'&&!!snapshot.gliderAvailable&&!gliderDismissed;
+  // Leaving the circle re-arms the offer after "Not now".
+  useEffect(()=>{if(!snapshot.gliderAvailable)setGliderDismissed(false);},[snapshot.gliderAvailable]);
+  const launchGlider=useCallback(()=>{setGliderLaunchToken(n=>n+1);setGliderDismissed(true);},[]);
+  useEffect(()=>{
+    if(!gliderOffer)return;
+    const keydown=(event:KeyboardEvent)=>{
+      if(event.repeat)return;
+      if(event.code==='KeyF'||event.code==='Enter'){event.preventDefault();launchGlider();}
+      else if(event.code==='KeyN'){event.preventDefault();setGliderDismissed(true);}
+    };
+    window.addEventListener('keydown',keydown);
+    return()=>window.removeEventListener('keydown',keydown);
+  },[gliderOffer,launchGlider]);
   // Inspect-only cheats: hold C (car) or B (bike) and press a number to spawn that catalog entry.
   useEffect(()=>{
     if(!inspectMode||!active||mode!=='playing')return;
@@ -142,7 +157,7 @@ export function App(){
   const spawnCar=()=>{setCarSpawnToken(token=>token+1);closeCarControls();};
   const openBikeControls=()=>{setMode('paused');setMenu('bike');};
   const spawnBike=()=>{setBikeSpawnToken(token=>token+1);closeCarControls();};
-  const controller=useMemo<ExplorerControllerProps>(()=>({mode,profile,spawn,initialHeading,resetToken,inputCommands:receiveCommands,bicycleSpawn,returnBicycleToken,carSpawnToken,carModelId,carColor,bikeSpawnToken,bikeModelId,sensitivity:settings.sensitivity,reducedMotion:settings.reducedMotion,cameraControl:settings.cameraControl,onSnapshot,onPause,onMap,onReady:onPlayerReady,onError:onSceneError}),[mode,profile,spawn,initialHeading,resetToken,receiveCommands,bicycleSpawn,returnBicycleToken,carSpawnToken,carModelId,carColor,bikeSpawnToken,bikeModelId,settings.sensitivity,settings.reducedMotion,settings.cameraControl,onSnapshot,onPause,onMap,onPlayerReady,onSceneError]);
+  const controller=useMemo<ExplorerControllerProps>(()=>({mode,profile,spawn,initialHeading,resetToken,inputCommands:receiveCommands,bicycleSpawn,returnBicycleToken,carSpawnToken,carModelId,carColor,bikeSpawnToken,bikeModelId,gliderLaunchToken,sensitivity:settings.sensitivity,reducedMotion:settings.reducedMotion,cameraControl:settings.cameraControl,onSnapshot,onPause,onMap,onReady:onPlayerReady,onError:onSceneError}),[mode,profile,spawn,initialHeading,resetToken,receiveCommands,bicycleSpawn,returnBicycleToken,carSpawnToken,carModelId,carColor,bikeSpawnToken,bikeModelId,gliderLaunchToken,settings.sensitivity,settings.reducedMotion,settings.cameraControl,onSnapshot,onPause,onMap,onPlayerReady,onSceneError]);
   const currentRegion=WORLD_REGIONS.find(r=>r.id===getZoneAtPosition(snapshot.position[0],snapshot.position[2]))??WORLD_REGIONS[0];
   const location=discovery?LANDMARKS.find(l=>l.id===discovery):null;
   const distance=waypoint?Math.round(Math.hypot(snapshot.position[0]-waypoint[0],snapshot.position[2]-waypoint[2])):null;
@@ -164,7 +179,9 @@ export function App(){
       {commands && touch && (
         <MobileControls enabled={mode === 'playing'} commands={commands} sprintLocked={snapshot.sprintLocked ?? false} />
       )}
-      {mode==='playing'&&(snapshot.canInteract||snapshot.interactionMessage)&&<div className="bicycle-prompt" role="status">{snapshot.interactionMessage?(snapshot.interactionMessage in ENGLISH_CATALOG?t(snapshot.interactionMessage as TranslationKey):snapshot.interactionMessage):<><kbd>{touch?'●':'F'}</kbd> {t(snapshot.travelMode==='car'?'controls.exitCar':snapshot.travelMode==='bicycle'?'controls.dismount':'controls.mount')}{snapshot.travelMode!=='foot'&&<small>S / ↓ · {t('controls.brake')}</small>}</>}</div>}
+      {gliderOffer&&<div className="glider-offer" role="dialog" aria-labelledby="glider-offer-title"><Wind size={26} weight="light"/><div><strong id="glider-offer-title">{t('glider.offerTitle')}</strong><p>{t('glider.offerBody')}</p><div className="glider-offer__actions"><button className="button button-primary" onClick={launchGlider}>{!touch&&<kbd>F</kbd>}{t('glider.yes')}</button><button className="button button-secondary" onClick={()=>setGliderDismissed(true)}>{!touch&&<kbd>N</kbd>}{t('glider.notNow')}</button></div></div></div>}
+      {snapshot.travelMode==='glider'&&<div className={`glider-status ${snapshot.climbing?'is-climbing':''}`} role="status"><Wind size={15}/><span>{t('glider.altitude')} {Math.round(snapshot.altitude??0)} m{snapshot.climbing?` · ▲ ${t('glider.rising')}`:''}</span>{!touch&&<small>{t('glider.controls')}</small>}</div>}
+      {mode==='playing'&&!gliderOffer&&(snapshot.canInteract||snapshot.interactionMessage)&&<div className="bicycle-prompt" role="status">{snapshot.interactionMessage?(snapshot.interactionMessage in ENGLISH_CATALOG?t(snapshot.interactionMessage as TranslationKey):snapshot.interactionMessage):<><kbd>{touch?'●':'F'}</kbd> {t(snapshot.travelMode==='car'?'controls.exitCar':snapshot.travelMode==='bicycle'?'controls.dismount':'controls.mount')}{snapshot.travelMode!=='foot'&&<small>S / ↓ · {t('controls.brake')}</small>}</>}</div>}
       {(snapshot.travelMode==='car'||snapshot.travelMode==='bicycle'&&snapshot.nitroAvailable)&&<div className={`nitro-status ${snapshot.nitroActive?'is-active':''}`} role="status"><Car size={15}/><span>SHIFT · NITRO {snapshot.nitroActive?'ACTIVE':'READY'}</span></div>}
       {location&&mode==='playing'&&<div className="discovery-toast" role="status"><div><Compass size={24}/><span>{t('app.placeDiscovered')}</span></div><h2>{localizedPlace(location.id,locale)}</h2><p>{t(({origin:'landmark.originDescription',canopy:'landmark.canopyDescription',waterfall:'landmark.waterfallDescription',paddy:'landmark.paddyDescription',temple:'landmark.templeDescription','tea-shop':'landmark.teaShopDescription','river-bridge':'landmark.riverBridgeDescription','fishing-bank':'landmark.fishingBankDescription',market:'landmark.marketDescription',lighthouse:'landmark.lighthouseDescription',harbor:'landmark.harborDescription','spice-garden':'landmark.spiceGardenDescription'} as Record<string,TranslationKey>)[location.id]??`landmark.${location.id}Description` as TranslationKey)}</p></div>}
     </div>}

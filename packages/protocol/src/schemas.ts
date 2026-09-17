@@ -39,6 +39,8 @@ export const InputSchema = z.object({
 }).strict();
 export const EnterVehicleSchema = z.object({ vehicleId: VehicleIdSchema, preferredSeat: SeatIdSchema.optional() }).strict();
 export const ExitVehicleSchema = z.object({}).strict();
+/** Launch is only accepted on foot inside the summit launch circle; the server checks that. */
+export const LaunchGliderSchema = z.object({}).strict();
 export const ChatSendSchema = z.object({ text: ChatTextSchema }).strict();
 export const ReadySchema = z.object({ worldVersion: z.string().min(1).max(80) }).strict();
 export const LeaveSchema = z.object({}).strict();
@@ -47,6 +49,7 @@ export const ClientMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('input'), payload: InputSchema }).strict(),
   z.object({ type: z.literal('enterVehicle'), payload: EnterVehicleSchema }).strict(),
   z.object({ type: z.literal('exitVehicle'), payload: ExitVehicleSchema }).strict(),
+  z.object({ type: z.literal('launchGlider'), payload: LaunchGliderSchema }).strict(),
   z.object({ type: z.literal('chatSend'), payload: ChatSendSchema }).strict(),
   z.object({ type: z.literal('ready'), payload: ReadySchema }).strict(),
   z.object({ type: z.literal('leave'), payload: LeaveSchema }).strict(),

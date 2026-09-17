@@ -1,6 +1,6 @@
 import { CloseCode, Room, ServerError, type AuthContext, type Client } from '@colyseus/core';
 import { ClientMessageSchema, type RoomErrorDto, type RoomSnapshotDto } from '@kerala-story/protocol';
-import { addPlayer, createSimulationWorld, disposeSimulationWorld, playerSnapshots, removePlayer, setPlayerConnected, stepSimulation, submitPlayerInput, type SimulationWorld } from '@kerala-story/simulation';
+import { addPlayer, createSimulationWorld, disposeSimulationWorld, launchGlider, playerSnapshots, removePlayer, setPlayerConnected, stepSimulation, submitPlayerInput, type SimulationWorld } from '@kerala-story/simulation';
 import { Admission, AdmissionError, JoinOptionsSchema } from './admission.ts';
 import { ChatService } from './chatService.ts';
 import { InputQueue, ServerTicker } from './inputQueue.ts';
@@ -106,6 +106,9 @@ export class KeralaRoom extends Room<{ state: RoomState }> {
         break;
       }
       case 'enterVehicle': case 'exitVehicle': this.error(client, 'VEHICLE_DENIED'); break;
+      case 'launchGlider':
+        if (this.state.phase !== 'playing' || !launchGlider(this.simulation, guest.id)) this.error(client, 'GLIDER_DENIED');
+        break;
     }
   }
   private error(client: Client, code: RoomErrorDto['code']) { client.send('roomError', { code, message: code.replaceAll('_', ' ') }); }

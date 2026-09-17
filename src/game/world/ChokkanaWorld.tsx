@@ -7,6 +7,7 @@ import { createForestInstances } from './expansionInstances';
 import { ExpansionSign } from './ExpansionSign';
 import { localizedPlace } from '../../features/i18n/translate';
 import { ImportedTrees } from './ImportedTrees';
+import { isStuntGround } from './stuntSites';
 
 /** Deterministic broadleaf silhouettes stay resident at every tier, using two draw calls. */
 export function ChokkanaWorld({quality,locale}:{quality:'low'|'medium'|'high';locale:Locale}) {
@@ -15,7 +16,7 @@ export function ChokkanaWorld({quality,locale}:{quality:'low'|'medium'|'high';lo
     const field=createRouteField([...EXPANSION_LAYOUT.routes,...V2_ROUTES]);
     return createForestInstances({seed:2000,count:quality==='low'?450:850,bounds:{xMin:-665,xMax:-90,zMin:-610,zMax:-250},heightAt:terrainHeight,allowedAt:(x,z)=>{
       const road=field(x,z);
-      if(isWater(x,z)||(road&&road.distance<road.width+8))return false;
+      if(isWater(x,z)||(road&&road.distance<road.width+8)||isStuntGround(x,z,4))return false;
       if(EXPANSION_LAYOUT.anchors.some(a=>Math.hypot(x-a.position[0],z-a.position[2])<19))return false;
       // Clear rays to the lower world and falls; never screen the panorama with near-summit canopy.
       if(x>-220&&z<-495)return false;

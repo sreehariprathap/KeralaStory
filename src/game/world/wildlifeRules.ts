@@ -3,6 +3,7 @@ import {
   EXPANSION_GROUND, KODASSERY_BOUNDS, LANDMARKS, MAIN_PATH, V2_LAYOUT, WORLD_BOUNDS,
   containsPoint, getAreaAt, getZoneAtPosition, isCarTerrainAllowed, isWater, terrainHeight,
 } from '../../content/world/definition';
+import { isStuntGround } from './stuntSites';
 
 export type SpeciesId = 'elephant' | 'cow' | 'dog' | 'cat' | 'chicken';
 
@@ -78,7 +79,7 @@ const PARK = parkBounds();
 
 /** Where each species may stand. Walks are checked against this along their whole path. */
 export function isHabitat(species: SpeciesId, x: number, z: number): boolean {
-  if (!isCarTerrainAllowed(x, z) || isWater(x, z) || containsPoint(PARK, x, z)) return false;
+  if (!isCarTerrainAllowed(x, z) || isWater(x, z) || containsPoint(PARK, x, z) || isStuntGround(x, z, 4)) return false;
   const area = getAreaAt(x, z);
   // No animals on the hills: the summit, the Kodassery Peaks slopes, or any high ground.
   if (area === 'kodassery-summit' || containsPoint(KODASSERY_BOUNDS, x, z) || terrainHeight(x, z) > MAX_ELEVATION) return false;

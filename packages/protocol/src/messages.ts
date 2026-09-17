@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { MAX_ROOM_OCCUPANTS } from './constants.ts';
 import { AvatarAppearanceSchema, ChatTextSchema, DisplayNameSchema, GuestIdSchema, QuatSchema, RoomPhaseSchema, SeatIdSchema, Vec3Schema, VehicleIdSchema } from './schemas.ts';
 
-export const CLIENT_EVENT_TYPES = ['input', 'enterVehicle', 'exitVehicle', 'chatSend', 'ready', 'leave', 'ping'] as const;
+export const CLIENT_EVENT_TYPES = ['input', 'enterVehicle', 'exitVehicle', 'launchGlider', 'chatSend', 'ready', 'leave', 'ping'] as const;
 export const SERVER_EVENT_TYPES = ['roomSnapshot', 'chatAccepted', 'roomError', 'roomWelcome', 'pong'] as const;
 
 export type Vec3 = z.infer<typeof Vec3Schema>;
@@ -14,6 +14,7 @@ export const TransformSchema = z.object({ position: Vec3Schema, headingRad: z.nu
 export const TravelSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('foot') }).strict(),
   z.object({ kind: z.literal('vehicle'), vehicleId: VehicleIdSchema, seatId: SeatIdSchema }).strict(),
+  z.object({ kind: z.literal('glider') }).strict(),
 ]);
 export const ReplicatedPlayerSchema = z.object({
   id: GuestIdSchema, displayName: DisplayNameSchema, appearance: AvatarAppearanceSchema, transform: TransformSchema,
@@ -34,7 +35,7 @@ export const ChatMessageSchema = z.object({ id: z.number().int().nonnegative(), 
 export const RoomSnapshotSchema = z.object({
   phase: RoomPhaseSchema, worldVersion: z.string().min(1), players: z.array(ReplicatedPlayerSchema).max(MAX_ROOM_OCCUPANTS), vehicles: z.array(ReplicatedVehicleSchema), roster: z.array(RoomRosterEntrySchema).max(MAX_ROOM_OCCUPANTS), serverTimeMs: z.number().finite().nonnegative(),
 }).strict();
-export const RoomErrorCodeSchema = z.enum(['ROOM_FULL', 'ROOM_NOT_FOUND', 'WORLD_VERSION_MISMATCH', 'RECONNECT_DENIED', 'ROOM_ENDED', 'INVALID_MESSAGE', 'RATE_LIMITED', 'MUTED', 'VEHICLE_DENIED']);
+export const RoomErrorCodeSchema = z.enum(['ROOM_FULL', 'ROOM_NOT_FOUND', 'WORLD_VERSION_MISMATCH', 'RECONNECT_DENIED', 'ROOM_ENDED', 'INVALID_MESSAGE', 'RATE_LIMITED', 'MUTED', 'VEHICLE_DENIED', 'GLIDER_DENIED']);
 export const RoomErrorSchema = z.object({ code: RoomErrorCodeSchema, message: z.string().min(1).max(160) }).strict();
 export const RoomWelcomeSchema = z.object({ roomCode: z.string().regex(/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$/), guestId: GuestIdSchema, reconnectToken: z.string().min(32).max(128) }).strict();
 export const PongSchema = z.object({ clientTimeMs: z.number().finite().nonnegative(), serverTimeMs: z.number().finite().nonnegative() }).strict();

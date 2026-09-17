@@ -1,13 +1,13 @@
 import { createHash } from 'node:crypto';
 import type { ReplicatedPlayerDto } from '@kerala-story/protocol';
 import { createSimulationWorld, disposeSimulationWorld, stepSimulation } from './fixedStep';
-import { addPlayer, playerSnapshots, removePlayer, setPlayerConnected, submitPlayerInput, type PlayerInput, type PlayerProfile } from './playerSimulation';
+import { addPlayer, launchGlider, playerSnapshots, removePlayer, setPlayerConnected, submitPlayerInput, type PlayerInput, type PlayerProfile } from './playerSimulation';
 import type { SimulationWorldDefinition } from './worldDefinition';
 
 export type ReplayEvent = { tick: number } & (
   | { type: 'join'; profile: PlayerProfile }
   | { type: 'input'; id: string; input: PlayerInput }
-  | { type: 'disconnect' | 'reconnect' | 'leave'; id: string }
+  | { type: 'disconnect' | 'reconnect' | 'leave' | 'launchGlider'; id: string }
 );
 /** Rounding occurs only at serialized output, never during the simulation. */
 export function playerChecksum(players: readonly ReplicatedPlayerDto[]): string {
@@ -28,6 +28,7 @@ export async function replayPlayers(events: readonly ReplayEvent[], ticks: numbe
           case 'disconnect': setPlayerConnected(sim, event.id, false); break;
           case 'reconnect': setPlayerConnected(sim, event.id, true); break;
           case 'leave': removePlayer(sim, event.id); break;
+          case 'launchGlider': launchGlider(sim, event.id); break;
         }
       }
       stepSimulation(sim);

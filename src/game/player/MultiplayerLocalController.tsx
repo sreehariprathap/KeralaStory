@@ -8,6 +8,7 @@ import type { MultiplayerSession } from '../../features/multiplayer/useMultiplay
 import { useExplorerInput } from '../input/useExplorerInput';
 import { readFollowMovement } from '../input/inputState';
 import { RemoteExplorer } from './RemoteExplorer';
+import { isInGliderLaunch } from '../../content/world/gliderSites';
 
 interface Props { player: ReplicatedPlayerDto; session: MultiplayerSession; controller: ExplorerControllerProps; focused: boolean }
 /** Authority is the only source of player positions. No browser movement body is mounted. */
@@ -20,6 +21,13 @@ export function MultiplayerLocalController({ player, session, controller, focuse
   const vectors = useMemo(() => ({ anchor: new Vector3(), direction: new Vector3() }), []);
   useEffect(() => { session.sender.current?.setFocused(enabled); }, [enabled, session.sender]);
   useEffect(() => { controller.onReady?.(); }, [controller.onReady]);
+  const lastGliderLaunch = useRef(controller.gliderLaunchToken);
+  useEffect(() => {
+    if (lastGliderLaunch.current === controller.gliderLaunchToken) return;
+    lastGliderLaunch.current = controller.gliderLaunchToken;
+    // The server checks the circle and refuses with GLIDER_DENIED.
+    session.client.current?.send('launchGlider', {});
+  }, [controller.gliderLaunchToken, session.client]);
   useFrame(({ camera }, delta) => {
     const sender = session.sender.current, reconciliation = session.reconciliation.current;
     if (!sender || !reconciliation) return;
@@ -31,10 +39,13 @@ export function MultiplayerLocalController({ player, session, controller, focuse
       if (controls.brake || controls.move.forward < 0) actions.push('brake');
       if (controls.keys.has('ShiftLeft') || controls.keys.has('ShiftRight')) actions.push('nitro');
     }
-    sender.setIntent({ moveX: enabled ? player.travel.kind === 'vehicle' ? controls.move.x : movement.x : 0, moveZ: enabled ? player.travel.kind === 'vehicle' ? -controls.move.forward : movement.z : 0, actions });
+    // Vehicles and the glider take stick input (steer, forward) rather than camera-relative walking.
+    const stick = player.travel.kind !== 'foot';
+    sender.setIntent({ moveX: enabled ? stick ? controls.move.x : movement.x : 0, moveZ: enabled ? stick ? -controls.move.forward : movement.z : 0, actions });
     if (sender.tick(performance.now())) controls.jumpQueued = false;
     if (enabled && controls.interactQueued) {
       if (player.travel.kind === 'vehicle') session.client.current?.send('exitVehicle', {});
+      else if (player.travel.kind === 'glider') { /* The glider packs away only on landing. */ }
       else {
         const vehicles = session.latestSnapshot.current?.vehicles ?? [];
         const nearby = vehicles.map(vehicle => ({ vehicle, distance: Math.hypot(...vehicle.transform.position.map((value, index) => value - reconciliation.current.position[index])) })).sort((a,b) => a.distance - b.distance)[0];
@@ -50,7 +61,8 @@ export function MultiplayerLocalController({ player, session, controller, focuse
     const hit = world.castShape(vectors.anchor, { x: 0, y: 0, z: 0, w: 1 }, vectors.direction, sphere, .03, 4.5, true, rapier.QueryFilterFlags.EXCLUDE_SENSORS);
     camera.position.copy(vectors.anchor).addScaledVector(vectors.direction, hit ? Math.max(.24, hit.time_of_impact - .08) : 4.5); camera.lookAt(vectors.anchor);
     elapsed.current += delta;
-    if (elapsed.current >= .1) { elapsed.current = 0; const vehicle = player.travel.kind === 'vehicle' ? session.latestSnapshot.current?.vehicles.find(value => value.id === (player.travel.kind === 'vehicle' ? player.travel.vehicleId : '')) : undefined; controller.onSnapshot({ position: [...transform.position], headingRad: transform.headingRad, speed: Math.hypot(transform.velocity[0], transform.velocity[2]), grounded: Math.abs(transform.velocity[1]) < .2, travelMode: vehicle?.kind ?? 'foot' }); }
+    if (elapsed.current >= .1) { elapsed.current = 0; const vehicle = player.travel.kind === 'vehicle' ? session.latestSnapshot.current?.vehicles.find(value => value.id === (player.travel.kind === 'vehicle' ? player.travel.vehicleId : '')) : undefined; const grounded = Math.abs(transform.velocity[1]) < .2, gliding = player.travel.kind === 'glider';
+      controller.onSnapshot({ position: [...transform.position], headingRad: transform.headingRad, speed: Math.hypot(transform.velocity[0], transform.velocity[2]), grounded: grounded && !gliding, travelMode: gliding ? 'glider' : vehicle?.kind ?? 'foot', gliderAvailable: player.travel.kind === 'foot' && grounded && isInGliderLaunch(transform.position[0], transform.position[2]), climbing: gliding && transform.velocity[1] > .2 }); }
   });
   return <RemoteExplorer player={player} sample={() => session.reconciliation.current?.current ?? null} reducedMotion={controller.reducedMotion}/>;
 }

@@ -24,10 +24,15 @@ interface Props {
   /** Writes the rendered (interpolated) feet position; falls back to the raw body pose when absent. */
   target?: (outFeet: Vector3) => CameraTargetKind | null;
 }
-export type CameraTargetKind = 'foot' | 'car';
+export type CameraTargetKind = 'foot' | 'car' | 'glider';
 
-const FOOT_DISTANCE = 4.5, DRIVE_DISTANCE = 7.6;
-const FOOT_HEIGHT = 1.28, DRIVE_EXTRA_HEIGHT = .5, DRIVE_EXTRA_PITCH = .08;
+const FOOT_HEIGHT = 1.28;
+/** Per-target framing: the glider pulls back and looks up so the canopy stays in shot. */
+const FRAMING: Record<CameraTargetKind, { distance: number; extraHeight: number; extraPitch: number }> = {
+  foot: { distance: 4.5, extraHeight: 0, extraPitch: 0 },
+  car: { distance: 7.6, extraHeight: .5, extraPitch: .08 },
+  glider: { distance: 8, extraHeight: 1.3, extraPitch: .1 },
+};
 
 /** Environmental sphere sweep excludes the player and sensor-only discoveries. */
 export function ThirdPersonCamera({ body, vehicleBody, input, azimuth, heading, motion, mode, sensitivity, reducedMotion, resetToken, cameraControl, target }: Props) {
@@ -37,7 +42,7 @@ export function ThirdPersonCamera({ body, vehicleBody, input, azimuth, heading, 
   const initialized = useRef(false);
   const lastReset = useRef(resetToken);
   const manualLookGrace = useRef(0);
-  const driveBlend = useRef(0);
+  const framing = useRef({ ...FRAMING.foot });
   const vectors = useMemo(() => ({ anchor: new Vector3(), target: new Vector3(), direction: new Vector3(), goal: new Vector3() }), []);
   const sphere = useMemo(() => new rapier.Ball(0.2), [rapier]);
 
@@ -71,11 +76,13 @@ export function ThirdPersonCamera({ body, vehicleBody, input, azimuth, heading, 
       vectors.target.set(position.x, position.y - FEET_TO_CENTER, position.z);
       kind = 'foot';
     }
-    const driveGoal = kind === 'car' ? 1 : 0;
-    driveBlend.current = !initialized.current || reducedMotion ? driveGoal : driveBlend.current + (driveGoal - driveBlend.current) * (1 - Math.exp(-3 * dt));
-    vectors.target.y += FOOT_HEIGHT + DRIVE_EXTRA_HEIGHT * driveBlend.current;
-    const maxDistance = FOOT_DISTANCE + (DRIVE_DISTANCE - FOOT_DISTANCE) * driveBlend.current;
-    const viewPitch = pitch.current + DRIVE_EXTRA_PITCH * driveBlend.current;
+    const goal = FRAMING[kind], frame = framing.current, blend = !initialized.current || reducedMotion ? 1 : 1 - Math.exp(-3 * dt);
+    frame.distance += (goal.distance - frame.distance) * blend;
+    frame.extraHeight += (goal.extraHeight - frame.extraHeight) * blend;
+    frame.extraPitch += (goal.extraPitch - frame.extraPitch) * blend;
+    vectors.target.y += FOOT_HEIGHT + frame.extraHeight;
+    const maxDistance = frame.distance;
+    const viewPitch = pitch.current + frame.extraPitch;
     if (!initialized.current || reducedMotion || vectors.anchor.distanceTo(vectors.target) > 12) vectors.anchor.copy(vectors.target);
     else vectors.anchor.lerp(vectors.target, 1 - Math.exp(-18 * dt));
     vectors.direction.set(Math.sin(azimuth.current) * Math.cos(viewPitch), Math.sin(viewPitch), Math.cos(azimuth.current) * Math.cos(viewPitch));

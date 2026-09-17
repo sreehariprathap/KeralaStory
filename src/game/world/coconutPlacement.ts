@@ -4,6 +4,7 @@ import {
   SAFE_SPAWNS, V2_LAYOUT, WALKING_DETOURS, WORLD_BOUNDS, containsPoint, isCarTerrainAllowed, isWater, terrainHeight,
 } from '../../content/world/definition';
 import { isWaterfallFootprint } from './waterfallGeometry';
+import { isStuntGround } from './stuntSites';
 
 export interface CoconutCandidate { x: number; z: number; variant: number; height: number; yaw: number; lean: number }
 
@@ -50,7 +51,7 @@ const KEEP_CLEAR_AREAS = [
 export function isCoconutSpotOpen(x: number, z: number): boolean {
   if (!isCarTerrainAllowed(x, z)) return false;
   for (const [dx, dz] of [[1.5, 0], [-1.5, 0], [0, 1.5], [0, -1.5]]) if (isWater(x + dx, z + dz)) return false;
-  if (isWaterfallFootprint(x, z, 3)) return false;
+  if (isWaterfallFootprint(x, z, 3) || isStuntGround(x, z, 6)) return false;
   const route = EXPANSION_GROUND.field(x, z);
   if (route && route.distance <= route.width + ROAD_CLEARANCE) return false;
   const v2Road = EXPANSION_GROUND.v2?.field(x, z);

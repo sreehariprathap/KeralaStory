@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit && npm run typecheck --workspace=@kerala-story/protocol && npm run typecheck --workspace=@kerala-story/simulation && npm run typecheck --workspace=@kerala-story/server",
     "test": "vitest run",
     "server:dev": "npm run dev --workspace=@kerala-story/server",
-    "preview": "vite preview --host 127.0.0.1"
+    "preview": "vite preview --host 127.0.0.1",
+    "generate:stunts": "tsx scripts/generate-stunt-sites.ts"
   },
   "dependencies": {
     "@fontsource/noto-sans": "5.3.0",
