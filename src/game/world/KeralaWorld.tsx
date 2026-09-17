@@ -9,6 +9,8 @@ import { AthirappillyWorld } from './AthirappillyWorld';
 import type { Locale } from '../../contracts';
 import { translate, MALAYALAM_CATALOG, type TranslationKey } from '../../features/i18n/translate';
 import { RegionalDetails } from './RegionalDetails';
+import { CoconutGroves } from './CoconutGroves';
+import { Wildlife } from './Wildlife';
 import { memo, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
@@ -342,7 +344,7 @@ function KeralaGeometry({quality='medium',animated=true,locale='en'}:{quality?:'
     <ExpansionGround/><MountainExpansion locale={locale}/><ChokkanaWorld quality={quality} locale={locale}/><AthirappillyWorld quality={quality} animated={animated} locale={locale}/><KodasseryWorld quality={quality} animated={animated}/><RegionalDetails quality={quality} animated={animated}/>
     <RigidBody type="fixed" colliders="trimesh"><mesh geometry={ground} receiveShadow><meshStandardMaterial vertexColors roughness={1}/></mesh></RigidBody>
     {Object.entries(roads).map(([key,geometry])=><mesh key={key} geometry={geometry} receiveShadow><meshStandardMaterial color={key==='tar'||key==='cityTar'?PALETTE.tar:PALETTE.sand} roughness={1} side={DoubleSide}/></mesh>)}
-    <Water animated={animated}/><RiverNetwork animated={animated} quality={quality}/><TownWorld/><V2WorldDressing/>
+    <Water animated={animated}/><RiverNetwork animated={animated} quality={quality}/><TownWorld/><V2WorldDressing/><CoconutGroves quality={quality}/><Wildlife quality={quality}/>
     {architecture.meshes.map(({color,geometry})=><mesh key={color} geometry={geometry} castShadow receiveShadow><meshStandardMaterial color={color} roughness={.92} side={DoubleSide}/></mesh>)}
     <RigidBody type="fixed" colliders={false}>{collision.map(c=><CuboidCollider key={c.id} args={[c.size[0]/2,c.size[1]/2,c.size[2]/2]} position={c.position} rotation={c.rotation}/>)}</RigidBody>
     {architecture.signs.map(sign=><PaintedSign key={sign.english} sign={sign} locale={locale}/>)}

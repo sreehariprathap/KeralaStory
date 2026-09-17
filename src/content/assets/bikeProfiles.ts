@@ -41,6 +41,8 @@ export const BIKE_MODELS = [
     tuning: { topSpeed: 20, acceleration: 9, brake: 12, nitro: { extraSpeed: 10, accelerationMultiplier: 2 } } },
   { id: 'cyberpunk-bike', name: 'Cyberpunk bike', url: '/assets/bike/cyberpunk_bike.glb', rotationY: 0, length: 2.3, halfWheelbase: .86, seat: { height: .79, z: -.43 }, rider: { lean: .55, pedals: false },
     tuning: { topSpeed: 24, acceleration: 22, brake: 16, nitro: { extraSpeed: 16, accelerationMultiplier: 2.5 } } },
+  { id: 'sports-bike', name: 'Sports bike', url: '/assets/bike/sports_bike.glb', rotationY: 0, length: 2.1, halfWheelbase: .72, seat: { height: .84, z: -.3 }, rider: { lean: .6, pedals: false },
+    tuning: { topSpeed: 22, acceleration: 14, brake: 14, nitro: { extraSpeed: 12, accelerationMultiplier: 2.2 } } },
 ] as const satisfies readonly BikeModel[];
 
 export type BikeModelId = typeof BIKE_MODELS[number]['id'];
