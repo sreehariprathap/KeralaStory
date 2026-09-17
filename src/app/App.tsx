@@ -12,7 +12,8 @@ import { SettingsPanel } from '../features/settings/SettingsPanel';
 import { ExplorerMap } from '../features/map/ExplorerMap';
 import { ModalShell } from '../ui/ModalShell';
 import { loadLocalSave, writeLocalSave, clearLocalSave } from '../persistence/localSaveRepository';
-import { createCollectState } from '../game/collectables/collectState';
+import { collect as applyCollect, createCollectState, rollOver, todayKey } from '../game/collectables/collectState';
+import type { CollectItem } from '../game/collectables/types';
 
 import { LocaleProvider, translate, localizedPlace, localizedRegion, type TranslationKey, ENGLISH_CATALOG } from '../features/i18n/translate';
 import { LanguageToggle } from '../features/i18n/LanguageToggle';
@@ -71,6 +72,9 @@ export function App(){
   const [snapshot,setSnapshot]=useState<PlayerSnapshot>(defaultSnapshot);
   const snapshotRef=useRef(defaultSnapshot);const safeRef=useRef<PlayerSnapshot>(defaultSnapshot);
   const restored=useRef(false);
+  const [collectState,setCollectState]=useState(()=>rollOver(initial.save?.collect??createCollectState(),todayKey()));
+  const collectRef=useRef(collectState);collectRef.current=collectState;
+  const onCollect=useCallback((item:CollectItem)=>{setCollectState(state=>applyCollect(state,item));},[]);
   const [visited,setVisited]=useState<string[]>(initial.save?.visitedLandmarkIds.filter(id=>LANDMARKS.some(l=>l.id===id))??[]);
   const visitedRef=useRef(visited);visitedRef.current=visited;
   const [discovery,setDiscovery]=useState<string|null>(null);const [waypoint,setWaypoint]=useState<Vec3|null>(null);
@@ -86,10 +90,12 @@ export function App(){
   const persist=useCallback(()=>{
     if(!active||profile.id==='preview'||!restored.current)return;
     const last=safeRef.current;
-    const save:SaveV3={version:3,collect:createCollectState(),locale,bicycle:snapshotRef.current.bicycle??bicycleSpawn,worldVersion:WORLD_VERSION,profile,position:last.position,headingRad:last.headingRad,safeSpawnId:'origin',visitedLandmarkIds:visitedRef.current,settings,updatedAt:new Date().toISOString()};
+    const save:SaveV3={version:3,collect:collectRef.current,locale,bicycle:snapshotRef.current.bicycle??bicycleSpawn,worldVersion:WORLD_VERSION,profile,position:last.position,headingRad:last.headingRad,safeSpawnId:'origin',visitedLandmarkIds:visitedRef.current,settings,updatedAt:new Date().toISOString()};
     const result=writeLocalSave(save);if(!result.ok)setWarning(result.warning);else setSaved(save);
   },[active,profile,settings,locale,bicycleSpawn]);
   useEffect(()=>{if(!active)return;persist();const timer=setInterval(persist,5000);const hide=()=>{if(document.hidden)persist();};document.addEventListener('visibilitychange',hide);return()=>{clearInterval(timer);document.removeEventListener('visibilitychange',hide);};},[active,persist]);
+  // A run of pickups becomes one write, not one per coin.
+  useEffect(()=>{if(!active)return;const id=setTimeout(persist,500);return()=>clearTimeout(id);},[collectState,active,persist]);
   useEffect(()=>{if(mode!=='playing')return;for(const landmark of LANDMARKS){if(visitedRef.current.includes(landmark.id))continue;const distance=Math.hypot(snapshot.position[0]-landmark.position[0],snapshot.position[2]-landmark.position[2]);if(distance<landmark.discoveryRadiusM){setVisited(v=>v.includes(landmark.id)?v:[...v,landmark.id]);setDiscovery(landmark.id);break;}}},[snapshot,mode]);
   useEffect(()=>{if(!discovery)return;const t=setTimeout(()=>setDiscovery(null),5500);return()=>clearTimeout(t);},[discovery]);
   useEffect(()=>{if(active&&mode!=='playing')persist();},[mode,active,persist]);
@@ -142,7 +148,7 @@ export function App(){
 
   return <LocaleProvider locale={locale}><main className={`experience ${active?'is-exploring':'is-entry'} ${touch?'uses-touch':''}`} data-mode={mode} data-travel-mode={snapshot.travelMode??'foot'} data-player-position={snapshot.position.map(n=>n.toFixed(3)).join(",")} data-player-grounded={snapshot.grounded}>
     <AudioDirector settings={settings} mode={mode} player={snapshot}/><div className="world-viewport" aria-label="3D Kerala exploration world">
-      <SceneBoundary key={sceneKey} onRetry={retry} onError={onSceneError} onExit={exit}><Suspense fallback={null}><WorldCanvas locale={locale} active={active} settings={settings} controller={controller} onReady={onWorldReady} onError={onSceneError}/></Suspense></SceneBoundary>
+      <SceneBoundary key={sceneKey} onRetry={retry} onError={onSceneError} onExit={exit}><Suspense fallback={null}><WorldCanvas locale={locale} active={active} settings={settings} controller={controller} onReady={onWorldReady} onError={onSceneError} playerRef={snapshotRef} collectedIds={collectState.collectedIds} onCollect={onCollect}/></Suspense></SceneBoundary>
     </div>
     {!active&&<div className="entry-shell">
       <header className="entry-header"><LanguageToggle value={locale} onChange={value=>updatePreferences({...preferences,locale:value})}/><a className="wordmark" href="#" onClick={e=>e.preventDefault()} aria-label="Kodassery Diaries home"><Tree size={29} weight="light"/><span>KODASSERY DIARIES</span></a><button className="entry-nav" onClick={()=>setMenu('atlas')}>Explore the world <ArrowUpRight size={17}/></button><button className="entry-settings" aria-label="Open settings" onClick={()=>setMenu('settings')}><GearSix size={21}/></button></header>
