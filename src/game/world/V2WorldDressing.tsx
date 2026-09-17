@@ -64,7 +64,7 @@ function SilverStorm() {
   const y = terrainHeight(x, z);
   return <group name="silver-storm-water-theme-park">
     <group position={[x, y, z]}>
-      <EnvironmentAsset profile={parkProfile} fallback={<group name="silver-storm-park-fallback">
+      <EnvironmentAsset profile={parkProfile} collide="trimesh" fallback={<group name="silver-storm-park-fallback">
         <mesh position={[0, 1.1, 0]} receiveShadow><boxGeometry args={[68, .35, 56]} /><meshStandardMaterial color="#81a65a" roughness={1} /></mesh>
         <mesh position={[-24, 8, -8]} castShadow><cylinderGeometry args={[1.4, 1.8, 15, 10]} /><meshStandardMaterial color="#39aeb2" roughness={.42} /></mesh>
         <mesh position={[-19, 12, -8]} rotation={[0, 0, -.5]} castShadow><cylinderGeometry args={[1.2, 1.2, 18, 10]} /><meshStandardMaterial color="#f08b58" roughness={.55} /></mesh>

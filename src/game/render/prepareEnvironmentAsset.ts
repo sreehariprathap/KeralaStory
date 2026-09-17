@@ -1,4 +1,4 @@
-import { Box3, Group, Mesh, Vector3, type Material, type Object3D } from 'three';
+import { Box3, Color, Group, Mesh, Vector3, type Material, type Object3D } from 'three';
 import { batchStaticAsset } from './batchStaticAsset';
 import { clone } from 'three/addons/utils/SkeletonUtils.js';
 import type { V2AssetProfile } from '../../content/assets/v2AssetProfiles';
@@ -25,8 +25,21 @@ export function prepareEnvironmentAsset(source: Object3D, profile: V2AssetProfil
   if (bounds.isEmpty() || !sourceSize.toArray().every(Number.isFinite) || !Number.isFinite(scale) || scale <= 0) {
     throw new Error(`${profile.id}: invalid model bounds`);
   }
-  centered.position.set(-(bounds.min.x + bounds.max.x) / 2, -bounds.min.y, -(bounds.min.z + bounds.max.z) / 2);
+  const groundOffsetLocal = (profile.groundOffsetM ?? 0) / scale;
+  const offsetXLocal = (profile.offsetXM ?? 0) / scale;
+  const offsetZLocal = (profile.offsetZM ?? 0) / scale;
+  centered.position.set(
+    -(bounds.min.x + bounds.max.x) / 2 + offsetXLocal,
+    -bounds.min.y + groundOffsetLocal,
+    -(bounds.min.z + bounds.max.z) / 2 + offsetZLocal,
+  );
   root.scale.setScalar(scale); root.updateMatrixWorld(true);
+  const { saturationBoost = 0, lightnessBoost = 0 } = profile;
+  const hsl = { h: 0, s: 0, l: 0 };
+  const boostColor = (color: Color) => {
+    color.getHSL(hsl);
+    color.setHSL(hsl.h, Math.min(1, Math.max(0, hsl.s + saturationBoost)), Math.min(1, Math.max(0, hsl.l + lightnessBoost)));
+  };
   const owned = new Map<Material, Material>();
   let meshes = 0, triangles = 0;
   root.traverse(object => {
@@ -34,7 +47,11 @@ export function prepareEnvironmentAsset(source: Object3D, profile: V2AssetProfil
     meshes++;
     triangles += (object.geometry.index?.count ?? object.geometry.attributes.position?.count ?? 0) / 3;
     const copy = (material: Material) => {
-      if (!owned.has(material)) owned.set(material, material.clone());
+      if (!owned.has(material)) {
+        const cloned = material.clone();
+        if ((saturationBoost || lightnessBoost) && 'color' in cloned && cloned.color instanceof Color) boostColor(cloned.color);
+        owned.set(material, cloned);
+      }
       return owned.get(material)!;
     };
     object.material = Array.isArray(object.material) ? object.material.map(copy) : copy(object.material);
