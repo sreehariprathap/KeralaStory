@@ -197,7 +197,7 @@ export function App(){
   const location=discovery?LANDMARKS.find(l=>l.id===discovery):null;
   const distance=waypoint?Math.round(Math.hypot(snapshot.position[0]-waypoint[0],snapshot.position[2]-waypoint[2])):null;
 
-  return <LocaleProvider locale={locale}><main className={`experience ${active?'is-exploring':'is-entry'} ${touch?'uses-touch':''}`} data-mode={mode} data-travel-mode={snapshot.travelMode??'foot'} data-player-position={snapshot.position.map(n=>n.toFixed(3)).join(",")} data-player-grounded={snapshot.grounded}>
+  return <LocaleProvider locale={locale}><main className={`experience ${active?'is-exploring':'is-entry'} ${touch?'uses-touch':''} ${soccerActive?'in-match':''}`} data-mode={mode} data-travel-mode={snapshot.travelMode??'foot'} data-player-position={snapshot.position.map(n=>n.toFixed(3)).join(",")} data-player-grounded={snapshot.grounded}>
     <AudioDirector settings={settings} mode={mode} player={snapshot}/><div className="world-viewport" aria-label="3D Kerala exploration world">
       <SceneBoundary key={sceneKey} onRetry={retry} onError={onSceneError} onExit={exit}><Suspense fallback={null}><WorldCanvas locale={locale} active={active} settings={settings} controller={controller} onReady={onWorldReady} onError={onSceneError} playerRef={snapshotRef} collectedIds={collectState.collectedIds} onCollect={onCollect} soccer={soccer}/></Suspense></SceneBoundary>
     </div>
@@ -212,15 +212,22 @@ export function App(){
       <div className="hud-bottom-right"><span>{visited.length} / {LANDMARKS.length} {t('app.placesDiscovered')}</span><span className="save-indicator">{warning?t('app.saveAttention'):saved?t('app.savedDevice'):t('app.saving')}</span></div>
       {waypoint&&<div className="waypoint-chip"><FlagPennant size={17}/><span>{distance} m · {t('map.bearing')} · {Math.round(bearingToWaypoint(snapshot.position,waypoint))}° N</span><button aria-label="Clear waypoint" onClick={()=>setWaypoint(null)}><X size={15}/></button></div>}
       {commands && touch && (
-        <MobileControls enabled={mode === 'playing'} commands={commands} sprintLocked={snapshot.sprintLocked ?? false} travelMode={snapshot.travelMode ?? 'foot'} canInteract={Boolean(snapshot.canInteract) && !gliderOffer && !soccerOffer} opacity={settings.touchOpacity} />
+        <MobileControls enabled={mode === 'playing'} commands={commands} sprintLocked={snapshot.sprintLocked ?? false} travelMode={snapshot.travelMode ?? 'foot'} canInteract={Boolean(snapshot.canInteract) && !gliderOffer && !soccerOffer} opacity={settings.touchOpacity} nitroActive={Boolean(snapshot.nitroActive)} matchActive={soccerActive} />
       )}
       {gliderOffer&&<div className="glider-offer" role="dialog" aria-labelledby="glider-offer-title"><Wind size={26} weight="light"/><div><strong id="glider-offer-title">{t('glider.offerTitle')}</strong><p>{t('glider.offerBody')}</p><div className="glider-offer__actions"><button className="button button-primary" onClick={launchGlider}>{!touch&&<kbd>F</kbd>}{t('glider.yes')}</button><button className="button button-secondary" onClick={()=>setGliderDismissed(true)}>{!touch&&<kbd>N</kbd>}{t('glider.notNow')}</button></div></div></div>}
       {soccerOffer&&<div className="glider-offer" role="dialog" aria-labelledby="soccer-offer-title"><SoccerBall size={26} weight="light"/><div><strong id="soccer-offer-title">{t('soccer.offerTitle')}</strong><p>{t('soccer.offerBody')}</p><div className="glider-offer__actions"><button className="button button-primary" onClick={startSoccer}>{!touch&&<kbd>F</kbd>}{t('soccer.yes')}</button><button className="button button-secondary" onClick={()=>setSoccerDismissed(true)}>{!touch&&<kbd>N</kbd>}{t('soccer.notNow')}</button></div></div></div>}
       {soccerActive&&<div className="soccer-hud" role="group" aria-label="Football match">
         <div className="soccer-score" aria-live="polite"><span>{t('soccer.northGoal')}</span><strong>{soccerScore.north}</strong><i>–</i><strong>{soccerScore.south}</strong><span>{t('soccer.southGoal')}</span></div>
-        <div className="soccer-power"><small>{t('soccer.power')}</small><span className="soccer-power__track"><span ref={node=>{chargeBar.current=node;}} className="soccer-power__fill"/></span></div>
+        {!touch&&<div className="soccer-power"><small>{t('soccer.power')}</small><span className="soccer-power__track"><span ref={node=>{chargeBar.current=node;}} className="soccer-power__fill"/></span></div>}
         {!touch&&<small className="soccer-hint">{t('soccer.controls')}</small>}
-        <div className="soccer-actions">{touch&&<button className="button button-primary soccer-kick" onPointerDown={()=>{kick.held=true;}} onPointerUp={()=>{kick.held=false;haptic(25);}} onPointerCancel={()=>{kick.held=false;}} onPointerLeave={()=>{kick.held=false;}}><SoccerBall size={18}/> {t('soccer.kick')}</button>}<button className="button button-secondary" onClick={endSoccer}>{t('soccer.endMatch')}</button></div>
+        <div className="soccer-actions"><button className="button button-secondary" onClick={endSoccer}>{t('soccer.endMatch')}</button></div>
+      </div>}
+      {soccerActive&&touch&&<div className="soccer-touch" style={{['--touch-opacity' as string]:settings.touchOpacity}}>
+        <button type="button" className="soccer-touch__btn soccer-touch__pass" disabled title={t('soccer.passSoon')}>{t('soccer.pass')}</button>
+        <button type="button" className="soccer-touch__btn soccer-touch__kick" aria-label={t('soccer.kick')} onPointerDown={e=>{e.preventDefault();kick.held=true;}} onPointerUp={()=>{kick.held=false;haptic(25);}} onPointerCancel={()=>{kick.held=false;}} onPointerLeave={()=>{kick.held=false;}}>
+          <SoccerBall size={30} weight="fill"/><span>{t('soccer.kick')}</span>
+          <span className="soccer-power__track soccer-touch__charge"><span ref={node=>{chargeBar.current=node;}} className="soccer-power__fill"/></span>
+        </button>
       </div>}
       {soccerBanner&&mode==='playing'&&<div key={soccerBanner.id} className={`soccer-banner ${soccerBanner.text==='soccer.goal'?'is-goal':''}`} role="status">{t(soccerBanner.text)}</div>}
       {snapshot.travelMode==='glider'&&<div className={`glider-status ${snapshot.climbing?'is-climbing':''}`} role="status"><Wind size={15}/><span>{t('glider.altitude')} {Math.round(snapshot.altitude??0)} m{snapshot.climbing?` · ▲ ${t('glider.rising')}`:''}</span>{!touch&&<small>{t('glider.controls')}</small>}</div>}

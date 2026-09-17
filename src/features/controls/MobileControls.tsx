@@ -1,5 +1,5 @@
 import { useEffect, useRef, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
-import { ArrowFatUp, ArrowFatDown, CaretLeft, CaretRight, SignIn, SignOut, ArrowLineUp } from '@phosphor-icons/react';
+import { Lightning, ArrowFatDown, CaretLeft, CaretRight, SignIn, SignOut, ArrowLineUp, SneakerMove } from '@phosphor-icons/react';
 import type { InputCommands, TravelMode } from '../../contracts';
 import { useT } from '../i18n/translate';
 import { useTouchControls } from '../../game/input/useTouchControls';
@@ -8,6 +8,7 @@ import './mobile-controls.css';
 interface MobileControlsProps {
   enabled: boolean; sprintLocked: boolean; commands: InputCommands;
   travelMode: TravelMode; canInteract: boolean; opacity: number;
+  nitroActive?: boolean; matchActive?: boolean;
 }
 
 type DriveKey = 'accelerate' | 'reverse' | 'left' | 'right';
@@ -20,8 +21,10 @@ function useDriveButtons(commands: InputCommands, active: boolean) {
     const steer = Number(keys.has('right')) - Number(keys.has('left'));
     const throttle = Number(keys.has('accelerate')) - Number(keys.has('reverse'));
     commands.setMove('touch', steer, throttle);
+    // One pedal: holding it means full throttle plus boost whenever the vehicle has charge.
+    commands.setNitro(throttle > 0);
   };
-  const releaseAll = () => { held.current.clear(); commands.setMove('touch', 0, 0); };
+  const releaseAll = () => { held.current.clear(); commands.setMove('touch', 0, 0); commands.setNitro(false); };
   useEffect(() => { if (!active) releaseAll(); return releaseAll; }, [active, commands]);
   return (key: DriveKey) => {
     const release = (e: ReactPointerEvent<HTMLElement>) => {
@@ -46,15 +49,16 @@ function useDriveButtons(commands: InputCommands, active: boolean) {
   };
 }
 
-export function MobileControls({ enabled, sprintLocked, commands, travelMode, canInteract, opacity }: MobileControlsProps) {
+export function MobileControls({ enabled, sprintLocked, commands, travelMode, canInteract, opacity, nitroActive, matchActive }: MobileControlsProps) {
   const t = useT();
   const driving = travelMode === 'car' || travelMode === 'bicycle';
   const { padHandlers, lookHandlers, cancel } = useTouchControls(commands, enabled);
   // The joystick unmounts when a ride starts (and vice versa); drop any finger it still owned.
   useEffect(() => { cancel(); }, [driving, cancel]);
   const drive = useDriveButtons(commands, enabled && driving);
-  useEffect(() => () => { commands.setMove('touch', 0, 0); commands.setBrake(false); }, [commands]);
-  const showInteract = travelMode !== 'foot' || canInteract;
+  useEffect(() => () => { commands.setMove('touch', 0, 0); commands.setBrake(false); commands.setNitro(false); }, [commands]);
+  // During a match the vehicle prompt only gets in the way of the kick controls.
+  const showInteract = travelMode !== 'foot' || (canInteract && !matchActive);
   const style = { '--touch-opacity': opacity } as CSSProperties;
   return (
     <div className={`mobile-controls${enabled ? '' : ' is-disabled'}${driving ? ' is-driving' : ''}`} style={style} aria-hidden={!enabled}>
@@ -63,12 +67,11 @@ export function MobileControls({ enabled, sprintLocked, commands, travelMode, ca
 
       {driving ? (
         <div className="mobile-controls__pedals">
-          <button type="button" className="mobile-controls__btn mobile-controls__btn--gas" aria-label={t('controls.accelerate')} {...drive('accelerate')}><ArrowFatUp size={40} weight="fill" /></button>
+          <button type="button" className={`mobile-controls__btn mobile-controls__btn--gas${nitroActive ? ' is-boosting' : ''}`} aria-label={t('controls.nitroAccelerate')} {...drive('accelerate')}><Lightning size={40} weight="fill" /></button>
           <button type="button" className="mobile-controls__btn mobile-controls__btn--brake" aria-label={t('controls.brakeReverse')} {...drive('reverse')}><ArrowFatDown size={34} weight="fill" /></button>
         </div>
       ) : (
         <div className="mobile-controls__pad-cluster">
-          <button type="button" className={`mobile-controls__sprint${sprintLocked ? ' is-active' : ''}`} aria-pressed={sprintLocked} aria-label={t('controls.sprintLock')} onClick={() => commands.press('toggleSprint')}>{t('controls.sprintLock')}</button>
           <button type="button" className="mobile-controls__pad" aria-label={t('controls.move')} {...padHandlers}><span className="mobile-controls__stick" aria-hidden="true" /></button>
         </div>
       )}
@@ -82,12 +85,15 @@ export function MobileControls({ enabled, sprintLocked, commands, travelMode, ca
             <span>{t(travelMode === 'foot' ? 'controls.enterVehicle' : 'controls.exitVehicle')}</span>
           </button>
         )}
+        {!driving && (
+          <button type="button" className={`mobile-controls__btn mobile-controls__btn--sprint${sprintLocked ? ' is-active' : ''}`} aria-pressed={sprintLocked} aria-label={t('controls.sprintLock')} onClick={() => commands.press('toggleSprint')}><SneakerMove size={30} weight="bold" /></button>
+        )}
         {driving ? (
           <div className="mobile-controls__steer">
             <button type="button" className="mobile-controls__btn mobile-controls__btn--steer" aria-label={t('controls.steerLeft')} {...drive('left')}><CaretLeft size={42} weight="bold" /></button>
             <button type="button" className="mobile-controls__btn mobile-controls__btn--steer" aria-label={t('controls.steerRight')} {...drive('right')}><CaretRight size={42} weight="bold" /></button>
           </div>
-        ) : travelMode === 'foot' && (
+        ) : travelMode === 'foot' && !matchActive && (
           <button type="button" className="mobile-controls__btn mobile-controls__btn--jump" aria-label={t('controls.jump')}
             onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); if (enabled) commands.press('jump'); }}><ArrowLineUp size={32} weight="bold" /></button>
         )}

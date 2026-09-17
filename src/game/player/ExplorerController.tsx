@@ -229,7 +229,7 @@ export function ExplorerController(props: ExplorerControllerProps) {
       blockedDrive=!isVehicleTerrainAllowed(nx,nz);
       if(blockedDrive)report('bicycle.walkOnly');
     }
-    car.current?.step({forward:playing&&!blockedDrive?input.current.move.forward:0,steer:playing?input.current.move.x:0,brake:input.current.brake||!playing||blockedDrive,nitro:playing&&!blockedDrive&&vehicle.current==='car'&&(input.current.keys.has('ShiftLeft')||input.current.keys.has('ShiftRight'))},Math.min(world.timestep,1/30),vehicle.current==='car');
+    car.current?.step({forward:playing&&!blockedDrive?input.current.move.forward:0,steer:playing?input.current.move.x:0,brake:input.current.brake||!playing||blockedDrive,nitro:playing&&!blockedDrive&&vehicle.current==='car'&&(input.current.nitro||input.current.keys.has('ShiftLeft')||input.current.keys.has('ShiftRight'))},Math.min(world.timestep,1/30),vehicle.current==='car');
     if(needsSafeReset(position)){
       setTravel('foot');teleport(safePosition.current);validationPending.current=true;const slot=nearestParking(safePosition.current);parked.current={position:[...slot.position],headingRad:slot.headingRad};removeCar();return;
     }
@@ -330,7 +330,7 @@ export function ExplorerController(props: ExplorerControllerProps) {
       input.current.sprintLocked=false;
       const activeMotor=bike.current;
       const oldHeading=activeMotor.headingRad;
-      const nitroHeld=playing&&(input.current.keys.has('ShiftLeft')||input.current.keys.has('ShiftRight'));
+      const nitroHeld=playing&&(input.current.nitro||input.current.keys.has('ShiftLeft')||input.current.keys.has('ShiftRight'));
       const airborne=!motion.current.grounded;
       const delta=stepBicycle(bike.current,{forward:playing?input.current.move.forward:0,steer:playing?input.current.move.x:0,brake:input.current.brake||!playing,nitro:nitroHeld,airborne},dt,bikeModel(bikeModelRef.current).tuning);
       vx=delta.x/dt;vz=delta.z/dt;

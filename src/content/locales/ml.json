@@ -309,5 +309,8 @@
   "settings.offlineSaved": "സൂക്ഷിച്ചു",
   "settings.offlineFailed": "ഫയലുകൾ ഡൗൺലോഡ് ചെയ്യാനായില്ല. മെച്ചപ്പെട്ട കണക്ഷനിൽ വീണ്ടും ശ്രമിക്കുക.",
   "settings.haptics": "വൈബ്രേഷൻ",
-  "settings.hapticsDescription": "പിന്തുണയുള്ള ഫോണുകളിൽ കിക്കിനും ശേഖരണത്തിനും ചെറിയ വൈബ്രേഷൻ."
+  "settings.hapticsDescription": "പിന്തുണയുള്ള ഫോണുകളിൽ കിക്കിനും ശേഖരണത്തിനും ചെറിയ വൈബ്രേഷൻ.",
+  "controls.nitroAccelerate": "",
+  "soccer.pass": "",
+  "soccer.passSoon": ""
 }
