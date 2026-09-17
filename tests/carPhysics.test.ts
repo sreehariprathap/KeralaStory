@@ -6,7 +6,7 @@ import { MAIN_PATH, safeGroundPosition } from '../src/content/world/definition';
 import { terrainMeshData } from '../src/game/world/traversalGeometry';
 
 const DT = 1 / 60;
-const models: CarModelId[] = ['admin', 'muscle', 'car-carton', 'fennec'];
+const models: CarModelId[] = ['admin', 'muscle', 'car-carton', 'fennec', 'bronco', 'mazda-rx7', 'cyberpunk'];
 const worlds: RAPIER.World[] = [];
 
 beforeAll(async () => { await RAPIER.init(); });

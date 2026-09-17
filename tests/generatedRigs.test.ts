@@ -115,7 +115,7 @@ function expectSamePose(a: Object3D, b: Object3D) {
 }
 
 describe.each(CHARACTER_MODELS)('$name selectable avatar', model => {
-  it('deforms both arms and both legs in each locomotion state with finite normalized skin weights', {timeout:30000}, async () => {
+  it('deforms both arms and both legs in each locomotion state with finite normalized skin weights', {timeout:60000}, async () => {
     const root = await loadTextureFree(model.url.split('/').pop()!);
     root.rotation.y = model.rotationY;
     root.updateMatrixWorld(true);

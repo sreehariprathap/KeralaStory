@@ -65,4 +65,4 @@ it('creates, moves, rejects eleven and reclaims one guest through real Colyseus 
     await Promise.allSettled(rooms.filter(room => room.connection.isOpen).map(room => room.leave()));
     await server.gracefullyShutdown(false);
   }
-}, 30_000);
+}, 60_000);

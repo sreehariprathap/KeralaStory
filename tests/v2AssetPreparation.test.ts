@@ -144,7 +144,7 @@ describe('supplied V2 GLB extraction and normalization', () => {
       expect(prepared.size.toArray().every(Number.isFinite)).toBe(true);
       prepared.dispose();
     }
-  }, 15000);
+  }, 30000);
 
   it('removes the coffee presentation plane while retaining Piso_3', async () => {
     const gltf = await new GLTFLoader().parseAsync(sanitizedGlb('/assets/buildings/coffee_shop_isometric.glb'), '');

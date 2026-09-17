@@ -19,11 +19,11 @@ async function loadGeometry(url: string) {
 }
 
 describe('measured vehicle calibration', () => {
-  it('keeps unresolved sources unavailable in the eight-car catalog', () => {
+  it('keeps the one unresolved source unavailable in the eight-car catalog', () => {
     expect(CAR_PICKER_CATALOG).toHaveLength(8);
-    expect(CAR_PICKER_CATALOG.filter(car => !car.available).map(car => car.id)).toEqual(['bronco', 'car', 'cyberpunk', 'mazda-rx7']);
+    expect(CAR_PICKER_CATALOG.filter(car => !car.available).map(car => car.id)).toEqual(['car']);
   });
-  it.each(['car-carton', 'fennec'] as const)('%s physics matches actual four wheel meshes', async id => {
+  it.each(['car-carton', 'fennec', 'cyberpunk'] as const)('%s physics matches actual four wheel meshes', async id => {
     const model = CAR_MODELS.find(car => car.id === id)!;
     const profile = VEHICLE_PROFILES[id], root = new Group(), scene = await loadGeometry(model.url);
     scene.rotation.y += model.rotationY; root.add(scene); root.updateMatrixWorld(true);
