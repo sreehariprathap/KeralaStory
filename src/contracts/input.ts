@@ -6,5 +6,6 @@ export interface InputCommands {
   addLook(source: InputSource, dx: number, dy: number): void;
   press(action: InputAction): void;
   setBrake(held: boolean): void;
+  setNitro(held: boolean): void;
   clear(source?: InputSource): void;
 }

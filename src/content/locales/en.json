@@ -309,5 +309,8 @@
   "settings.offlineSaved": "saved",
   "settings.offlineFailed": "files could not be downloaded. Try again on a steadier connection.",
   "settings.haptics": "Vibration",
-  "settings.hapticsDescription": "Short vibrations for kicks and pickups on supported phones."
+  "settings.hapticsDescription": "Short vibrations for kicks and pickups on supported phones.",
+  "controls.nitroAccelerate": "Accelerate with nitro",
+  "soccer.pass": "Pass",
+  "soccer.passSoon": "Passing arrives with multiplayer"
 }

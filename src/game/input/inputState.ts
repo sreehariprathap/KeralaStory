@@ -6,6 +6,7 @@ export interface ExplorerInput {
   sprintLocked: boolean;
   interactQueued: boolean;
   brake: boolean;
+  nitro: boolean;
   jumpQueued: boolean;
   lookX: number;
   lookY: number;
@@ -16,7 +17,7 @@ export interface ExplorerInput {
 export const GAME_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'ShiftLeft', 'ShiftRight', 'Space', 'KeyQ', 'KeyE', 'KeyF', 'KeyR']);
 
 export function createInputState(): ExplorerInput {
-  return { move: {x:0,forward:0}, source:null, sprintLocked:false, interactQueued:false, brake:false, keys: new Set(), jumpQueued: false, lookX: 0, lookY: 0, dragging: false, movementAzimuth: null };
+  return { move: {x:0,forward:0}, source:null, sprintLocked:false, interactQueued:false, brake:false, nitro:false, keys: new Set(), jumpQueued: false, lookX: 0, lookY: 0, dragging: false, movementAzimuth: null };
 }
 
 export function clearInput(input: ExplorerInput): void {
@@ -26,6 +27,7 @@ export function clearInput(input: ExplorerInput): void {
   input.sprintLocked = false;
   input.interactQueued = false;
   input.brake = false;
+  input.nitro = false;
   input.jumpQueued = false;
   input.lookX = 0;
   input.lookY = 0;
@@ -81,11 +83,12 @@ export function createInputCommands(input: ExplorerInput, enabled: () => boolean
       if (action === 'interact') input.interactQueued = true;
     },
     setBrake(held) { input.brake = enabled() && held; if (held) input.sprintLocked = false; },
+    setNitro(held) { input.nitro = enabled() && held; },
     clear(source) {
       if (!source) { clearInput(input); return; }
       if (input.source === source) { input.source=null; input.move={x:0,forward:0}; input.movementAzimuth=null; }
       if (source === 'keyboard') input.keys.clear();
-      input.sprintLocked=false; input.jumpQueued=false; input.interactQueued=false; input.brake=false;
+      input.sprintLocked=false; input.jumpQueued=false; input.interactQueued=false; input.brake=false; input.nitro=false;
       input.lookX=0; input.lookY=0;
     },
   };

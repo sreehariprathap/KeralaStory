@@ -79,7 +79,7 @@ html,body,#root{width:100%;height:100%;overflow:hidden}button:disabled{cursor:wa
 .landmark-list{max-height:190px}
 @media(max-width:760px){.atlas-layout{grid-template-columns:1fr}.atlas-drawing.is-interactive{max-height:56dvh}.highlight-list{grid-template-columns:1fr;max-height:180px}}
 .uses-touch .hud-actions{grid-auto-flow:column;gap:8px}.uses-touch .hud-icon{width:44px;height:44px}
-.uses-touch .inspection-panel{z-index:8;top:8px;left:50%;transform:translateX(-50%);max-width:min(240px,40vw);padding:6px;gap:4px}.uses-touch .inspection-panel>small,.uses-touch .inspection-panel>output,.uses-touch .inspection-panel>strong,.uses-touch .inspection-panel>button{display:none}
+.uses-touch .inspection-panel{z-index:8;top:84px;left:50%;transform:translateX(-50%);max-width:min(240px,40vw);padding:6px;gap:4px}.uses-touch .inspection-panel>small,.uses-touch .inspection-panel>output,.uses-touch .inspection-panel>strong,.uses-touch .inspection-panel>button{display:none}
 /* Installed app and phone polish: no pull-to-refresh or tap flashes, and the HUD stays clear of notches and home bars. */
 html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
 body{background:#24382e}
@@ -102,3 +102,26 @@ body{background:#24382e}
   .entry-actions{margin-top:8px}
   .journey-button{min-height:44px}
 }
+
+.uses-touch.in-match .hud-identity,.uses-touch.in-match .wallet-hud,.uses-touch.in-match .hud-map,.uses-touch.in-match .hud-actions,.uses-touch.in-match .hud-bottom-right,.uses-touch.in-match .waypoint-chip,.uses-touch.in-match .nitro-status{display:none}
+.uses-touch.in-match .soccer-hud{top:max(10px,env(safe-area-inset-top));left:max(10px,env(safe-area-inset-left));transform:none;flex-direction:column;align-items:flex-start;gap:4px;padding:8px 12px}
+.uses-touch.in-match .soccer-actions .button{min-height:36px;font-size:11px}
+.soccer-touch{position:absolute;right:max(18px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));display:flex;align-items:flex-end;gap:14px;z-index:9}
+.soccer-touch__btn{display:grid;place-items:center;align-content:center;gap:1px;padding-bottom:10px;width:clamp(76px,20vmin,96px);height:clamp(76px,20vmin,96px);padding:0;border:2px solid #fff7e5b3;border-radius:50%;background:#24382ee0;color:#fff7e5;font:inherit;font-size:12px;font-weight:700;opacity:var(--touch-opacity,.75);touch-action:none;user-select:none;-webkit-tap-highlight-color:transparent;box-shadow:0 4px 18px #172e2466}
+.soccer-touch__kick{background:#2f6b47e6;position:relative;overflow:hidden}
+.soccer-touch__kick:active{opacity:1;transform:scale(.94);background:#3c6b52f0}
+.soccer-touch__pass{width:clamp(62px,16vmin,78px);height:clamp(62px,16vmin,78px);background:#24382ecc}
+.soccer-touch__pass:disabled{opacity:calc(var(--touch-opacity,.75) * .6);cursor:not-allowed}
+.soccer-touch__charge{position:absolute;left:18%;right:18%;bottom:9px;width:auto;height:4px}
+.uses-touch .nitro-status{display:none}
+.uses-touch.in-match .mobile-controls__right{bottom:calc(max(18px,env(safe-area-inset-bottom)) + clamp(76px,20vmin,96px) + 16px)}
+
+/* Touch: one small round minimap instead of the labelled map card. */
+.uses-touch .hud-map{width:auto;top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right))}
+.uses-touch .minimap-button{display:block;width:62px;height:62px;padding:0;border-radius:50%;overflow:hidden}
+.uses-touch .map-open-button{display:none}
+.uses-touch .minimap-button .map-compact .atlas-sheet{border-radius:50%}
+.uses-touch .minimap-button .map-compact .atlas-drawing{height:62px;max-height:62px;width:62px}
+.uses-touch .minimap-button .atlas-sheet-heading{display:none}
+.uses-touch .minimap-north{top:3px;font-size:9px;width:16px;height:16px}
+.uses-touch .hud-actions{top:84px}
