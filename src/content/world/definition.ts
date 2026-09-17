@@ -93,7 +93,9 @@ export function getZoneAtPosition(x: number, z: number): ZoneId {
 export const SPAWN:Vec3=[0,terrainHeight(0,-460)+.05,-460];
 export const KODASSERY_PATH:[number,number][]=[[0,-481],[0,-460],[-7,-446],[-9,-429],[0,-413],[9,-399],[6,-384],[-3,-371],[0,-349],[0,-334]];
 export const VILLAGE_PATH:[number,number][]=[[0,-334],[8,-313],[11,-286],[2,-260],[-6,-238],[0,-211],[10,-184],[12,-157],[12,-134]];
-export const CITY_PATH:[number,number][]=[[12,-64],[12,-55],[16,-48],[26,-25],[32,-4],[30,21],[38,43],[36,58],[47,68],[47,88]];
+// Kodaly Banyan circle (kodalyCircle.ts, centre 28,-18): the city road loops the island's west side on the carriageway midline.
+const KODALY_LOOP:[number,number][]=(()=>{const from=Math.atan2(-48+18,16-28)+Math.PI*2,to=Math.atan2(21+18,30-28);return Array.from({length:7},(_,i)=>{const a=from+(to-from)*i/6;return [28+Math.cos(a)*19.5,-18+Math.sin(a)*19.5] as [number,number];});})();
+export const CITY_PATH:[number,number][]=[[12,-64],[12,-55],[16,-48],...KODALY_LOOP,[30,21],[38,43],[36,58],[47,68],[47,88]];
 export const MAIN_PATH:[number,number][]=[...KODASSERY_PATH,...VILLAGE_PATH.slice(1),[12,-64],...CITY_PATH.slice(1)];
 export const BRIDGE_PATH:[number,number][]=[[12,-134],[12,-64]];
 const LEGACY_LANDMARKS:Landmark[]=[

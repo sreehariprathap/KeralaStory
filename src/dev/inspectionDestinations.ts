@@ -95,5 +95,9 @@ export const INSPECTION_DESTINATIONS: InspectionDestination[] = [
   ...plannedDestinations,
   ...stuntDestinations,
   { id: 'glider-launch', label: 'Kodassery Summit — paragliding launch', position: gliderApproach, headingRad: GLIDER_LAUNCH.headingRad, group: 'Mountain and forest expansion', available: true },
+  // South road, facing north up to the banyan (heading 0 walks −z).
+  { id: 'kodaly-banyan', label: 'Kodaly — Banyan circle', position: [30, terrainHeight(30, 30) + 0.1, 30], headingRad: 0, group: 'Existing landmarks', available: true },
+  { id: 'kodaly-banyan-far', label: 'Kodaly — Banyan from the harbour road', position: [36, terrainHeight(36, 58) + 0.1, 58], headingRad: 0, group: 'Existing landmarks', available: true },
+  { id: 'kodaly-banyan-east', label: 'Kodaly — Banyan from the east avenue', position: [75, terrainHeight(75, -18) + 0.1, -18], headingRad: -Math.PI / 2, group: 'Existing landmarks', available: true },
   { id: 'v2-chalakkudy-coffee', label: 'Chalakkudy — coffee street', position: coffeeApproach, headingRad: Math.PI, group: 'V2 planned sites', available: true },
 ];

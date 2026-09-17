@@ -13,6 +13,8 @@ import { CoconutGroves } from './CoconutGroves';
 import { Wildlife } from './Wildlife';
 import { StuntParks } from './StuntParks';
 import { GliderSites } from './GliderSites';
+import { KodalyCircle } from './KodalyCircle';
+import { KODALY_AVENUE_SHOPS, KODALY_CIRCLE, isKodalyCityGround, kodalyCircleBoxes } from '../../content/world/kodalyCircle';
 import { isStuntGround } from './stuntSites';
 import { memo, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
@@ -212,9 +214,7 @@ function boat(b:VillageBuilder,x:number,z:number,y:number,yaw=0,scale=1) {
 export function buildArchitecture() {
   const b=new VillageBuilder();buildTemple(b);buildBridge(b);
   buildShop(b,-10,-194,"RAJAN'S TEA SHOP",'രാജൻ ചായക്കട','#cfc197',7);
-  buildShop(b,13,-28,'SREEKRISHNA STORES','ശ്രീകൃഷ്ണ സ്റ്റോഴ്സ്','#d8cea7',8);
-  buildShop(b,41,-17,'ROYAL BAKERY','റോയൽ ബേക്കറി','#d1b879',8);
-  buildShop(b,17,-6,'VIDYA BOOKS','വിദ്യ ബുക്സ്','#a7bdaf',6);
+  for(const shop of KODALY_AVENUE_SHOPS)buildShop(b,shop.x,shop.z,shop.english,shop.malayalam,shop.color,shop.width);
   buildShop(b,47,7,'KODALY PROVISIONS','കൊടാലി പലചരക്ക്','#d8cbb0',9);
   buildShop(b,43,51,'HARBOUR TEA STALL','തുറമുഖം ചായക്കട','#b7c2ae',6);
   for(const [x,z,w,d] of [[-25,-319,8,6],[31,-307,8,7],[31,-278,9,7],[-23,-250,8,6],[-31,-214,9,7],[36,-177,8,6],[-25,-157,7,6],[-7,-43,8,6],[-20,-10,9,7],[7,21,9,6],[54,31,8,6],[8,51,10,7]] as [number,number,number,number][]) {
@@ -238,7 +238,8 @@ export function buildArchitecture() {
   // Electricity poles and thin sagging overhead wires along the narrow road.
   const poles:V3[]=[];
   for(const [x,z] of [...VILLAGE_PATH.slice(2,-1),...CITY_PATH.filter((_,i)=>i%2===0)]) {
-    const px=x+6.3,y=terrainHeight(px,z);poles.push([px,y+6.8,z]);b.cylinder([px,y+3.4,z],.1,.17,6.8,'#88877a');b.box([px,y+6.45,z],[1.8,.12,.15],PALETTE.timber);
+    const px=x+6.3,y=terrainHeight(px,z);
+    if(isKodalyCityGround(px,z,1))continue;poles.push([px,y+6.8,z]);b.cylinder([px,y+3.4,z],.1,.17,6.8,'#88877a');b.box([px,y+6.45,z],[1.8,.12,.15],PALETTE.timber);
     for(const side of [-1,1])b.cylinder([px+side*.7,y+6.6,z],.09,.09,.24,'#d0d2c3');
   }
   for(let i=1;i<poles.length;i++){const a=poles[i-1],c=poles[i];if(Math.abs(c[2]-a[2])>60)continue;for(const dx of [-.7,.7]){const mid:V3=[(a[0]+c[0])/2+dx,(a[1]+c[1])/2-.75,(a[2]+c[2])/2];b.beam([a[0]+dx,a[1],a[2]],mid,.024,'#454b40');b.beam(mid,[c[0]+dx,c[1],c[2]],.024,'#454b40');}}
@@ -249,6 +250,8 @@ export function buildArchitecture() {
   b.colliders.push({position:[lx,ly+7.5,lz],size:[2.1,7.5,2.1],rotation:[0,0,0]});
   b.cylinder([lx,ly+15,lz],2.4,2.4,.3,PALETTE.timber,16);b.cylinder([lx,ly+16.2,lz],1.4,1.4,2.2,'#486e69',12);b.cylinder([lx,ly+17.8,lz],0,2.2,1.4,PALETTE.tile,12);
   for(let i=0;i<12;i++){const a=i*Math.PI/6;b.box([lx+Math.cos(a)*2.15,ly+15.55,lz+Math.sin(a)*2.15],[.08,1,.08],'#ddd5b8');}
+  // Kodaly Banyan trunk and the green buildings around the circle; KodalyCircle renders them.
+  for(const shape of kodalyCircleBoxes())b.colliders.push({position:shape.position,size:shape.size.map(v=>v/2) as V3,rotation:shape.rotation});
   b.signs.push({position:[lx,ly+2,lz+2.31],yaw:0,english:'KODALY LIGHT',malayalam:'കൊടാലി',color:'#eee0ab',width:2.7});
   // Working harbor: quay, wooden pier, sheds, coir bundles and moored fishing boats.
   const hy=terrainHeight(48,77);
@@ -276,6 +279,20 @@ function ribbon(path:readonly [number,number][],width:number,lift=.065) {
   points.forEach((v,i)=>{const before=points[Math.max(0,i-1)],after=points[Math.min(points.length-1,i+1)],side=after.clone().sub(before).normalize();for(const sign of [-1,1]){const x=v.x+side.z*width*.5*sign,z=v.z-side.x*width*.5*sign;p.push(x,terrainHeight(x,z)+lift,z);}if(i<points.length-1){const a=i*2;index.push(a,a+1,a+2,a+1,a+3,a+2);}});
   const g=new BufferGeometry();g.setAttribute('position',new Float32BufferAttribute(p,3));g.setIndex(index);g.computeVertexNormals();return g;
 }
+/** Road runs outside the Kodaly Banyan carriageway; KodalyCircle paves the ring itself. */
+function outsideKodalyCircle(path:readonly [number,number][]) {
+  const {center:{x:cx,z:cz},roadOuter}=KODALY_CIRCLE,inside=([x,z]:readonly [number,number])=>Math.hypot(x-cx,z-cz)<roadOuter;
+  const edge=(out:readonly [number,number],inn:readonly [number,number]):[number,number]=>{let lo=0,hi=1;for(let i=0;i<30;i++){const t=(lo+hi)/2;if(inside([out[0]+(inn[0]-out[0])*t,out[1]+(inn[1]-out[1])*t]))hi=t;else lo=t;}return [out[0]+(inn[0]-out[0])*lo,out[1]+(inn[1]-out[1])*lo];};
+  const runs:[number,number][][]=[];let run:[number,number][]=[];
+  path.forEach((point,i)=>{
+    const previous=path[i-1];
+    if(inside(point)){if(run.length){run.push(edge(previous,point));runs.push(run);run=[];}return;}
+    if(previous&&inside(previous))run.push(edge(point,previous));
+    run.push([point[0],point[1]]);
+  });
+  if(run.length>1)runs.push(run);
+  return runs;
+}
 function riverGeometry() {
   const p:number[]=[],indices:number[]=[];for(let i=0;i<=64;i++){const x=-160+i*6;for(const side of [-1,1])p.push(x,WATER_LEVEL,riverCenter(x)+side*21);}for(let i=0;i<64;i++){const a=i*2;indices.push(a,a+2,a+1,a+1,a+2,a+3);}const g=new BufferGeometry();g.setAttribute('position',new Float32BufferAttribute(p,3));g.setIndex(indices);g.computeVertexNormals();return g;
 }
@@ -291,10 +308,10 @@ function generatePlants() {
   let seed=9471;const r=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
   const trunks:Instance[]=[],fronds:Instance[]=[],bananaTrunks:Instance[]=[],bananaLeaves:Instance[]=[],shrubs:Instance[]=[];
   const path=[...VILLAGE_PATH,...CITY_PATH];
-  const landmarks:[[number,number],number][]=[[[25,-238],19],[[48,-233],10],[[-10,-194],8],[[13,-28],10],[[41,-17],10],[[17,-6],8],[[47,7],10],[[65,54],8],[[48,77],15]];
+  const landmarks:[[number,number],number][]=[[[25,-238],19],[[48,-233],10],[[-10,-194],8],...KODALY_AVENUE_SHOPS.map(shop=>[[shop.x,shop.z],10] as [[number,number],number]),[[47,7],10],[[65,54],8],[[48,77],15]];
   for(let i=0;i<260;i++) {
     const x=-70+r()*145,z=-331+r()*420;
-    if(isWater(x,z)||z>-64&&x>72||x<-10&&x>-51&&z>-320&&z<-260||isStuntGround(x,z,3))continue;
+    if(isWater(x,z)||z>-64&&x>72||x<-10&&x>-51&&z>-320&&z<-260||isStuntGround(x,z,3)||isKodalyCityGround(x,z,3))continue;
     let roadDistance=Infinity;for(let j=1;j<path.length;j++){const a=path[j-1],c=path[j],dx=c[0]-a[0],dz=c[1]-a[1],f=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz)));roadDistance=Math.min(roadDistance,Math.hypot(x-a[0]-f*dx,z-a[1]-f*dz));}
     if(roadDistance<7||landmarks.some(([[lx,lz],radius])=>Math.hypot(x-lx,z-lz)<radius))continue;
     const y=terrainHeight(x,z),h=7+r()*5,lean=(r()-.5)*.25,yaw=r()*Math.PI*2;
@@ -341,13 +358,13 @@ function Water({animated}:{animated:boolean}) {
 function KeralaGeometry({quality='medium',animated=true,locale='en'}:{quality?:'low'|'medium'|'high';animated?:boolean;locale?:Locale}) {
   const collision=useMemo(staticArchitectureBoxes,[]);
   const architecture=useMemo(buildArchitecture,[]),ground=useMemo(createTerrain,[]),plants=useMemo(generatePlants,[]),paddyGrass=useMemo(generatePaddyGrass,[]);
-  const roads=useMemo(()=>({village:ribbon(VILLAGE_PATH,3.8),tar:ribbon(VILLAGE_PATH.filter(([,z])=>z>=-260),3,.082),city:ribbon(CITY_PATH,4.1),cityTar:ribbon(CITY_PATH,3.1,.082),temple:ribbon([[-6,-238],[12,-238],[22,-231]],2.4),tea:ribbon([[7,-190],[-10,-190]],2.1)}),[]);
+  const roads=useMemo(()=>({village:ribbon(VILLAGE_PATH,3.8),tar:ribbon(VILLAGE_PATH.filter(([,z])=>z>=-260),3,.082),...Object.fromEntries(outsideKodalyCircle(CITY_PATH).flatMap((run,i)=>[[`city${i}`,ribbon(run,4.1)],[`cityTar${i}`,ribbon(run,3.1,.082)]])),temple:ribbon([[-6,-238],[12,-238],[22,-231]],2.4),tea:ribbon([[7,-190],[-10,-190]],2.1)}),[]);
   const frond=useMemo(()=>leafGeometry(),[]),banana=useMemo(()=>leafGeometry(true),[]),trunk=useMemo(()=>new CylinderGeometry(.75,1,1,7),[]),shrub=useMemo(()=>new CylinderGeometry(.4,1,1,7),[]);
   return <>
     <ExpansionGround/><MountainExpansion locale={locale}/><ChokkanaWorld quality={quality} locale={locale}/><AthirappillyWorld quality={quality} animated={animated} locale={locale}/><KodasseryWorld quality={quality} animated={animated}/><RegionalDetails quality={quality} animated={animated}/>
     <RigidBody type="fixed" colliders="trimesh"><mesh geometry={ground} receiveShadow><meshStandardMaterial vertexColors roughness={1}/></mesh></RigidBody>
-    {Object.entries(roads).map(([key,geometry])=><mesh key={key} geometry={geometry} receiveShadow><meshStandardMaterial color={key==='tar'||key==='cityTar'?PALETTE.tar:PALETTE.sand} roughness={1} side={DoubleSide}/></mesh>)}
-    <Water animated={animated}/><RiverNetwork animated={animated} quality={quality}/><TownWorld/><V2WorldDressing/><CoconutGroves quality={quality}/><Wildlife quality={quality}/><StuntParks/><GliderSites animated={animated}/>
+    {Object.entries(roads).map(([key,geometry])=><mesh key={key} geometry={geometry} receiveShadow><meshStandardMaterial color={key==='tar'||key.startsWith('cityTar')?PALETTE.tar:PALETTE.sand} roughness={1} side={DoubleSide}/></mesh>)}
+    <Water animated={animated}/><RiverNetwork animated={animated} quality={quality}/><TownWorld/><V2WorldDressing/><CoconutGroves quality={quality}/><Wildlife quality={quality}/><StuntParks/><GliderSites animated={animated}/><KodalyCircle quality={quality}/>
     {architecture.meshes.map(({color,geometry})=><mesh key={color} geometry={geometry} castShadow receiveShadow><meshStandardMaterial color={color} roughness={.92} side={DoubleSide}/></mesh>)}
     <RigidBody type="fixed" colliders={false}>{collision.map(c=><CuboidCollider key={c.id} args={[c.size[0]/2,c.size[1]/2,c.size[2]/2]} position={c.position} rotation={c.rotation}/>)}</RigidBody>
     {architecture.signs.map(sign=><PaintedSign key={sign.english} sign={sign} locale={locale}/>)}

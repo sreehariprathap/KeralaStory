@@ -5,6 +5,7 @@ import {
 } from '../../content/world/definition';
 import { isWaterfallFootprint } from './waterfallGeometry';
 import { isStuntGround } from './stuntSites';
+import { isKodalyCityGround } from '../../content/world/kodalyCircle';
 
 export interface CoconutCandidate { x: number; z: number; variant: number; height: number; yaw: number; lean: number }
 
@@ -52,6 +53,11 @@ export function isCoconutSpotOpen(x: number, z: number): boolean {
   if (!isCarTerrainAllowed(x, z)) return false;
   for (const [dx, dz] of [[1.5, 0], [-1.5, 0], [0, 1.5], [0, -1.5]]) if (isWater(x + dx, z + dz)) return false;
   if (isWaterfallFootprint(x, z, 3) || isStuntGround(x, z, 6)) return false;
+  return isClearOfRoutes(x, z);
+}
+
+/** Off every road, trail, lane and gathering spot (water, slope and buildings are the caller's concern). */
+export function isClearOfRoutes(x: number, z: number): boolean {
   const route = EXPANSION_GROUND.field(x, z);
   if (route && route.distance <= route.width + ROAD_CLEARANCE) return false;
   const v2Road = EXPANSION_GROUND.v2?.field(x, z);
@@ -59,7 +65,7 @@ export function isCoconutSpotOpen(x: number, z: number): boolean {
   if (segmentDistance(x, z, MAIN_PATH) < PATH_CLEARANCE || segmentDistance(x, z, BRIDGE_PATH) < PATH_CLEARANCE) return false;
   if (WALKING_DETOURS.some(detour => segmentDistance(x, z, detour.path) < 3)) return false;
   if (VILLAGE_LANES.some(lane => segmentDistance(x, z, lane) < 4.5)) return false;
-  if (KEEP_CLEAR_AREAS.some(area => containsPoint(area, x, z))) return false;
+  if (KEEP_CLEAR_AREAS.some(area => containsPoint(area, x, z)) || isKodalyCityGround(x, z, 3)) return false;
   return !KEEP_CLEAR_POINTS.some(p => Math.hypot(p[0] - x, p[2] - z) < POINT_CLEARANCE);
 }
 

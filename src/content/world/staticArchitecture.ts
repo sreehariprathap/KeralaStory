@@ -1,4 +1,5 @@
 import { EXPANSION_LAYOUT, terrainHeight } from './definition';
+import { KODALY_AVENUE_SHOPS, kodalyCircleBoxes } from './kodalyCircle';
 import { createTerrainSurface, planFoundation, planFoundationSteps } from '../../game/world/buildingFoundation';
 import { terrainMeshData, traversalBoxes, type TraversalBox } from '../../game/world/traversalGeometry';
 
@@ -32,7 +33,7 @@ export function staticArchitectureBoxes(): TraversalBox[] {
     const s = 12 - step * 1.3, yy = tankY + .14 + step * .14;
     for (const sign of [-1, 1]) { box([48 + sign * s / 2, yy, -233], [.65, .3, s + 1]); box([48, yy, -233 + sign * (s + 1) / 2], [s, .3, .65]); }
   }
-  for (const [x, z, w] of [[-10, -194, 7], [13, -28, 8], [41, -17, 8], [17, -6, 6], [47, 7, 9], [43, 51, 6]]) {
+  for (const [x, z, w] of [[-10, -194, 7], ...KODALY_AVENUE_SHOPS.map(shop => [shop.x, shop.z, shop.width]), [47, 7, 9], [43, 51, 6]]) {
     const plan = foundation(x, z, w + 1, 8); steps(x, plan.bounds.zMax, plan.deckY); box([x, plan.deckY + 1.6, z - 1], [w, 3.2, 3.2]);
   }
   for (const [x, z, w, d] of [[-25, -319, 8, 6], [31, -307, 8, 7], [31, -278, 9, 7], [-23, -250, 8, 6], [-31, -214, 9, 7], [36, -177, 8, 6], [-25, -157, 7, 6], [-7, -43, 8, 6], [-20, -10, 9, 7], [7, 21, 9, 6], [54, 31, 8, 6], [8, 51, 10, 7]]) {
@@ -45,6 +46,7 @@ export function staticArchitectureBoxes(): TraversalBox[] {
   }
   const lighthouse = foundation(65, 54, 8, 8); steps(65, lighthouse.bounds.zMax, lighthouse.deckY);
   box([65, lighthouse.deckY + 7.5, 54], [4.2, 15, 4.2]); house(63, 73, 9, 5);
+  for (const shape of kodalyCircleBoxes()) boxes.push(shape);
   return boxes;
 }
 

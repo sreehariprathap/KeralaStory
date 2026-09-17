@@ -40,7 +40,7 @@ function walkApproach(start: [number, number], target: [number, number], deckY: 
 
 it.each([
   { name: 'hillside tea shop', x: -10, z: -194, width: 8, depth: 8 },
-  { name: 'bazaar shop', x: 13, z: -28, width: 9, depth: 8 },
+  { name: 'bazaar shop', x: 60, z: -31, width: 9, depth: 8 },
   { name: 'lighthouse base', x: 65, z: 54, width: 8, depth: 8 },
 ])('walks from terrain up the $name steps onto its level porch', ({ x, z, width, depth }) => {
   const surface = createTerrainSurface(terrainMeshData('south'));
