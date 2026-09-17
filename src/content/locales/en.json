@@ -292,5 +292,22 @@
   "settings.touchOpacity": "Touch button opacity",
   "settings.touchOpacityHint": "Lower values let more of the world show through the on-screen buttons.",
   "settings.developerMode": "Developer mode",
-  "settings.developerModeHint": "Restarts the app with the inspection panel for fast travel and scene checks."
+  "settings.developerModeHint": "Restarts the app with the inspection panel for fast travel and scene checks.",
+  "pwa.updateReady": "A new version of the journey is ready.",
+  "pwa.reload": "Reload",
+  "pwa.install": "Install app",
+  "pwa.iosHint": "For full screen, tap Share, then Add to Home Screen.",
+  "pwa.dismiss": "Dismiss",
+  "pwa.fullscreen": "Full screen",
+  "pwa.exitFullscreen": "Exit full screen",
+  "settings.offline": "Offline play",
+  "settings.offlineHint": "Places you visit are saved on this device. Download the whole world to play without a connection.",
+  "settings.offlineUnavailable": "Offline play is available in the published app.",
+  "settings.offlineDownload": "Download world",
+  "settings.offlineDownloading": "Downloading",
+  "settings.offlineComplete": "The whole world is saved on this device.",
+  "settings.offlineSaved": "saved",
+  "settings.offlineFailed": "files could not be downloaded. Try again on a steadier connection.",
+  "settings.haptics": "Vibration",
+  "settings.hapticsDescription": "Short vibrations for kicks and pickups on supported phones."
 }

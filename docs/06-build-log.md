@@ -432,3 +432,52 @@ Seven layout tests pass, including connectivity, grades, lengths, unique anchors
   - `tests/stadiumGoat.test.ts` checks the route never enters the pitch or run-off. The goat has no collider and ignores the player.
   - The stand's back wall is now a 2.3 m rail, so the terraces (and the goat) can be seen from outside.
   - Verified in the running app, using renders from a camera placed next to the goat: it faces its walking direction and walks the terraces and forecourt.
+
+## 2026-09-16 — Rendering performance, asset pipeline, installable app (branch `feature/perf-pwa`)
+
+- Rendering (`src/game/render/renderBudget.ts`, `WorldCanvas.tsx`):
+  - Each quality level now sets a resolution range, antialiasing, shadow map size and shadow refresh rate.
+  - Phones get a lower resolution cap: 1.25× on Balanced and 1.5× on Detailed. Quiet renders at 1× with no antialiasing and no shadows.
+  - Resolution adjusts itself: it drops after one slow 1.5 s window (p75 above 20 ms) and rises after two fast windows (p75 below 13.3 ms), waiting one window after each change.
+  - Balanced redraws the shadow map every other frame, at 1024². Detailed redraws it every frame, at 2048².
+  - The render loop stops when the tab is hidden and only renders on demand behind the pause menu and map.
+  - Antialiasing is set when the scene loads, so a quality change applies it on the next load.
+  - The game pauses when the app goes to the background, and the screen stays awake while playing (Wake Lock API).
+- Asset pipeline (`scripts/optimize-assets.mjs`, part of `npm run build`):
+  - Every served GLB is rebuilt into `.asset-cache/opt/`, which is gitignored and rebuilt only for changed files. The build then swaps these copies into `dist/`. Dev uses the originals.
+  - Geometry is Draco-compressed, which decodes back to floats, so the palms, flowers and static batching still work. Textures are resized to at most 1024 px and saved as WebP.
+  - Static models over 150k vertices are simplified with a tight error bound. Skinned models are never simplified. Material names are kept.
+  - Safety checks: a simplification that overshoots its target, or bounds that move by more than 1%, make the script rebuild or ship the original.
+  - Results: models 422 → 70 MB, `dist` 532 → 107 MB.
+  - Every `GLTFLoader` gets a shared `DRACOLoader` (`gltfSetup.ts`), using three's bundled, hashed decoder.
+  - Rig source models moved to `asset-sources/characters/` so they no longer ship. `rig-characters.mjs` and the rig tests now read them from there. The Messi rig rebuilds byte-identically.
+- Installable app and caching (`vite-plugin-pwa`, custom worker in `src-sw/sw.ts`, helpers in `src/pwa/`):
+  - Manifest: full screen (standalone fallback), landscape, and 192, 512 and maskable icons (`npm run generate:icons`).
+  - Page shell: `viewport-fit=cover` and Apple web-app meta tags.
+  - Hashed bundles now go to `/app/`.
+  - Precache: the app shell only (29 entries, about 4.2 MB).
+  - World assets are cached when first loaded, keyed by content hash from `dist/asset-hashes.json`. The page sends that file to the worker, which removes stale entries. Range requests work, and an older copy is served when offline.
+  - "Download world" in Settings caches everything and requests persistent storage.
+  - A prompt offers a reload when a new build is ready.
+  - `public/_headers` sets cache rules: immutable for `/app/*`, no-cache for the shell, the worker and `asset-hashes.json`.
+- Mobile:
+  - A full-screen button on the title screen and HUD (locks landscape on Android). An install button where the browser offers one, or an Add to Home Screen hint on iOS Safari.
+  - Vibration on pickups, kicks and goals. It can be turned off in Settings (a new `haptics` preference, default on).
+  - Safe-area insets for the HUD and title screen. No pull-to-refresh and no tap highlight.
+  - Short landscape screens: the title layout no longer overlaps the region strip (this overlap also existed on the main branch).
+  - On merge, the Sprint lock override was dropped: `feature/map-expansion` had redesigned the touch layout (`495271b`). The HUD's safe-area inset now resets the controls' own edge variables, so notches aren't counted twice. The new layout has not been checked on a phone-sized screen yet.
+- Checks run:
+  - `tsc` for the app and the worker: PASS.
+  - `vite build`: PASS.
+  - Full `vitest` run: 581 of 583 passed. `tests/expanded-contracts.test.ts` needed the new `haptics` default and now passes. The known intermittent `apps/server/tests/roomIntegration.test.ts` failed once, then passed on re-run.
+- Verified in headless Chrome against `vite preview`:
+  - The title screen and game render from the optimized models, and Messi looks the same as with the originals.
+  - The worker is active and the install prompt fires.
+  - Download world cached 92 MB. With the preview server stopped, a reload still loaded and played.
+  - The update prompt appeared after a rebuild.
+  - In an Android landscape emulation, touch controls and the HUD work and the game renders at 1×.
+- NOT yet done:
+  - A screenshot of the icon-only install button, and a clean re-run of the update flow. The last attempt stalled because the test had left the tab hidden, not because of an app error.
+  - Any real-device testing: iPhone Add to Home Screen, Android full screen and landscape lock, Wake Lock, vibration, and frame rate on a mobile GPU.
+  - KTX2 textures (no encoder installed).
+  - Region-based scenery loading and far-distance tree versions (Phase 4).

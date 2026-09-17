@@ -292,5 +292,22 @@
   "settings.touchOpacity": "",
   "settings.touchOpacityHint": "",
   "settings.developerMode": "",
-  "settings.developerModeHint": ""
+  "settings.developerModeHint": "",
+  "pwa.updateReady": "യാത്രയുടെ പുതിയ പതിപ്പ് തയ്യാറാണ്.",
+  "pwa.reload": "വീണ്ടും തുറക്കുക",
+  "pwa.install": "ആപ്പ് ഇൻസ്റ്റാൾ ചെയ്യുക",
+  "pwa.iosHint": "പൂർണ്ണ സ്ക്രീനിനായി Share തൊട്ട്, Add to Home Screen തിരഞ്ഞെടുക്കുക.",
+  "pwa.dismiss": "അടയ്ക്കുക",
+  "pwa.fullscreen": "പൂർണ്ണ സ്ക്രീൻ",
+  "pwa.exitFullscreen": "പൂർണ്ണ സ്ക്രീനിൽ നിന്ന് പുറത്തുകടക്കുക",
+  "settings.offline": "ഓഫ്‌ലൈൻ കളി",
+  "settings.offlineHint": "നിങ്ങൾ സന്ദർശിക്കുന്ന സ്ഥലങ്ങൾ ഈ ഉപകരണത്തിൽ സൂക്ഷിക്കും. കണക്ഷനില്ലാതെ കളിക്കാൻ മുഴുവൻ ലോകവും ഡൗൺലോഡ് ചെയ്യുക.",
+  "settings.offlineUnavailable": "പ്രസിദ്ധീകരിച്ച ആപ്പിൽ ഓഫ്‌ലൈൻ കളി ലഭ്യമാണ്.",
+  "settings.offlineDownload": "ലോകം ഡൗൺലോഡ് ചെയ്യുക",
+  "settings.offlineDownloading": "ഡൗൺലോഡ് ചെയ്യുന്നു",
+  "settings.offlineComplete": "മുഴുവൻ ലോകവും ഈ ഉപകരണത്തിൽ സൂക്ഷിച്ചിരിക്കുന്നു.",
+  "settings.offlineSaved": "സൂക്ഷിച്ചു",
+  "settings.offlineFailed": "ഫയലുകൾ ഡൗൺലോഡ് ചെയ്യാനായില്ല. മെച്ചപ്പെട്ട കണക്ഷനിൽ വീണ്ടും ശ്രമിക്കുക.",
+  "settings.haptics": "വൈബ്രേഷൻ",
+  "settings.hapticsDescription": "പിന്തുണയുള്ള ഫോണുകളിൽ കിക്കിനും ശേഖരണത്തിനും ചെറിയ വൈബ്രേഷൻ."
 }

@@ -1,0 +1,14 @@
+.pwa-toast{position:absolute;z-index:30;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:12px;max-width:calc(100vw - 24px);padding:10px 12px 10px 16px;background:var(--paper-raised);color:var(--ink);border:1px solid #c9d0a9;border-radius:6px;box-shadow:0 6px 24px #213c2330;font-size:13px}
+.pwa-toast .button{min-height:36px;padding:0 12px;font-size:12px;gap:6px}
+.pwa-toast__close{border:0;background:none;display:grid;place-items:center;padding:8px;color:inherit}
+.pwa-install{white-space:nowrap;display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border:1px solid #f8f3df55;border-radius:20px;background:transparent;color:inherit;font-size:12px}
+.pwa-ios-hint{position:absolute;left:50%;bottom:calc(128px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:10px;width:max-content;max-width:calc(100vw - 32px);padding:9px 8px 9px 14px;border-radius:6px;background:#f4e8ccf2;color:var(--ink);font-size:12px;line-height:1.5;pointer-events:auto}
+.pwa-ios-hint button{border:0;background:none;display:grid;place-items:center;padding:8px;color:inherit}
+.pwa-offline{display:grid;gap:8px}
+.pwa-offline__meter{height:6px;border-radius:3px;background:color-mix(in srgb,var(--forest) 16%,var(--paper));overflow:hidden}
+.pwa-offline__meter span{display:block;height:100%;background:var(--forest);transform-origin:left;transition:transform .3s}
+.pwa-offline__done{margin:0;font-size:.875rem;color:var(--forest)}
+.pwa-offline small{font-size:.8rem}
+@media(prefers-reduced-motion:reduce){.pwa-offline__meter span{transition:none}}
+/* Short landscape phones: icon-only install button; the label stays available to screen readers. */
+@media(orientation:landscape) and (max-height:520px){.pwa-install{width:40px;padding:0;justify-content:center}.pwa-install__label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}

@@ -1,4 +1,4 @@
-import type { ChangeEvent } from 'react';
+import type { ChangeEvent, ReactNode } from 'react';
 import type { ControlsPreference, GameSettings } from '../../contracts';
 import { useT } from '../i18n/translate';
 import './settings-panel.css';
@@ -13,6 +13,10 @@ interface SettingsPanelProps {
   onLocaleChange?: (locale: 'en' | 'ml') => void;
   developerMode?: boolean;
   onDeveloperModeChange?: (enabled: boolean) => void;
+  haptics?: boolean;
+  onHapticsChange?: (haptics: boolean) => void;
+  /** Offline storage controls, supplied by the app shell. */
+  offline?: ReactNode;
 }
 
 const QUALITY_OPTIONS = [
@@ -21,7 +25,7 @@ const QUALITY_OPTIONS = [
   { value: 'high', label: 'settings.detailed', description: 'settings.detailedDescription' },
 ] as const;
 
-export function SettingsPanel({ settings, onChange, onResetPosition, controls, onControlsChange, locale, onLocaleChange, developerMode, onDeveloperModeChange }: SettingsPanelProps) {
+export function SettingsPanel({ settings, onChange, onResetPosition, controls, onControlsChange, locale, onLocaleChange, developerMode, onDeveloperModeChange, haptics, onHapticsChange, offline }: SettingsPanelProps) {
   const t = useT();
   const update = <K extends keyof GameSettings>(key: K, value: GameSettings[K]) => {
     onChange({ ...settings, [key]: value });
@@ -93,6 +97,15 @@ export function SettingsPanel({ settings, onChange, onResetPosition, controls, o
         </label>
         <p className="settings-panel__hint">{t('settings.touchOpacityHint')}</p>
         <input id="settings-touch-opacity" className="settings-panel__range" name="touchOpacity" type="range" min="0.2" max="1" step="0.05" value={settings.touchOpacity} onChange={(event) => update('touchOpacity', Number(event.target.value))} />
+        {onHapticsChange && <label className="settings-panel__check">
+          <input type="checkbox" name="haptics" checked={haptics ?? true} onChange={(event) => onHapticsChange(event.target.checked)} />
+          <span><strong>{t('settings.haptics')}</strong><small>{t('settings.hapticsDescription')}</small></span>
+        </label>}
+      </fieldset>}
+
+      {offline && <fieldset className="settings-panel__group">
+        <legend>{t('settings.offline')}</legend>
+        {offline}
       </fieldset>}
 
       {onLocaleChange && <fieldset className="settings-panel__group">
