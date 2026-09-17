@@ -23,9 +23,11 @@ export interface CarPickerProps {
   colors?: readonly { id: string; label: string; value: string }[];
   selectedColor?: string;
   onColorSelect?: (value: string) => void;
+  /** Singular vehicle word used in labels, e.g. 'car' or 'bike'. */
+  noun?: string;
 }
 
-export function CarPicker({ catalog, selectedId, status, busy, preview, onSelect, onSpawn, onClose, embedded, colors, selectedColor, onColorSelect }: CarPickerProps) {
+export function CarPicker({ catalog, selectedId, status, busy, preview, onSelect, onSpawn, onClose, embedded, colors, selectedColor, onColorSelect, noun = 'car' }: CarPickerProps) {
   const selected = catalog.find((entry) => entry.id === selectedId);
   const spawnDisabled = busy || !selected?.available;
 
@@ -35,16 +37,16 @@ export function CarPicker({ catalog, selectedId, status, busy, preview, onSelect
         <header className="car-picker__header">
           <div>
             <p className="car-picker__eyebrow">Vehicles</p>
-            <h2 id="car-picker-title">Choose a car</h2>
+            <h2 id="car-picker-title">Choose a {noun}</h2>
           </div>
           <button className="button button-secondary car-picker__close" type="button" onClick={onClose}>Close</button>
         </header>
       )}
 
-      {preview && <div className="car-picker__preview" aria-label="Selected car preview">{preview}</div>}
+      {preview && <div className="car-picker__preview" aria-label={`Selected ${noun} preview`}>{preview}</div>}
 
       <fieldset className="car-picker__options">
-        <legend className="car-picker__legend">Available cars</legend>
+        <legend className="car-picker__legend">Available {noun}s</legend>
         <div className="car-picker__grid">
           {catalog.map((entry) => {
             const reasonId = `car-picker-reason-${entry.id}`;
@@ -52,7 +54,7 @@ export function CarPicker({ catalog, selectedId, status, busy, preview, onSelect
               <label className={`car-picker__card${entry.id === selectedId ? ' is-selected' : ''}${!entry.available ? ' is-unavailable' : ''}`} key={entry.id}>
                 <input
                   type="radio"
-                  name="car-picker-model"
+                  name={`${noun}-picker-model`}
                   value={entry.id}
                   checked={entry.id === selectedId}
                   disabled={!entry.available || busy}
@@ -91,7 +93,7 @@ export function CarPicker({ catalog, selectedId, status, busy, preview, onSelect
 
       <div className="car-picker__actions">
         <button className="button button-primary" type="button" disabled={spawnDisabled} onClick={onSpawn}>
-          {busy ? 'Spawning…' : 'Spawn car'}
+          {busy ? 'Spawning…' : `Spawn ${noun}`}
         </button>
         {status && <p className="car-picker__status" role="status" aria-live="polite">{status}</p>}
       </div>

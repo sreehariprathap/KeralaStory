@@ -23,7 +23,11 @@ export function createNickAnimation(root: Object3D, rig: CharacterRig = 'nick') 
   const rootRotation = new Quaternion(), parentRotation = new Quaternion();
   const deltaRotation = new Quaternion(), drop = new Quaternion(), target = new Quaternion();
   let phase = 0, stride = 0;
+  // Rest-pose thigh pivot height in the caller's (already scaled) root space; used to seat riders.
+  const hips = joints.filter(joint => joint.part === 'Hip');
+  const hipHeight = hips.reduce((sum, joint) => sum + root.worldToLocal(joint.bone.getWorldPosition(point)).y * root.scale.y, 0) / hips.length;
   return {
+    hipHeight,
     update(delta: number, motion: AvatarMotion) {
       const dt = Math.max(0, Math.min(delta, .05));
       const speed = Number.isFinite(motion.speed) ? Math.max(0, motion.speed) : 0;
@@ -36,7 +40,9 @@ export function createNickAnimation(root: Object3D, rig: CharacterRig = 'nick') 
         const wave = Math.sin(phase + (joint.side < 0 ? Math.PI : 0));
         let bend = 0;
         if (motion.riding) {
-          bend = joint.part === 'Hip' ? -1.05 + wave * .25 : joint.part === 'Knee' ? 1.25 - wave * .3 : joint.part === 'Shoulder' ? -.9 : -.3;
+          // The torso is pitched forward by `lean`; pull the thighs forward by the same amount so they stay put.
+          const lean = motion.lean ?? 0, pedal = motion.pedaling === false ? 0 : 1;
+          bend = joint.part === 'Hip' ? -1.05 - lean + wave * .25 * pedal : joint.part === 'Knee' ? 1.25 - wave * .3 * pedal : joint.part === 'Shoulder' ? -.9 - lean * 1.2 : lean > 0 ? -.15 : -.3;
         } else if (!motion.grounded) {
           bend = joint.part === 'Hip' ? joint.side * .25 : joint.part === 'Knee' ? .5 : joint.part === 'Shoulder' ? -.55 : -.35;
         } else {

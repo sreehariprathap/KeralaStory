@@ -424,3 +424,22 @@ For A01/A04-dependent data/physics tests, use the actual frozen fixtures when th
 Use [the expansion plan](superpowers/plans/2026-09-15-mountain-chokkana-athirappilly.md), sections 5–6, for MX task order, exact writable paths and acceptance checks. Core terrain, mountain, roads/driving, waterfalls, summit camera, map/save integration and final verification stay with GPT-6 Astra. GPT-5.6 Luna receives MX-L1 landmark/localization data, MX-L2 deterministic forest placements, MX-L3 pure panorama math and MX-L4 independent regression tests only after the listed dependencies are ready.
 
 Luna completed the read-only planning review (MX-P2); no implementation handoff is complete. Only Astra updates canonical contracts/composition and status records. Workers return files, actual check results and remaining issues; Astra marks Done after review and required visual/playtest evidence.
+
+## Bike handoffs — 16 September 2026
+
+## [ ] BK-A1 — Fine-tune bike stunts
+
+**Model:** GPT-6 Astra  
+**Dependencies:** Bike spawner and stunt prototype (spawnable Roadster, Electric, Yamaha FZ8 and Cyberpunk bikes; hop, ramp launch, flips/spins and landing checks).  
+**Writable paths:** `src/game/vehicle/bikeStunts.ts`, `src/game/vehicle/bikeGrounding.ts`, `src/game/vehicle/bicycleMotor.ts`, `src/content/assets/bikeProfiles.ts`, the `BIKE_*` constants and bike stunt block in `src/game/player/ExplorerController.tsx`, the bike overrides in `src/game/player/characterMotor.ts`, new `tests/bikeStunts.test.ts`
+
+**Current prototype (untuned, never playtested):**
+- **Controls:** SPACE hops. Above `BIKE_LAUNCH_SPEED` (5 m/s) the bike is no longer snapped to the ground, so crests and ramps launch it. The launch keeps the last grounded climb rate, capped at `BIKE_MAX_LAUNCH` (11).
+- **Airtime:** gravity is `BIKE_AIR_GRAVITY` (−17) instead of −22. The bike keeps its speed and heading in the air.
+- **Tricks:** W/S flip at `FLIP_RATE` 5.5 rad/s and A/D spin at `SPIN_RATE` 6.5 rad/s. Keys held at takeoff count only after being released.
+- **Landing:** clean if within `FLIP_TOLERANCE` 0.7 rad and `SPIN_TOLERANCE` 0.75 rad of level/forward; otherwise a wipeout that zeroes speed. Callouts need 0.35 s airtime; "Big air" needs 1.1 s.
+- **Visuals:** tricks are visual only. They pivot at `BIKE_TRICK_PIVOT` (0.7 m) while the collider stays upright and yaw-only.
+
+**Implementation steps:** Playtest every bike on flat ground, hill crests and downhill runs. Tune hop height, launch strength, airtime, rotation rates and landing tolerances so jumps feel deliberate. Downhill riding must not flicker between grounded and airborne; a fast bike must not skip or lose control on ordinary slopes. If the fast bikes (Yamaha 20 m/s, Cyberpunk 24 m/s plus nitro) launch far more than the others, consider per-bike stunt tuning in `bikeProfiles.ts`. Decide whether a wipeout should also dismount the rider, and whether landings should nudge small leftover spin into the heading instead of snapping. Keep the trick logic pure and cover it with `tests/bikeStunts.test.ts`: arming, flip/spin counting, tolerance edges and labels.
+
+**Acceptance and handoff:** `npm test -- tests/bikeStunts.test.ts tests/bicycleMotor.test.ts`, then `npm test`. Provide a short screen capture or screenshots per bike showing a hop, a ramp launch, a clean trick landing and a wipeout. Also confirm that normal riding (no SPACE, no trick keys) never triggers a flip or wipeout on the existing roads.

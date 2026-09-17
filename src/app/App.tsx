@@ -1,6 +1,7 @@
 import { Component, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ArrowRight, ArrowUpRight, Compass, MapTrifold, Mountains, Pause, GearSix, ArrowCounterClockwise, House, Footprints, FlagPennant, CaretDown, X, Tree, Car } from '@phosphor-icons/react';
-import { CAR_PICKER_CATALOG, type CarModelId } from '../content/assets/models';
+import { ArrowRight, ArrowUpRight, Compass, MapTrifold, Mountains, Pause, GearSix, ArrowCounterClockwise, House, Footprints, FlagPennant, CaretDown, X, Tree, Car, Motorcycle } from '@phosphor-icons/react';
+import { CAR_MODELS, CAR_PICKER_CATALOG, type CarModelId } from '../content/assets/models';
+import { BIKE_MODELS, BIKE_PICKER_CATALOG, type BikeModelId } from '../content/assets/bikeProfiles';
 import { CarPicker } from '../features/vehicles/CarPicker';
 import { CAR_PAINT_COLORS, VEHICLE_PROFILES } from '../content/assets/vehicleProfiles';
 import { DEFAULT_SETTINGS, type ExplorerControllerProps, type ExplorerProfile, type GameSettings, type InputMode, type PlayerSnapshot, type SaveV2, type Vec3, type Preferences, type InputCommands, type BicycleSave } from '../contracts';
@@ -53,6 +54,8 @@ export function App(){
   const [carSpawnToken,setCarSpawnToken]=useState(0);
   const [carModelId,setCarModelId]=useState<CarModelId>('admin');
   const [carColor,setCarColor]=useState<string>(CAR_PAINT_COLORS[0].value);
+  const [bikeSpawnToken,setBikeSpawnToken]=useState(0);
+  const [bikeModelId,setBikeModelId]=useState<BikeModelId>('roadster');
   const carPaintable=Boolean(VEHICLE_PROFILES[carModelId].paint);
   useEffect(()=>{document.documentElement.lang=locale;},[locale]);
   const inspectMode=import.meta.env.DEV&&new URLSearchParams(window.location.search).has('inspect');
@@ -61,7 +64,7 @@ export function App(){
   const [preview,setPreview]=useState<ExplorerProfile>(initial.save?.profile??defaultProfile);
   const [settings,setSettings]=useState<GameSettings>(()=>initial.save?.settings??{...DEFAULT_SETTINGS,quality:coarse?'low':'medium',reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches});
   const [mode,setMode]=useState<InputMode>('menu');
-  const [active,setActive]=useState(false);const [menu,setMenu]=useState<'none'|'profile'|'settings'|'atlas'|'reset'|'car'>('none');
+  const [active,setActive]=useState(false);const [menu,setMenu]=useState<'none'|'profile'|'settings'|'atlas'|'reset'|'car'|'bike'>('none');
   const [ready,setReady]=useState(false);const [sceneError,setSceneError]=useState<string|null>(null);const [sceneKey,setSceneKey]=useState(0);
   const [spawn,setSpawn]=useState<Vec3>(SPAWN);const [initialHeading,setInitialHeading]=useState(Math.PI);const [resetToken,setResetToken]=useState(0);
   const [snapshot,setSnapshot]=useState<PlayerSnapshot>(defaultSnapshot);
@@ -102,6 +105,23 @@ export function App(){
   const exit=()=>{persist();setActive(false);setMode('menu');setMenu('none');setDiscovery(null);};
   const resume=()=>{setMenu('none');setMode('playing');};
   const resetPosition=()=>{setSpawn([...SPAWN]);setResetToken(n=>n+1);setMode('playing');setMenu('none');};
+  // Inspect-only cheats: hold C (car) or B (bike) and press a number to spawn that catalog entry.
+  useEffect(()=>{
+    if(!inspectMode||!active||mode!=='playing')return;
+    const held=new Set<string>();
+    const keydown=(event:KeyboardEvent)=>{
+      if(event.code==='KeyC'||event.code==='KeyB'){held.add(event.code);return;}
+      const digit=/^(?:Digit|Numpad)([1-9])$/.exec(event.code);
+      if(!digit||event.repeat)return;
+      const index=Number(digit[1])-1;
+      if(held.has('KeyC')&&CAR_MODELS[index]){event.preventDefault();setCarModelId(CAR_MODELS[index].id);setCarSpawnToken(n=>n+1);}
+      else if(held.has('KeyB')&&BIKE_MODELS[index]){event.preventDefault();setBikeModelId(BIKE_MODELS[index].id);setBikeSpawnToken(n=>n+1);}
+    };
+    const keyup=(event:KeyboardEvent)=>{held.delete(event.code);};
+    const clear=()=>held.clear();
+    window.addEventListener('keydown',keydown);window.addEventListener('keyup',keyup);window.addEventListener('blur',clear);
+    return()=>{window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',clear);};
+  },[inspectMode,active,mode]);
   const inspectDestination=(id:string)=>{
     const destination=INSPECTION_DESTINATIONS.find(place=>place.id===id);
     if(!destination?.available)return;
@@ -112,7 +132,9 @@ export function App(){
   const openCarControls=()=>{setMode('paused');setMenu('car');};
   const closeCarControls=()=>{setMenu('none');if(active)setMode('playing');};
   const spawnCar=()=>{setCarSpawnToken(token=>token+1);closeCarControls();};
-  const controller=useMemo<ExplorerControllerProps>(()=>({mode,profile,spawn,initialHeading,resetToken,inputCommands:receiveCommands,bicycleSpawn,returnBicycleToken,carSpawnToken,carModelId,carColor,sensitivity:settings.sensitivity,reducedMotion:settings.reducedMotion,cameraControl:settings.cameraControl,onSnapshot,onPause,onMap,onReady:onPlayerReady,onError:onSceneError}),[mode,profile,spawn,initialHeading,resetToken,receiveCommands,bicycleSpawn,returnBicycleToken,carSpawnToken,carModelId,carColor,settings.sensitivity,settings.reducedMotion,settings.cameraControl,onSnapshot,onPause,onMap,onPlayerReady,onSceneError]);
+  const openBikeControls=()=>{setMode('paused');setMenu('bike');};
+  const spawnBike=()=>{setBikeSpawnToken(token=>token+1);closeCarControls();};
+  const controller=useMemo<ExplorerControllerProps>(()=>({mode,profile,spawn,initialHeading,resetToken,inputCommands:receiveCommands,bicycleSpawn,returnBicycleToken,carSpawnToken,carModelId,carColor,bikeSpawnToken,bikeModelId,sensitivity:settings.sensitivity,reducedMotion:settings.reducedMotion,cameraControl:settings.cameraControl,onSnapshot,onPause,onMap,onReady:onPlayerReady,onError:onSceneError}),[mode,profile,spawn,initialHeading,resetToken,receiveCommands,bicycleSpawn,returnBicycleToken,carSpawnToken,carModelId,carColor,bikeSpawnToken,bikeModelId,settings.sensitivity,settings.reducedMotion,settings.cameraControl,onSnapshot,onPause,onMap,onPlayerReady,onSceneError]);
   const currentRegion=WORLD_REGIONS.find(r=>r.id===getZoneAtPosition(snapshot.position[0],snapshot.position[2]))??WORLD_REGIONS[0];
   const location=discovery?LANDMARKS.find(l=>l.id===discovery):null;
   const distance=waypoint?Math.round(Math.hypot(snapshot.position[0]-waypoint[0],snapshot.position[2]-waypoint[2])):null;
@@ -127,7 +149,7 @@ export function App(){
       <div className="scene-caption"><span className="caption-rule"/><div><small>{t('app.journeyBegins')}</small><strong>{localizedRegion('kodassery',locale)}</strong><span>{t('app.circa2000')}</span></div></div>
       <footer className="region-strip"><div className="region-strip-title"><Compass size={27} weight="light"/><span>FROM THE HILLS<br/>TO THE SEA</span></div>{WORLD_REGIONS.map(region=><button key={region.id} className={`region-stop ${region.id==='kodassery'?'is-current':''}`} onClick={()=>setMenu('atlas')}><span className="region-number">{region.number}</span><span><strong>{localizedRegion(region.id,locale)}</strong><small>{region.id==='kodassery'?t('app.beginHere'):t(('region.'+region.id+'Subtitle') as TranslationKey)}</small></span>{region.id==='kodassery'&&<ArrowUpRight size={18}/>}</button>)}</footer>
     </div>}
-    {active&&<div className="hud" aria-label="Explorer heads-up display"><div className="hud-identity"><div className="identity-emblem"><Tree size={28} weight="light"/></div><div><span className="hud-name">{profile.displayName}</span><span className="hud-place">{getAreaAt(snapshot.position[0],snapshot.position[2])?t(`area.${getAreaAt(snapshot.position[0],snapshot.position[2])}` as TranslationKey):localizedRegion(currentRegion.id,locale)}</span></div></div><div className="hud-top-center"><span>N</span><span className="compass-tick"/><span>KERALA · CIRCA 2000</span><span className="compass-tick"/><span>S</span></div><div className="hud-map"><button className="minimap-button" aria-label="Open world map" onClick={onMap}><ExplorerMap compact player={snapshot} visited={visited} waypoint={waypoint} onWaypoint={setWaypoint}/><div className="minimap-north">N</div></button><button className="map-open-button" onClick={onMap}><MapTrifold size={17}/> World map <kbd>M</kbd></button></div><div className="hud-actions"><button className="hud-icon" aria-label="Pause and settings" onClick={onPause}><Pause size={20}/></button><button className="hud-icon" aria-label="Open car controls" title="Car controls" onClick={openCarControls}><Car size={20}/></button></div>
+    {active&&<div className="hud" aria-label="Explorer heads-up display"><div className="hud-identity"><div className="identity-emblem"><Tree size={28} weight="light"/></div><div><span className="hud-name">{profile.displayName}</span><span className="hud-place">{getAreaAt(snapshot.position[0],snapshot.position[2])?t(`area.${getAreaAt(snapshot.position[0],snapshot.position[2])}` as TranslationKey):localizedRegion(currentRegion.id,locale)}</span></div></div><div className="hud-top-center"><span>N</span><span className="compass-tick"/><span>KERALA · CIRCA 2000</span><span className="compass-tick"/><span>S</span></div><div className="hud-map"><button className="minimap-button" aria-label="Open world map" onClick={onMap}><ExplorerMap compact player={snapshot} visited={visited} waypoint={waypoint} onWaypoint={setWaypoint}/><div className="minimap-north">N</div></button><button className="map-open-button" onClick={onMap}><MapTrifold size={17}/> World map <kbd>M</kbd></button></div><div className="hud-actions"><button className="hud-icon" aria-label="Pause and settings" onClick={onPause}><Pause size={20}/></button><button className="hud-icon" aria-label="Open car controls" title="Car controls" onClick={openCarControls}><Car size={20}/></button><button className="hud-icon" aria-label="Open bike controls" title="Bike controls" onClick={openBikeControls}><Motorcycle size={20}/></button></div>
       {!touch&&<div className="control-hints"><button onClick={()=>setHints(!hints)} className="hints-toggle"><Footprints size={17}/> Trail controls <CaretDown size={13} style={{transform:hints?'rotate(180deg)':'none'}}/></button>{hints&&<div className="hint-keys"><span><kbd>W A S D</kbd> Move</span><span><kbd>SHIFT</kbd> Run</span><span><kbd>SPACE</kbd> Jump</span><span><kbd>Q E</kbd> Turn</span><span><kbd>F</kbd> {t('car.interact')}</span><span><kbd>R</kbd> Sprint lock</span></div>}</div>}
       <div className="hud-bottom-right"><span>{visited.length} / {LANDMARKS.length} {t('app.placesDiscovered')}</span><span className="save-indicator">{warning?t('app.saveAttention'):saved?t('app.savedDevice'):t('app.saving')}</span></div>
       {waypoint&&<div className="waypoint-chip"><FlagPennant size={17}/><span>{distance} m · {t('map.bearing')} · {Math.round(bearingToWaypoint(snapshot.position,waypoint))}° N</span><button aria-label="Clear waypoint" onClick={()=>setWaypoint(null)}><X size={15}/></button></div>}
@@ -135,7 +157,7 @@ export function App(){
         <MobileControls enabled={mode === 'playing'} commands={commands} sprintLocked={snapshot.sprintLocked ?? false} />
       )}
       {mode==='playing'&&(snapshot.canInteract||snapshot.interactionMessage)&&<div className="bicycle-prompt" role="status">{snapshot.interactionMessage?(snapshot.interactionMessage in ENGLISH_CATALOG?t(snapshot.interactionMessage as TranslationKey):snapshot.interactionMessage):<><kbd>{touch?'●':'F'}</kbd> {t(snapshot.travelMode==='car'?'controls.exitCar':snapshot.travelMode==='bicycle'?'controls.dismount':'controls.mount')}{snapshot.travelMode!=='foot'&&<small>S / ↓ · {t('controls.brake')}</small>}</>}</div>}
-      {snapshot.travelMode==='car'&&<div className={`nitro-status ${snapshot.nitroActive?'is-active':''}`} role="status"><Car size={15}/><span>SHIFT · NITRO {snapshot.nitroActive?'ACTIVE':'READY'}</span></div>}
+      {(snapshot.travelMode==='car'||snapshot.travelMode==='bicycle'&&snapshot.nitroAvailable)&&<div className={`nitro-status ${snapshot.nitroActive?'is-active':''}`} role="status"><Car size={15}/><span>SHIFT · NITRO {snapshot.nitroActive?'ACTIVE':'READY'}</span></div>}
       {location&&mode==='playing'&&<div className="discovery-toast" role="status"><div><Compass size={24}/><span>{t('app.placeDiscovered')}</span></div><h2>{localizedPlace(location.id,locale)}</h2><p>{t(({origin:'landmark.originDescription',canopy:'landmark.canopyDescription',waterfall:'landmark.waterfallDescription',paddy:'landmark.paddyDescription',temple:'landmark.templeDescription','tea-shop':'landmark.teaShopDescription','river-bridge':'landmark.riverBridgeDescription','fishing-bank':'landmark.fishingBankDescription',market:'landmark.marketDescription',lighthouse:'landmark.lighthouseDescription',harbor:'landmark.harborDescription','spice-garden':'landmark.spiceGardenDescription'} as Record<string,TranslationKey>)[location.id]??`landmark.${location.id}Description` as TranslationKey)}</p></div>}
     </div>}
     {(mode==='loading'||(!ready&&active))&&!sceneError&&<LoadingView/>}
@@ -146,13 +168,14 @@ export function App(){
     <ModalShell open={!sceneError&&mode==='paused'&&menu==='none'} title={t('app.takeAMoment')} onClose={resume} className="pause-modal"><div className="pause-intro"><Tree size={34} weight="light"/><p>{t('app.hillsWillBeHere')}</p></div><div className="pause-options"><button className="button button-primary" onClick={resume}><ArrowRight size={19}/> Back to the trail</button><button className="button button-secondary" onClick={()=>setMode('map')}><MapTrifold size={19}/> Open field atlas</button><button className="button button-secondary" onClick={()=>setMenu('settings')}><GearSix size={19}/> Settings</button><button className="button button-secondary" onClick={exit}><House size={19}/> Save & return to title</button></div></ModalShell>
     <ModalShell open={menu==='settings'} title={t('app.makeAtHome')} onClose={()=>setMenu('none')}><SettingsPanel settings={settings} onChange={setSettings} controls={preferences.controls} onControlsChange={value=>updatePreferences({...preferences,controls:value})} locale={locale} onLocaleChange={value=>updatePreferences({...preferences,locale:value})} onResetPosition={active?resetPosition:undefined}/>{active&&snapshot.travelMode!=='bicycle'&&<button className="button button-secondary" onClick={()=>{setReturnBicycleToken(v=>v+1);resume();}}>{t('controls.returnBicycle')}</button>}{saved&&<button className="text-button reset-profile" onClick={()=>setMenu('reset')}><ArrowCounterClockwise size={16}/> Reset local explorer</button>}</ModalShell>
     <ModalShell open={menu==='car'} title={t('car.spawnerTitle')} onClose={closeCarControls} className="car-modal"><p className="car-modal__intro">Choose a car and drop it nearby. Hold <kbd>SHIFT</kbd> while driving to ignite nitrous for a short boost.</p><CarPicker embedded catalog={CAR_PICKER_CATALOG} selectedId={carModelId} status={t('car.notSaved')} busy={false} preview={<Suspense fallback={null}><CarPreview modelId={carModelId} color={carPaintable?carColor:undefined}/></Suspense>} colors={carPaintable?CAR_PAINT_COLORS:undefined} selectedColor={carColor} onColorSelect={setCarColor} onSelect={id=>setCarModelId(id as CarModelId)} onSpawn={spawnCar} onClose={closeCarControls}/></ModalShell>
+    <ModalShell open={menu==='bike'} title="Bike spawner" onClose={closeCarControls} className="car-modal"><p className="car-modal__intro">Choose a bike and drop it nearby, then walk up and press <kbd>F</kbd>. Bikes ride on any dry ground. Hold <kbd>SHIFT</kbd> while riding a motor bike for nitrous.</p><p className="car-modal__intro">Stunts: <kbd>SPACE</kbd> hops, and speed launches you off ramps and crests. In the air, tap <kbd>W</kbd>/<kbd>S</kbd> to flip and <kbd>A</kbd>/<kbd>D</kbd> to spin, then land level and facing forward.</p><CarPicker embedded noun="bike" catalog={BIKE_PICKER_CATALOG} selectedId={bikeModelId} status="Bikes are not saved yet." busy={false} onSelect={id=>setBikeModelId(id as BikeModelId)} onSpawn={spawnBike} onClose={closeCarControls}/></ModalShell>
     <ModalShell open={menu==='reset'} title={t('app.startNewChapter')} onClose={()=>setMenu('settings')}><p>This removes your name, appearance, saved position, and discoveries from this browser.</p><div className="reset-actions"><button className="button button-secondary" onClick={()=>setMenu('settings')}>{t('app.keepExplorer')}</button><button className="button button-primary" onClick={()=>{const r=clearLocalSave();if(!r.ok){setWarning(r.warning);return;}setSaved(null);setVisited([]);setActive(false);setProfile(defaultProfile);setPreview(defaultProfile);setMode('menu');setMenu('none');}}>{t('app.resetExplorer')}</button></div></ModalShell>
     {inspectMode&&active&&<aside className="inspection-panel"><strong>Development inspection</strong><button onClick={()=>onSceneError('Simulated graphics interruption for recovery testing.')}>Test scene recovery</button>
       <select aria-label="Inspect landmark" defaultValue="" onChange={e=>{inspectDestination(e.currentTarget.value);e.currentTarget.value='';}}>
         <option value="" disabled>Fast travel to an area</option>
         {(['Existing landmarks','Mountain and forest expansion','V2 planned sites'] as const).map(group=><optgroup key={group} label={group}>{INSPECTION_DESTINATIONS.filter(place=>place.group===group).map(place=><option key={place.id} value={place.id} disabled={!place.available}>{place.landmarkId?localizedPlace(place.landmarkId,locale):place.label}</option>)}</optgroup>)}
       </select>
-      <output>{snapshot.position.map(n=>n.toFixed(1)).join(', ')} · {snapshot.grounded?'grounded':'airborne'}</output><output data-render-metrics="true">Measuring renderer…</output><small>Planned sites show current terrain only. Unbuilt terrain is unavailable.</small></aside>}
+      <output>{snapshot.position.map(n=>n.toFixed(1)).join(', ')} · {snapshot.grounded?'grounded':'airborne'}</output><output data-render-metrics="true">Measuring renderer…</output><small>Planned sites show current terrain only. Unbuilt terrain is unavailable.</small><small>Cheats: hold <kbd>C</kbd> + 1–{CAR_MODELS.length} to spawn a car, <kbd>B</kbd> + 1–{BIKE_MODELS.length} to spawn a bike ({BIKE_MODELS.map((m,i)=>`${i+1} ${m.name}`).join(', ')}).</small></aside>}
 
   </main></LocaleProvider>;
 }

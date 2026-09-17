@@ -1,5 +1,6 @@
 import { CAR_MODELS, CHARACTER_MODELS } from './models';
 import { V2_ASSET_PROFILES } from './v2AssetProfiles';
+import { BIKE_MODELS } from './bikeProfiles';
 export type AssetStatus = 'prototype' | 'ready';
 export type AssetKind = 'character' | 'vehicle' | 'environment' | 'audio' | 'reference';
 
@@ -20,6 +21,7 @@ export const ASSET_MANIFEST: readonly AssetRecord[] = [
   ...V2_ASSET_PROFILES.map(profile => ({ id: `v2-${profile.id}`, status: 'prototype' as const, sourcePath: `public${profile.url}`, license: null, kind: profile.url.includes('/cars/') ? 'vehicle' as const : 'environment' as const })),
   ...CHARACTER_MODELS.map(model => ({ id: `character-${model.id}`, status: 'prototype' as const, sourcePath: `public${model.url}`, license: null, kind: 'character' as const })),
   ...CAR_MODELS.map(model => ({ id: `car-${model.id}`, status: 'prototype' as const, sourcePath: `public${model.url}`, license: null, kind: 'vehicle' as const })),
+  ...BIKE_MODELS.flatMap(model => 'url' in model ? [{ id: `bike-${model.id}`, status: 'prototype' as const, sourcePath: `public${model.url}`, license: null, kind: 'vehicle' as const }] : []),
   { id: 'traveler-procedural-preview', status: 'prototype', sourcePath: 'src/game/player/ExplorerAvatar.tsx', license: 'Original project code', kind: 'character' },
   { id: 'bicycle-procedural-roadster-preview', status: 'prototype', sourcePath: 'src/game/vehicle/BicycleVisual.tsx', license: 'Original project code', kind: 'vehicle' },
   { id: 'regional-details-prototype', status: 'prototype', sourcePath: 'src/game/world/RegionalDetails.tsx', license: 'Original project code', kind: 'environment' },

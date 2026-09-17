@@ -37,7 +37,7 @@ export const SaveSchema = z.object({
   visitedLandmarkIds: z.array(z.string()).max(500), settings: SettingsSchema, updatedAt: z.string().datetime(),
 });
 export type SaveV1 = z.infer<typeof SaveSchema>;
-export interface PlayerSnapshot { position: Vec3; headingRad: number; speed: number; grounded: boolean; travelMode?: TravelMode; sprintLocked?: boolean; canInteract?: boolean; bicycle?: BicycleSave; interactionMessage?: string; nitroActive?: boolean; nitroRemaining?: number }
+export interface PlayerSnapshot { position: Vec3; headingRad: number; speed: number; grounded: boolean; travelMode?: TravelMode; sprintLocked?: boolean; canInteract?: boolean; bicycle?: BicycleSave; interactionMessage?: string; nitroActive?: boolean; nitroRemaining?: number; nitroAvailable?: boolean }
 export interface Landmark { id: string; zoneId: ZoneId; label: string; position: Vec3; discoveryRadiusM: number; iconId: string; description: string }
 export interface MapBounds { xMin: number; xMax: number; zMin: number; zMax: number }
 export interface ExplorerControllerProps {
@@ -52,6 +52,8 @@ export interface ExplorerControllerProps {
   carSpawnToken?: number;
   carModelId?: import('../content/assets/models').CarModelId;
   carColor?: string;
+  bikeSpawnToken?: number;
+  bikeModelId?: import('../content/assets/bikeProfiles').BikeModelId;
   onCarSpawnResult?: (result: { ok: boolean; message: string }) => void;
 }
 

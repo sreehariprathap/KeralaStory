@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
@@ -6,7 +6,8 @@ import type { ExplorerProfile } from '../../contracts';
 import { CHARACTER_MODELS } from '../../content/assets/models';
 import { ImportedAvatar } from './ImportedAvatar';
 
-export interface AvatarMotion { speed: number; grounded: boolean; riding?: boolean }
+/** `lean` is the forward torso pitch applied by the vehicle (radians); legs and arms compensate for it. */
+export interface AvatarMotion { speed: number; grounded: boolean; riding?: boolean; lean?: number; pedaling?: boolean }
 interface Props {
   profile: ExplorerProfile;
   moving?: boolean;
@@ -14,10 +15,14 @@ interface Props {
   speed?: number;
   grounded?: boolean;
   motion?: RefObject<AvatarMotion>;
+  /** Reports the rest-pose thigh pivot height (metres above the feet) so vehicles can seat the rider. */
+  onHipHeight?: (height: number) => void;
 }
 
 /** Original procedural proportion/animation preview; not the approved rigged GLB asset. Root at feet, forward +Z. */
-function ProceduralAvatar({ profile, moving = false, reducedMotion = false, speed, grounded = true, motion }: Props) {
+const PROCEDURAL_HIP_HEIGHT = 0.77;
+function ProceduralAvatar({ profile, moving = false, reducedMotion = false, speed, grounded = true, motion, onHipHeight }: Props) {
+  useEffect(() => { onHipHeight?.(PROCEDURAL_HIP_HEIGHT); }, [onHipHeight]);
   const leftArm = useRef<Group>(null);
   const rightArm = useRef<Group>(null);
   const leftLeg = useRef<Group>(null);
@@ -38,10 +43,11 @@ function ProceduralAvatar({ profile, moving = false, reducedMotion = false, spee
     stride.current += (amount - stride.current) * (1 - Math.exp(-12 * dt));
     const swing = Math.sin(phase.current) * stride.current;
     if(motion?.current.riding){
-      if(leftLeg.current)leftLeg.current.rotation.x=-.65+Math.sin(phase.current)*.3;
-      if(rightLeg.current)rightLeg.current.rotation.x=-.65-Math.sin(phase.current)*.3;
-      if(leftArm.current)leftArm.current.rotation.x=-1;
-      if(rightArm.current)rightArm.current.rotation.x=-1;
+      const lean=motion.current.lean??0,pedal=motion.current.pedaling===false?0:Math.sin(phase.current)*.3;
+      if(leftLeg.current)leftLeg.current.rotation.x=-.65-lean+pedal;
+      if(rightLeg.current)rightLeg.current.rotation.x=-.65-lean-pedal;
+      if(leftArm.current)leftArm.current.rotation.x=-1-lean*1.2;
+      if(rightArm.current)rightArm.current.rotation.x=-1-lean*1.2;
       if(torso.current)torso.current.position.y=0;
       return;
     }
@@ -90,7 +96,7 @@ function ProceduralAvatar({ profile, moving = false, reducedMotion = false, spee
         <mesh position={[0, -0.48, 0.012]} scale={[0.061, 0.08, 0.044]} castShadow><sphereGeometry args={[1, 8, 6]} /><meshToonMaterial color={skin} /></mesh>
       </group>)}
     </group>
-    {[-1, 1].map(side => <group key={side} ref={side < 0 ? leftLeg : rightLeg} position={[side * 0.105, 0.77, 0]}>
+    {[-1, 1].map(side => <group key={side} ref={side < 0 ? leftLeg : rightLeg} position={[side * 0.105, PROCEDURAL_HIP_HEIGHT, 0]}>
       <mesh position={[0, -0.265, 0]} castShadow><capsuleGeometry args={[0.093, 0.39, 4, 8]} /><meshToonMaterial color="#e0cfaa" /></mesh>
       <mesh position={[0, -0.602, 0]} castShadow><cylinderGeometry args={[0.066, 0.057, 0.16, 8]} /><meshToonMaterial color={skin} /></mesh>
       <mesh position={[0, -0.714, 0.046]} scale={[0.079, 0.053, 0.135]} castShadow><sphereGeometry args={[1, 10, 6]} /><meshToonMaterial color="#513e2e" /></mesh>
@@ -103,7 +109,7 @@ function ProceduralAvatar({ profile, moving = false, reducedMotion = false, spee
 export function ExplorerAvatar(props: Props) {
   const modelId = props.profile.characterModelId;
   if (modelId && CHARACTER_MODELS.some((model) => model.id === modelId)) {
-    return <ImportedAvatar modelId={modelId} motion={props.motion} />;
+    return <ImportedAvatar modelId={modelId} motion={props.motion} onHipHeight={props.onHipHeight} />;
   }
   return <ProceduralAvatar {...props} />;
 }

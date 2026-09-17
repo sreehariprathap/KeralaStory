@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useMemo, type RefObject } from 'react';
 import { useFrame, useLoader } from '@react-three/fiber';
-import { Box3, Group, Vector3 } from 'three';
+import { Box3, Group, Vector3, type Object3D } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone } from 'three/addons/utils/SkeletonUtils.js';
 import { createNickAnimation, type CharacterRig } from '../player/nickAnimation';
@@ -12,14 +12,19 @@ import { applyVehicleMaterials, removeHiddenVehicleNodes } from '../vehicle/vehi
 import { configureLegacyAssetMaterials } from './legacyAssetMaterials';
 import { VEHICLE_PROFILES } from '../../content/assets/vehicleProfiles';
 
-interface Props { url: string; height?: number; length?: number; rotationY?: number; name?: string; motion?: RefObject<AvatarMotion>; animation?: CharacterRig; carModel?: CarModelId; carMotion?: RefObject<CarMotion>; carColor?: string }
+interface Props { url: string; height?: number; length?: number; rotationY?: number; name?: string; motion?: RefObject<AvatarMotion>; animation?: CharacterRig; carModel?: CarModelId; carMotion?: RefObject<CarMotion>; carColor?: string; hiddenNodes?: readonly string[]; onHipHeight?: (height: number) => void }
 
-function LoadedModel({ url, height, length, rotationY = 0, name, motion, animation, carModel, carMotion, carColor }: Props) {
+function LoadedModel({ url, height, length, rotationY = 0, name, motion, animation, carModel, carMotion, carColor, hiddenNodes, onHipHeight }: Props) {
   const gltf = useLoader(GLTFLoader, url, configureLegacyAssetMaterials);
   const { model, animator, wheelAnimator, ownedMaterials, paintMaterials } = useMemo(() => {
     const root = new Group();
     const scene = clone(gltf.scene);
     if (carModel) removeHiddenVehicleNodes(scene, carModel);
+    if (hiddenNodes?.length) {
+      const doomed: Object3D[] = [];
+      scene.traverse(object => { if (hiddenNodes.includes(object.name)) doomed.push(object); });
+      doomed.forEach(object => object.removeFromParent());
+    }
     const { owned: ownedMaterials, paint: paintMaterials } = carModel ? applyVehicleMaterials(scene, carModel) : { owned: [], paint: [] };
     scene.rotation.y += rotationY;
     root.add(scene);
@@ -39,7 +44,8 @@ function LoadedModel({ url, height, length, rotationY = 0, name, motion, animati
     const wheelAnimator = carModel ? createCarWheelAnimation(root, carModel) : null;
     animator?.update(0, { speed: 0, grounded: true });
     return { model: root, animator, wheelAnimator, ownedMaterials, paintMaterials };
-  }, [gltf.scene, height, length, rotationY, url, animation, carModel]);
+  }, [gltf.scene, height, length, rotationY, url, animation, carModel, hiddenNodes]);
+  useEffect(() => { if (animator) onHipHeight?.(animator.hipHeight); }, [animator, onHipHeight]);
   useEffect(() => () => ownedMaterials.forEach(material => material.dispose()), [ownedMaterials]);
   useEffect(() => { if (carColor) paintMaterials.forEach(material => material.color.set(carColor)); }, [carColor, paintMaterials]);
   useFrame((_, delta) => {

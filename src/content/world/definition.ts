@@ -246,8 +246,8 @@ export function isCarTerrainAllowed(x: number, z: number): boolean {
 /** Vehicle callers must check the intended position before movement or mounting. */
 export function isTravelAllowed(mode:TravelMode,x:number,z:number):boolean {
   if(mode==='foot')return (hasGroundAt(x,z)&&!isWater(x,z)) || isOnWalkableDeck(x,z);
-  if(mode==='car')return isCarTerrainAllowed(x,z);
-  return isCycleAllowed(x,z);
+  // Bikes ride anywhere a car can; isCycleAllowed still describes the paved network.
+  return isCarTerrainAllowed(x,z);
 }
 
 export const WALKING_DETOURS = [
