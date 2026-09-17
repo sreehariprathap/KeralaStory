@@ -1,0 +1,26 @@
+# Cache policy for static hosts that read _headers (Netlify, Cloudflare Pages).
+# Other hosts: apply the same rules in their config.
+
+# Content-hashed bundles never change.
+/app/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# The shell and the worker must always be revalidated so updates arrive.
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+/sw.js
+  Cache-Control: no-cache
+/manifest.webmanifest
+  Cache-Control: no-cache
+  Content-Type: application/manifest+json
+/asset-hashes.json
+  Cache-Control: no-cache
+
+# World assets keep stable URLs; the service worker caches them by content hash.
+# Browsers without it revalidate cheaply with ETag after a day.
+/assets/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/park/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800

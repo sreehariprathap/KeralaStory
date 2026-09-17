@@ -1,0 +1,55 @@
+@import url('/src/ui/tokens.css');
+
+:root { --line: #b6a985; --muted: #68776b; --existing: #94a096; --proposed: #bd6746; }
+body { margin: 0; min-width: 320px; background: #e7dcc2; color: var(--ink); font-family: "Noto Sans", system-ui, sans-serif; }
+.review-shell { width: min(1540px, 100%); margin: 0 auto; padding: clamp(1rem, 3vw, 3rem); }
+.review-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 2rem; padding: .2rem 0 1.5rem; border-bottom: 1px solid color-mix(in srgb, var(--ink) 25%, transparent); }
+.eyebrow { margin: 0 0 .4rem; color: var(--forest); font-size: .72rem; font-weight: 800; letter-spacing: .14em; }
+h1 { margin: 0; font-size: clamp(1.8rem, 3.5vw, 3.25rem); letter-spacing: -.035em; }
+h1 span { color: var(--forest); font-weight: 400; }
+.lede { margin: .45rem 0 0; color: var(--muted); }
+.status-stamp { padding: .55rem .75rem; border: 1px solid var(--line); color: var(--forest); font-size: .76rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.status-stamp span { display: inline-block; width: .55rem; height: .55rem; margin-right: .35rem; border-radius: 50%; background: var(--terracotta); }
+.review-grid { display: grid; grid-template-columns: minmax(0, 1fr) 19rem; gap: 1.5rem; padding-top: 1.5rem; }
+.map-frame { min-width: 0; border: 1px solid var(--line); background: #d5dbc9; box-shadow: 0 1rem 2.5rem rgb(36 56 46 / 10%); }
+.map-toolbar, .map-keyline { display: flex; justify-content: space-between; gap: 1rem; padding: .65rem .8rem; color: var(--muted); font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; }
+.map-toolbar { border-bottom: 1px solid rgb(36 56 46 / 15%); }
+.map-keyline { border-top: 1px solid rgb(36 56 46 / 15%); }
+.review-map { display: block; width: 100%; height: min(74vh, 760px); min-height: 480px; }
+.map-ground { fill: #d5dbc9; }
+.coastline { fill: none; stroke: #809b91; stroke-width: 3; stroke-dasharray: 10 7; opacity: .7; }
+.existing-route { fill: none; stroke: var(--existing); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; opacity: .65; }
+.expansion-route { stroke-width: 2; opacity: .42; }
+.river-reach { fill: none; stroke: var(--river); stroke-linecap: round; stroke-linejoin: round; opacity: .76; }
+.river-waterfall { stroke: #5cbbc1; opacity: .9; }
+.river-pool { stroke: #67c5c6; opacity: .82; }
+.flow-arrow { fill: none; stroke: #f6f1db; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; opacity: .95; }
+.proposed-road { fill: none; stroke: var(--proposed); stroke-width: 3; stroke-dasharray: 10 6; stroke-linecap: round; stroke-linejoin: round; opacity: .95; vector-effect: non-scaling-stroke; }
+.town-footprint { stroke-width: 2; stroke-linejoin: round; }
+.proposed-town { fill: rgb(189 103 70 / 18%); stroke: var(--proposed); }
+.existing-town { fill: rgb(148 160 150 / 22%); stroke: var(--existing); }
+.tier-a { stroke-width: 3; }.tier-b { stroke-width: 2.5; }.tier-c { stroke-width: 2; }
+.park-footprint { fill: rgb(130 169 82 / 33%); stroke: var(--forest); stroke-width: 2; }
+.pool-footprint { fill: rgb(75 166 178 / 55%); stroke: var(--river); stroke-width: 2; }
+.map-label, .tier-label, .map-marker text, .summit-marker text { paint-order: stroke; stroke: #d5dbc9; stroke-width: 5px; stroke-linejoin: round; }
+.river-label { font-size: 13px; font-style: italic; fill: #2c7f8a; }
+.park-label, .pool-label { text-anchor: middle; font-size: 14px; font-weight: 800; fill: var(--forest); }
+.pool-label { font-size: 11px; fill: #267d88; }
+.town-label { text-anchor: middle; font-size: 15px; font-weight: 800; }
+.tier-label { text-anchor: middle; font-size: 10px; letter-spacing: .12em; fill: var(--muted); stroke-width: 4px; }
+.region-label { font-size: 17px; font-weight: 800; letter-spacing: .18em; fill: #607c6c; opacity: .75; }
+.harbor-label { font-size: 13px; fill: var(--forest); text-anchor: end; }
+.map-marker circle { r: 3.4px; fill: var(--ink); stroke: #d5dbc9; stroke-width: 2px; }
+.existing-landmark { opacity: .56; }.harbor-marker { opacity: 1; }.harbor-marker circle { fill: var(--terracotta); }
+.map-marker text { font-size: 12px; fill: var(--ink); }
+.summit-marker path { fill: var(--gold); stroke: var(--forest); stroke-width: 1.5px; }.summit-marker text { font-size: 14px; font-weight: 800; }
+.review-sidebar { display: flex; flex-direction: column; gap: 1.25rem; }
+.review-sidebar section { padding: 1rem 0; border-top: 1px solid var(--line); }
+.review-sidebar h2 { margin: 0 0 .7rem; font-family: "Noto Sans", system-ui, sans-serif; font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; }
+.legend-list, .toggle-section { display: grid; gap: .6rem; }
+.legend-list span, .toggle-section label { display: flex; align-items: center; gap: .6rem; color: #516258; font-size: .86rem; }
+.swatch { display: inline-block; width: 1.4rem; height: .6rem; border: 2px solid; }.swatch.town { border-color: var(--proposed); background: rgb(189 103 70 / 20%); }.swatch.road { border-color: var(--proposed); border-style: dashed; }.swatch.river { border-color: var(--river); background: var(--river); }.swatch.park { border-color: var(--forest); background: var(--leaf); }.swatch.existing { border-color: var(--existing); }
+.notes-section ul, .prompts-section ol { margin: 0; padding-left: 1.2rem; color: #516258; font-size: .86rem; }.notes-section li, .prompts-section li { margin: .5rem 0; }
+input { accent-color: var(--forest); }
+@media (max-width: 850px) { .review-header { align-items: flex-start; flex-direction: column; gap: .8rem; }.review-grid { grid-template-columns: 1fr; }.review-sidebar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1.25rem; }.review-sidebar .prompts-section { grid-column: 1 / -1; } }
+@media (max-width: 560px) { .review-shell { padding: .8rem; }.review-map { min-height: 360px; height: 60vh; }.map-toolbar, .map-keyline { font-size: .62rem; }.map-keyline span:last-child { display: none; }.review-sidebar { display: block; } }

@@ -6,10 +6,11 @@ import { ModelAsset } from '../render/ModelAsset';
 interface ImportedAvatarProps {
   modelId: string;
   motion?: RefObject<AvatarMotion>;
+  onHipHeight?: (height: number) => void;
 }
 
 /** Runtime character asset selected from the profile model catalog. */
-export function ImportedAvatar({ modelId, motion }: ImportedAvatarProps) {
+export function ImportedAvatar({ modelId, motion, onHipHeight }: ImportedAvatarProps) {
   const model = CHARACTER_MODELS.find((candidate) => candidate.id === modelId);
   if (!model) return null;
   return (
@@ -18,7 +19,9 @@ export function ImportedAvatar({ modelId, motion }: ImportedAvatarProps) {
       name={model.name}
       height={1.7}
       motion={motion}
-      animation={model.id === 'nick' || model.id === 'kid-boy' || model.id === 'little-girl' || model.id === 'uniform' ? model.id : ['anime-boy', 'friendly-anime-boy'].includes(model.id) ? 'generic' : 'static'}
+      animation={model.rig}
+      rotationY={model.rotationY}
+      onHipHeight={onHipHeight}
     />
   );
 }

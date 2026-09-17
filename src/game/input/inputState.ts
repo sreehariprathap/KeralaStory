@@ -10,12 +10,13 @@ export interface ExplorerInput {
   lookX: number;
   lookY: number;
   dragging: boolean;
+  movementAzimuth: number | null;
 }
 
 export const GAME_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'ShiftLeft', 'ShiftRight', 'Space', 'KeyQ', 'KeyE', 'KeyF', 'KeyR']);
 
 export function createInputState(): ExplorerInput {
-  return { move: {x:0,forward:0}, source:null, sprintLocked:false, interactQueued:false, brake:false, keys: new Set(), jumpQueued: false, lookX: 0, lookY: 0, dragging: false };
+  return { move: {x:0,forward:0}, source:null, sprintLocked:false, interactQueued:false, brake:false, keys: new Set(), jumpQueued: false, lookX: 0, lookY: 0, dragging: false, movementAzimuth: null };
 }
 
 export function clearInput(input: ExplorerInput): void {
@@ -29,6 +30,7 @@ export function clearInput(input: ExplorerInput): void {
   input.lookX = 0;
   input.lookY = 0;
   input.dragging = false;
+  input.movementAzimuth = null;
 }
 
 export function pressKey(input: ExplorerInput, code: string, repeat: boolean): void {
@@ -61,7 +63,10 @@ export function createInputCommands(input: ExplorerInput, enabled: () => boolean
       if (!enabled()) return;
       if (!Number.isFinite(x) || !Number.isFinite(forward)) return;
       const length = Math.max(1, Math.hypot(x, forward));
+      // A key added or released (W+D after D) is a new direction relative to the camera the player sees now.
+      const keysChanged = source === 'keyboard' && (input.move.x !== x / length || input.move.forward !== forward / length);
       input.move = {x:x/length,forward:forward/length};
+      if (input.source !== source || keysChanged || (!x && !forward && !input.sprintLocked)) input.movementAzimuth = null;
       input.source = source;
       if (forward < -.2) input.sprintLocked = false;
     },
@@ -78,7 +83,7 @@ export function createInputCommands(input: ExplorerInput, enabled: () => boolean
     setBrake(held) { input.brake = enabled() && held; if (held) input.sprintLocked = false; },
     clear(source) {
       if (!source) { clearInput(input); return; }
-      if (input.source === source) { input.source=null; input.move={x:0,forward:0}; }
+      if (input.source === source) { input.source=null; input.move={x:0,forward:0}; input.movementAzimuth=null; }
       if (source === 'keyboard') input.keys.clear();
       input.sprintLocked=false; input.jumpQueued=false; input.interactQueued=false; input.brake=false;
       input.lookX=0; input.lookY=0;
@@ -96,4 +101,11 @@ export function readMovement(input: ExplorerInput, azimuth: number) {
   return {x:(right*Math.cos(azimuth)-forward*Math.sin(azimuth))/length,
     z:(-right*Math.sin(azimuth)-forward*Math.cos(azimuth))/length,
     running:input.sprintLocked||input.keys.has('ShiftLeft')||input.keys.has('ShiftRight')};
+}
+
+/** Keep a held gesture in world space while the camera swings behind it. */
+export function readFollowMovement(input: ExplorerInput, cameraAzimuth: number) {
+  if (!input.move.x && !input.move.forward && !input.sprintLocked) input.movementAzimuth = null;
+  else input.movementAzimuth ??= cameraAzimuth;
+  return readMovement(input, input.movementAzimuth ?? cameraAzimuth);
 }

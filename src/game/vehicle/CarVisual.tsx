@@ -9,11 +9,12 @@ export interface CarVisualProps {
   motion?: RefObject<CarMotion>;
   active?: boolean;
   reducedMotion?: boolean;
+  color?: string;
 }
-export function CarVisual({ modelId = 'admin', motion, active = false, reducedMotion = false }: CarVisualProps) {
+export function CarVisual({ modelId = 'admin', motion, active = false, reducedMotion = false, color }: CarVisualProps) {
   const model = CAR_MODELS.find(candidate => candidate.id === modelId) ?? CAR_MODELS[0];
   return <group>
-    <ModelAsset key={model.id} url={model.url} length={3.8} rotationY={model.rotationY} name={`car-${model.id}`} carModel={model.id} carMotion={motion}/>
+    <ModelAsset key={model.id} url={model.url} length={3.8} rotationY={model.rotationY} name={`car-${model.id}`} carModel={model.id} carMotion={motion} carColor={color}/>
     {motion && <CarExhaust motion={motion} active={active} reducedMotion={reducedMotion} position={[.5,.32,model.id === 'admin' ? -1.5 : -1.9]}/>}
   </group>;
 }

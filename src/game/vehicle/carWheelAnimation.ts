@@ -1,24 +1,15 @@
 import { Box3, Group, Object3D, Vector3 } from 'three';
 import type { CarModelId } from '../../content/assets/models';
 import type { CarMotion } from './carPhysics';
+import { VEHICLE_PROFILES } from '../../content/assets/vehicleProfiles';
 
-type WheelSpec = readonly string[];
-const WHEEL_NAMES: Record<CarModelId, readonly WheelSpec[]> = {
-  admin: [
-    ['Front_wheel_Black_0', 'Front_wheel_Light_black_0'],
-    ['Front_wheel001_Black_0', 'Front_wheel001_Light_black_0'],
-    ['Rear_wheel_Black_0', 'Rear_wheel_Light_black_0'],
-    ['Rear_wheel001_Black_0', 'Rear_wheel001_Light_black_0'],
-  ],
-  muscle: [['Object_21', 'Object_22', 'Object_23'], ['Object_13', 'Object_14', 'Object_15'], ['Object_17', 'Object_18', 'Object_19'], ['Object_25', 'Object_26', 'Object_27']],
-};
 
 export interface CarWheelAnimator { update(motion?: CarMotion): void }
 
 /** Reparents wheel meshes under steering/spin pivots without changing their world pose. */
 export function createCarWheelAnimation(root: Group, model: CarModelId): CarWheelAnimator {
   root.updateMatrixWorld(true);
-  const names = WHEEL_NAMES[model];
+  const names = VEHICLE_PROFILES[model].wheels.map(wheel => wheel.nodes);
   const wheels: ({ steering: Group; spin: Group; baseY: number; front: boolean } | null)[] = Array(names.length).fill(null);
   const scaleY = root.scale.y || 1;
   const sourceByName = new Map<string, Object3D>();

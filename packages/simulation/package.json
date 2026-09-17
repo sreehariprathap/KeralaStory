@@ -1,0 +1,14 @@
+{
+  "name": "@kerala-story/simulation",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "0.19.2",
+    "@kerala-story/protocol": "0.1.0"
+  }
+}

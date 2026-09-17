@@ -2,7 +2,7 @@
 
 The game uses `kid_boy_rigged.glb`, `the_little_girl_rigged.glb` and `arms_out_in_uniform_rigged.glb`. The supplied originals remain unchanged.
 
-Rebuild the derived assets with `node scripts/rig-characters.mjs`. The generator preserves texture bytes, UVs and materials, bakes the original node transforms into a centered 1.7 m mesh with feet at Y=0, and adds 13 bones with normalized skin weights. Normals and tangents are transformed with the mesh, including tangent handedness for reflected transforms. Unused source geometry streams are removed from the derived binary.
+Rebuild the derived assets with `node scripts/rig-characters.mjs` (pass source file names to rebuild only those). `lionel_messi_qatar_2022_rigged.glb` (Messi, T-pose, realistic proportions) uses the same generator and kicks left-footed in the football poses. The generator preserves texture bytes, UVs and materials, bakes the original node transforms into a centered 1.7 m mesh with feet at Y=0, and adds 13 bones with normalized skin weights. Normals and tangents are transformed with the mesh, including tangent handedness for reflected transforms. Unused source geometry streams are removed from the derived binary.
 
 Each side has hip, knee, ankle, shoulder, elbow and wrist bones, beneath one stationary root. Joints are fitted separately to each source model. Kid boy's initial arm slope needs a smaller resting shoulder rotation than Little girl's T pose. Little girl's skirt uses a broad, low-weight blend between the hips and the root rather than dividing the garment rigidly between the legs.
 

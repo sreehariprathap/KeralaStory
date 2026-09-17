@@ -1,0 +1,10 @@
+import { Suspense, useEffect, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { Canvas, useThree } from '@react-three/fiber';
+import { Physics } from '@react-three/rapier';
+import { KeralaWorld } from './src/game/world/KeralaWorld';
+import { terrainHeight } from './src/content/world/definition';
+const views={Falls:[47,-385,-30,14,7,7],Hillside:[31,-278,-17,7,20,3],Temple:[25,-238,-35,12,23,5],Shops:[13,-28,-17,6,22,3],Lighthouse:[65,54,-17,7,22,7],Harbor:[63,73,-17,7,19,3]};
+function Camera({view}:{view:keyof typeof views}){const {camera}=useThree();useEffect(()=>{const [x,z,dx,dy,dz,ty]=views[view],y=terrainHeight(x,z);camera.position.set(x+dx,y+dy,z+dz);camera.lookAt(x,y+ty,z);},[camera,view]);return null;}
+function Review(){const [view,setView]=useState<keyof typeof views>('Falls'),[quality,setQuality]=useState<'low'|'medium'|'high'>('medium'),[animated,setAnimated]=useState(true);return <><nav><label>View <select aria-label="Review view" value={view} onChange={e=>setView(e.target.value as keyof typeof views)}>{Object.keys(views).map(v=><option key={v}>{v}</option>)}</select></label><label>Quality <select aria-label="Review quality" value={quality} onChange={e=>setQuality(e.target.value as typeof quality)}><option>low</option><option>medium</option><option>high</option></select></label><label><input type="checkbox" checked={animated} onChange={e=>setAnimated(e.target.checked)}/> Animate water</label></nav><Canvas camera={{fov:52,near:.1,far:480}} dpr={1} gl={{preserveDrawingBuffer:true}}><color attach="background" args={['#c6dbd2']}/><fog attach="fog" args={['#c6dbd2',95,285]}/><ambientLight intensity={.7} color="#dbe5d6"/><hemisphereLight args={['#e3efd6','#657952',1.35]}/><directionalLight position={[-55,180,-400]} intensity={2.2} color="#fff0cd"/><Camera view={view}/><Suspense fallback={null}><Physics paused colliders={false}><KeralaWorld quality={quality} animated={animated}/></Physics></Suspense></Canvas></>};
+createRoot(document.getElementById('root')!).render(<Review/>);

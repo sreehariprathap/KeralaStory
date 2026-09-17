@@ -1,0 +1,22 @@
+{
+  "name": "@kerala-story/server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@colyseus/core": "0.18.14",
+    "@colyseus/schema": "5.0.32",
+    "@colyseus/ws-transport": "0.18.2",
+    "@kerala-story/protocol": "0.1.0",
+    "@kerala-story/simulation": "0.1.0",
+    "express": "5.1.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.6"
+  }
+}

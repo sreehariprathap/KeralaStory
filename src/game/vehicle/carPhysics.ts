@@ -4,18 +4,19 @@ import type { Vec3 } from '../../contracts';
 import { FEET_TO_CENTER } from '../player/controllerMath';
 import type { CarIntent } from './carMotor';
 import { createNitroState, stepNitro } from './carNitro';
+import { VEHICLE_PROFILES } from '../../content/assets/vehicleProfiles';
 
 export const CAR_MASS_KG = 1100;
-export const CAR_SUSPENSION_REST = .28;
+export const CAR_SUSPENSION_REST = .32;
+export const DEFAULT_TOP_SPEED = 8;
+const NITRO_EXTRA_SPEED = 12;
+const SPEED_LIMIT_FADE = 1.5;
 export interface CarMotion {
   speed: number; signedSpeed: number; throttle: number; grounded: boolean;
   nitroActive: boolean; nitroRemaining: number;
   wheelRotation: number[]; wheelSteering: number[]; wheelOffset: number[];
 }
-export const CAR_WHEELS = {
-  admin: [{x:.771,z:1.022,radius:.274,y:.274},{x:-.771,z:1.022,radius:.274,y:.274},{x:.771,z:-.534,radius:.302,y:.302},{x:-.771,z:-.534,radius:.302,y:.302}],
-  muscle: [{x:.65,z:1.095,radius:.258,y:.258},{x:-.65,z:1.095,radius:.258,y:.258},{x:.65,z:-1.059,radius:.258,y:.288},{x:-.65,z:-1.059,radius:.258,y:.288}],
-} as const;
+export const CAR_WHEELS = Object.fromEntries(Object.entries(VEHICLE_PROFILES).map(([id, profile]) => [id, profile.wheels])) as Record<CarModelId, typeof VEHICLE_PROFILES.admin.wheels>;
 export function createCarMotion(): CarMotion {
   return {speed:0,signedSpeed:0,throttle:0,grounded:false,nitroActive:false,nitroRemaining:0,wheelRotation:[0,0,0,0],wheelSteering:[0,0,0,0],wheelOffset:[0,0,0,0]};
 }
@@ -24,9 +25,11 @@ export function createCarMotion(): CarMotion {
 export function createCarPhysics(world: World, feet: Vec3, heading: number, model: CarModelId) {
   const yaw = Math.PI-heading;
   const body = world.createRigidBody(RigidBodyDesc.dynamic().setTranslation(feet[0],feet[1]+FEET_TO_CENTER,feet[2])
-    .setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)}).setCcdEnabled(true).setLinearDamping(.12).setAngularDamping(1.8)
+    .setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)}).setCcdEnabled(true).setLinearDamping(.12).setAngularDamping(6)
     .setAdditionalMassProperties(CAR_MASS_KG,{x:0,y:-.32,z:0},{x:1050,y:1650,z:850},{x:0,y:0,z:0,w:1}));
-  const chassis = model === 'admin' ? {x:.65,y:.58,z:1.45,offset:.20} : {x:.78,y:.38,z:1.78,offset:-.08};
+  // Keep a compact collision belly above the tyres' working travel on uneven tracks.
+  const chassis = VEHICLE_PROFILES[model].chassis;
+  const topSpeed = VEHICLE_PROFILES[model].topSpeed ?? DEFAULT_TOP_SPEED;
   world.createCollider(ColliderDesc.cuboid(chassis.x,chassis.y,chassis.z).setTranslation(0,chassis.offset,0).setDensity(0).setFriction(.4).setRestitution(.03),body);
   // Vehicle suspension reads mass before the first world step.
   body.recomputeMassPropertiesFromColliders();
@@ -37,12 +40,12 @@ export function createCarPhysics(world: World, feet: Vec3, heading: number, mode
     // Compensate for static spring compression under the shared world gravity.
     const sag=Math.abs(world.gravity.y)/(4*150);
     vehicle.addWheel({x:wheel.x,y:wheel.radius+CAR_SUSPENSION_REST-sag-FEET_TO_CENTER,z:wheel.z},{x:0,y:-1,z:0},{x:-1,y:0,z:0},CAR_SUSPENSION_REST,wheel.radius);
-    vehicle.setWheelSuspensionStiffness(i,150);
+    vehicle.setWheelSuspensionStiffness(i,350);
     vehicle.setWheelSuspensionCompression(i,8);
     vehicle.setWheelSuspensionRelaxation(i,12);
-    vehicle.setWheelMaxSuspensionTravel(i,.20);
-    vehicle.setWheelMaxSuspensionForce(i,30000);
-    vehicle.setWheelFrictionSlip(i,2.2);
+    vehicle.setWheelMaxSuspensionTravel(i,.60);
+    vehicle.setWheelMaxSuspensionForce(i,60000);
+    vehicle.setWheelFrictionSlip(i,3.6);
     vehicle.setWheelSideFrictionStiffness(i,1);
   });
   const motion=createCarMotion();
@@ -70,20 +73,44 @@ export function createCarPhysics(world: World, feet: Vec3, heading: number, mode
       motion.nitroRemaining=nitro.remaining;
       if(occupied&&(throttle!==0||intent.steer!==0))body.wakeUp();
       const speed=motion.signedSpeed;
-      let brake=!occupied||intent.brake, force=0;
+      let brake=!occupied||intent.brake || (throttle === 0 && Math.abs(intent.steer) < .05), force=0;
       if(throttle===0&&Math.abs(speed)<.25) reverseArmed=true;
-      if(throttle>0) {if(speed<-.3)brake=true;else if(speed<(nitro.active?20:14))force=4400*throttle*nitro.multiplier;reverseArmed=false;}
-      if(throttle<0) {if(speed>.25){brake=true;reverseArmed=false;}else if(reverseArmed&&speed>-4)force=2600*throttle;else brake=true;}
+      // Low gearing supplies wheel torque against the world's 20 m/s² gravity.
+      // Force still goes through tyre contact: no velocity/position overrides,
+      // artificial uphill lift, or traction while airborne.
+      const driveForce=36000-18000*Math.min(1,Math.abs(speed)/10);
+      const maxDriveSpeed = nitro.active ? topSpeed + NITRO_EXTRA_SPEED : topSpeed;
+      // Fade force out over the last stretch below the cap. A hard on/off cutoff toggles full
+      // torque every few steps at top speed, which rocks the chassis (visible as vibration).
+      const limiter = Math.min(1, Math.max(0, (maxDriveSpeed - speed) / SPEED_LIMIT_FADE));
+      if(throttle>0) {if(speed<-.3)brake=true;else force=driveForce*throttle*nitro.multiplier*limiter;reverseArmed=false;}
+      if(throttle<0) {if(speed>.25){brake=true;reverseArmed=false;}else if(reverseArmed&&speed>-4)force=30000*throttle;else brake=true;}
       if(intent.brake){force=0;reverseArmed=false;}
       motion.throttle=occupied&&!brake?Math.abs(throttle):0;
-      const target=occupied?-Math.max(-1,Math.min(1,intent.steer))*(.5-.23*Math.min(1,Math.abs(speed)/(nitro.active?20:14))):0;
+      const target=occupied?-Math.max(-1,Math.min(1,intent.steer))*(.5-.23*Math.min(1,Math.abs(speed)/(nitro.active?maxDriveSpeed:topSpeed+6))):0;
       steering+=(target-steering)*(1-Math.exp(-8*dt));
       for(let i=0;i<4;i++) {
         vehicle.setWheelSteering(i,i<2?steering:0);
         vehicle.setWheelEngineForce(i,brake?0:force/4);
-        vehicle.setWheelBrake(i,brake?CAR_MASS_KG*9*dt/4:throttle===0?CAR_MASS_KG*.5*dt/4:0);
+        vehicle.setWheelBrake(i,brake?CAR_MASS_KG*(occupied?24:100)*dt/4:throttle===0?CAR_MASS_KG*.5*dt/4:0);
       }
       vehicle.updateVehicle(dt,QueryFilterFlags.EXCLUDE_SENSORS,undefined,candidate=>candidate.parent()?.handle!==body.handle);
+      // A straight input should not accumulate a tiny yaw from asymmetric
+      // suspension contacts. Preserve pitch/roll for slopes, while removing
+      // lateral drift so a car tracks the road it is facing.
+      if (Math.abs(intent.steer) < 1e-4) {
+        const q = body.rotation(), v = body.linvel();
+        const forwardX = 2 * (q.x * q.z + q.w * q.y), forwardZ = 1 - 2 * (q.x * q.x + q.y * q.y);
+        const length = Math.hypot(forwardX, forwardZ) || 1;
+        const fx = forwardX / length, fz = forwardZ / length, along = v.x * fx + v.z * fz;
+        body.setLinvel({ x: fx * along, y: v.y, z: fz * along }, true);
+        const angular = body.angvel();
+        body.setAngvel({ x: angular.x, y: 0, z: angular.z }, true);
+      }
+      if (throttle === 0 && Math.abs(intent.steer) < .05) {
+        const parkedVelocity = body.linvel();
+        body.setLinvel({ x: 0, y: Math.abs(parkedVelocity.y) < 0.15 ? 0 : parkedVelocity.y, z: 0 }, true);
+      }
     },
     dispose(){world.removeVehicleController(vehicle);world.removeRigidBody(body);},
   };

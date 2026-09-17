@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { GameSettings, InputMode, PlayerSnapshot } from '../../contracts';
-import { getZoneAt } from '../../content/world/definition';
+import { getZoneAtPosition } from '../../content/world/definition';
 import { audioLevel, DEFAULT_BGM_PATH } from './audioPolicy';
 
 interface Graph {context:AudioContext;master:GainNode;filter:BiquadFilterNode;source:MediaElementAudioSourceNode;audio:HTMLAudioElement;wheel:OscillatorNode;wheelGain:GainNode}
@@ -14,7 +14,7 @@ export function AudioDirector({settings,mode,player}:{settings:GameSettings;mode
    if(level>0&&g.audio.paused)void g.audio.play().catch(()=>{});
    if(level===0&&!g.audio.paused)g.audio.pause();
    g.master.gain.setTargetAtTime(level,now,.2);
-   const zone=getZoneAt(player.position[2]);g.filter.frequency.setTargetAtTime(zone==='kurumali'?1400:zone==='kodaly'?700:zone==='kadambode'?330:220,now,.8);
+   const zone=getZoneAtPosition(player.position[0],player.position[2]);g.filter.frequency.setTargetAtTime(zone==='kurumali'?1400:zone==='kodaly'?700:zone==='kadambode'?330:220,now,.8);
    g.wheelGain.gain.setTargetAtTime(player.travelMode==='bicycle'?Math.min(.035,player.speed*.004):0,now,.1);
    g.wheel.frequency.setTargetAtTime(38+player.speed*6,now,.1);
  };

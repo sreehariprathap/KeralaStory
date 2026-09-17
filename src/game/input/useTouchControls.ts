@@ -1,16 +1,16 @@
-import { useEffect, useMemo, useRef, type PointerEvent as ReactPointerEvent, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type PointerEvent as ReactPointerEvent, type KeyboardEvent } from 'react';
 import type { InputCommands } from '../../contracts';
 import { createTouchRouter, type TouchRole } from './touchRouter';
 /** DOM pointer adapter; controls supply visuals, this owns capture and cancellation. */
 export function useTouchControls(commands:InputCommands,enabled:boolean) {
   const router=useMemo(()=>createTouchRouter(commands),[commands]);
   const owners=useRef(new Map<number,HTMLElement>());
+  const cancel=useCallback(()=>{router.cancel();for(const [id,node] of owners.current){node.style.setProperty('--stick-x','0px');node.style.setProperty('--stick-y','0px');if(node.isConnected&&node.hasPointerCapture(id))node.releasePointerCapture(id);}owners.current.clear();},[router]);
   useEffect(()=>{
-    const cancel=()=>{router.cancel();for(const [id,node] of owners.current){node.style.setProperty('--stick-x','0px');node.style.setProperty('--stick-y','0px');if(node.hasPointerCapture(id))node.releasePointerCapture(id);}owners.current.clear();};
     if(!enabled)cancel();
     window.addEventListener('blur',cancel);window.addEventListener('orientationchange',cancel);
     return()=>{cancel();window.removeEventListener('blur',cancel);window.removeEventListener('orientationchange',cancel);};
-  },[router,enabled]);
+  },[cancel,enabled]);
   const bind=(role:TouchRole)=>({
     onPointerDown(e:ReactPointerEvent<HTMLElement>){
       if(!enabled)return;e.preventDefault();e.stopPropagation();
@@ -38,5 +38,5 @@ export function useTouchControls(commands:InputCommands,enabled:boolean) {
     onKeyUp(e:KeyboardEvent<HTMLButtonElement>){if(e.key===' '||e.key==='Enter'){e.preventDefault();router.end(-1);}},
     onBlur(){router.end(-1);},
   });
-  return {padHandlers:bind('move'),lookHandlers:bind('look'),directionHandlers};
+  return {padHandlers:bind('move'),lookHandlers:bind('look'),directionHandlers,cancel};
 }

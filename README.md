@@ -1,4 +1,4 @@
-# The Kerala Story
+# Kodassery Diaries
 
 The current build is a browser based third person exploration prototype set in
 Kerala around 2000. It has one connected procedural world with four regions:

@@ -17,7 +17,7 @@ const save: SaveV1 = {
     id: 'local', displayName: 'മലയാളി യാത്രികൻ', avatarPresetId: 'canopy',
     colors: { skin: '#ba805b', hair: '#292a25', clothing: '#285943' },
   }, position: [1, 2, 3], headingRad: 0, safeSpawnId: 'spawn', visitedLandmarkIds: [],
-  settings: { quality: 'medium', muted: false, volume: 0.5, reducedMotion: false, sensitivity: 1 },
+  settings: { quality: 'medium', muted: false, volume: 0.5, reducedMotion: false, sensitivity: 1, cameraControl: 'auto', touchOpacity: 0.75 },
   updatedAt: '2026-09-14T00:00:00.000Z',
 };
 
@@ -26,7 +26,7 @@ describe('local save repository', () => {
     const storage = new MemoryStorage();
     expect(writeLocalSave(save, storage).ok).toBe(true);
     expect(loadLocalSave(storage).save?.profile.displayName).toBe(save.profile.displayName);
-    expect(loadLocalSave(storage).save?.version).toBe(2);
+    expect(loadLocalSave(storage).save?.version).toBe(3);
     expect(loadLocalSave(storage).save?.locale).toBe('en');
     expect(loadLocalSave(storage).save?.bicycle).toBeNull();
   });
@@ -35,11 +35,19 @@ describe('local save repository', () => {
     const storage = new MemoryStorage();
     writeLocalSave(save, storage);
     const loaded = loadLocalSave(storage).save;
-    expect(loaded?.version).toBe(2);
+    expect(loaded?.version).toBe(3);
     expect(loaded?.visitedLandmarkIds).toEqual(save.visitedLandmarkIds);
   });
 
   it('returns null for missing save', () => expect(loadLocalSave(new MemoryStorage())).toEqual({ save: null, warning: null }));
+
+  it('defaults cameraControl to auto for a save recorded before the setting existed', () => {
+    const storage = new MemoryStorage();
+    const { cameraControl, ...settingsWithoutCameraControl } = save.settings;
+    void cameraControl;
+    storage.setItem('kerala-story:save:v1', JSON.stringify({ ...save, settings: settingsWithoutCameraControl }));
+    expect(loadLocalSave(storage).save?.settings.cameraControl).toBe('auto');
+  });
 
   it('recovers a valid backup when primary is corrupt', () => {
     const storage = new MemoryStorage();
@@ -52,16 +60,16 @@ describe('local save repository', () => {
 
   it('preserves future primary versions', () => {
     const storage = new MemoryStorage();
-    storage.setItem('kerala-story:save:v1', JSON.stringify({ version: 3, data: 'future' }));
+    storage.setItem('kerala-story:save:v1', JSON.stringify({ version: 4, data: 'future' }));
     expect(writeLocalSave(save, storage).ok).toBe(false);
-    expect(storage.getItem('kerala-story:save:v1')).toContain('"version":3');
+    expect(storage.getItem('kerala-story:save:v1')).toContain('"version":4');
   });
 
   it('recovers backup while preserving a future primary version', () => {
     const storage = new MemoryStorage();
     writeLocalSave(save, storage);
     writeLocalSave({ ...save, position: [4, 5, 6] }, storage);
-    const future = JSON.stringify({ version: 3, profile: { displayName: 'future' } });
+    const future = JSON.stringify({ version: 4, profile: { displayName: 'future' } });
     storage.setItem('kerala-story:save:v1', future);
     const result = loadLocalSave(storage);
     expect(result.save?.position).toEqual([1, 2, 3]);

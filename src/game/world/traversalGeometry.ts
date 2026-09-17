@@ -1,4 +1,4 @@
-import { BRIDGE_DECK_Y, BRIDGE_NORTH_Z, BRIDGE_RAMPS, BRIDGE_SOUTH_Z, BRIDGE_X, JETTY_DECK_Y, JETTY_RAMP, QUAY_SOUTH_RAMP, WATER_LEVEL, riverCenter, terrainHeight } from '../../content/world/definition';
+import { EXPANSION_GROUND, BRIDGE_DECK_Y, BRIDGE_NORTH_Z, BRIDGE_RAMPS, BRIDGE_SOUTH_Z, BRIDGE_X, JETTY_DECK_Y, JETTY_RAMP, QUAY_SOUTH_RAMP, WATER_LEVEL, riverCenter, terrainHeight } from '../../content/world/definition';
 import type { Vec3 } from '../../contracts';
 
 export interface TraversalBox { id: string; position: Vec3; size: Vec3; rotation: Vec3 }
@@ -24,18 +24,20 @@ export function traversalBoxes(): TraversalBox[] {
   const dy=JETTY_DECK_Y-JETTY_RAMP.landY, dx=JETTY_RAMP.deckX-JETTY_RAMP.landX;
   const angle=Math.atan2(dy,dx), thickness=.3;
   boxes.push(box('jetty-ramp',[(JETTY_RAMP.landX+JETTY_RAMP.deckX)/2+Math.sin(angle)*thickness/2,(JETTY_RAMP.landY+JETTY_DECK_Y)/2-Math.cos(angle)*thickness/2,76],[Math.hypot(dx,dy),thickness,3.5],[0,0,angle]));
+  const bridge=EXPANSION_GROUND.streamBridge;
+  boxes.push(box('chokkana-stream-deck',[bridge.position[0],bridge.position[1]-.3,bridge.position[2]],[bridge.widthM,.6,bridge.lengthM],[0,bridge.yawRad,0]));
   return boxes;
 }
 
 /** The exact mesh arrays used by both scene terrain colliders and route tests. */
 export function terrainMeshData(region: 'north' | 'south') {
-  const nx=region==='north'?54:83,nz=region==='north'?66:213;
+  if(region==='north')return EXPANSION_GROUND.originalNorthChunk;
+  const nx=83,nz=213;
   const vertices:number[]=[],indices:number[]=[];
   for(let j=0;j<=nz;j++)for(let i=0;i<=nx;i++) {
-    const x=region==='north'?-78+i/nx*166:-78+i*2;
+    const x=-78+i*2;
     let z:number;
-    if(region==='north') z=-499+j/nz*165;
-    else if(j<=102)z=-334+j*2;
+    if(j<=102)z=-334+j*2;
     else if(j<=110)z=-130+(riverCenter(x)-21+130)*(j-102)/8;
     else if(j<=131)z=riverCenter(x)-21+42*(j-110)/21;
     else if(j<=135)z=riverCenter(x)+21+(-64-riverCenter(x)-21)*(j-131)/4;

@@ -1,7 +1,7 @@
 import { Capsule, Cuboid, QueryFilterFlags, Ray } from '@dimforge/rapier3d-compat';
 import type { RigidBody, World } from '@dimforge/rapier3d-compat';
 import type { Vec3 } from '../../contracts';
-import { isWater, walkableDeckHeight } from '../../content/world/definition';
+import { isWater, isTravelAllowed, walkableDeckHeight } from '../../content/world/definition';
 import { CAPSULE_HALF_HEIGHT, CAPSULE_RADIUS, FEET_TO_CENTER, needsSafeReset } from '../player/controllerMath';
 
 const SUPPORT_REACH = 0.75;
@@ -16,6 +16,7 @@ const MIN_GROUND_NORMAL_Y = Math.cos(Math.PI / 4);
 export function resolveClearFeet(world: World, excludeBody: RigidBody | null | undefined, x: number, z: number, nearY: number, ride: boolean | 'car', heading: number): Vec3 | null {
   if (![x,z,nearY,heading].every(Number.isFinite)) return null;
   const vehicle = ride === 'car' ? 'car' : ride ? 'bicycle' : null;
+  if(vehicle && !isTravelAllowed(vehicle,x,z))return null;
   const angle = vehicle ? Math.PI - heading : 0;
   const rotation = {x:0,y:Math.sin(angle/2),z:0,w:Math.cos(angle/2)};
   const shape = vehicle === 'car' ? new Cuboid(.9,FEET_TO_CENTER,1.9) : vehicle ? new Cuboid(.38,FEET_TO_CENTER,.95) : new Capsule(CAPSULE_HALF_HEIGHT,CAPSULE_RADIUS);

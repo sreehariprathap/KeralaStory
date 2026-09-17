@@ -4,5 +4,7 @@ dist/
 *.log
 test-results/
 playwright-report/
+.worktrees/
 .env*
 !.env.example
+.asset-cache/

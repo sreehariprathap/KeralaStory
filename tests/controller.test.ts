@@ -43,11 +43,11 @@ describe('explorer input and movement contracts', () => {
       expect(needsSafeReset({ x, y: terrainHeight(x, z) + FEET_TO_CENTER, z })).toBe(false);
     }
   });
-  it('recovers submerged feet but allows bridge decks and airborne crossings above water', () => {
+  it('lets explorers swim in open water while keeping bridge decks and airborne crossings valid', () => {
     expect(needsSafeReset({ x: BRIDGE_X, y: BRIDGE_DECK_Y + FEET_TO_CENTER, z: -99 })).toBe(false);
-    expect(needsSafeReset({ x: BRIDGE_X, y: WATER_LEVEL + FEET_TO_CENTER, z: -99 })).toBe(true);
+    expect(needsSafeReset({ x: BRIDGE_X, y: WATER_LEVEL - 1.25 + FEET_TO_CENTER, z: -99 })).toBe(false);
     expect(needsSafeReset({ x: 0, y: WATER_LEVEL + FEET_TO_CENTER + 1, z: -99 })).toBe(false);
-    expect(needsSafeReset({ x: 84, y: WATER_LEVEL + FEET_TO_CENTER, z: 50 })).toBe(true);
+    expect(needsSafeReset({ x: 84, y: WATER_LEVEL - 1.25 + FEET_TO_CENTER, z: 50 })).toBe(false);
   });
   it('recovers falls beneath local terrain, nonfinite coordinates and world-boundary exits', () => {
     for (const z of [-460, -250, 40]) {

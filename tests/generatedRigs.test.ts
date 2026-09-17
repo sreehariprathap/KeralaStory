@@ -1,10 +1,11 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { Box3, Bone, Mesh, Object3D, SkinnedMesh, Vector3 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone } from 'three/addons/utils/SkeletonUtils.js';
 import { createNickAnimation } from '../src/game/player/nickAnimation';
+import { CHARACTER_MODELS } from '../src/content/assets/models';
 
 if (typeof globalThis.ProgressEvent === 'undefined') {
   class NodeProgressEvent extends Event {
@@ -29,7 +30,9 @@ type Json = {
 type ParsedGlb = { json: Json; binary: Uint8Array; file: Uint8Array };
 
 function readGlb(name: string): ParsedGlb {
-  const file = readFileSync(resolve(process.cwd(), 'public/assets/characters', name));
+  // Rig sources are kept out of public/; generated rigs are served from it.
+  const folder = existsSync(resolve(process.cwd(), 'public/assets/characters', name)) ? 'public/assets/characters' : 'asset-sources/characters';
+  const file = readFileSync(resolve(process.cwd(), folder, name));
   expect(file.subarray(0, 4).toString('ascii')).toBe('glTF');
   let offset = 12;
   let json: Json | undefined;
@@ -113,6 +116,46 @@ function expectSamePose(a: Object3D, b: Object3D) {
   }
 }
 
+describe.each(CHARACTER_MODELS)('$name selectable avatar', model => {
+  it('deforms both arms and both legs in each locomotion state with finite normalized skin weights', {timeout:60000}, async () => {
+    const root = await loadTextureFree(model.url.split('/').pop()!);
+    root.rotation.y = model.rotationY;
+    root.updateMatrixWorld(true);
+    const animator = createNickAnimation(root, model.rig);
+    animator.update(0, {speed:0,grounded:true});
+    const samples = new Map<string, {mesh:SkinnedMesh; index:number; before:Vector3}[]>();
+    for(const mesh of skinnedMeshes(root)){
+      const weights=mesh.geometry.getAttribute('skinWeight'), indices=mesh.geometry.getAttribute('skinIndex');
+      for(let i=0;i<weights.count;i++){
+        let sum=0;
+        for(let j=0;j<4;j++){
+          const weight=weights.getComponent(i,j); sum+=weight;
+          expect(Number.isFinite(weight)&&weight>=0).toBe(true);
+          if(weight<.5)continue;
+          const bone=mesh.skeleton.bones[indices.getComponent(i,j)];
+          const match=bone.name.match(/(?:Hip|Knee|Shoulder|Elbow)_([LR])_/)??bone.name.match(/J_Bip_([LR])_(?:Upper|Lower)(?:Arm|Leg)_/);
+          if(!match)continue;
+          const limb=/(Shoulder|Elbow|Arm)/.test(bone.name)?'arm':'leg', key=limb+match[1];
+          const list=samples.get(key)??[];
+          if(list.length<100)list.push({mesh,index:i,before:mesh.getVertexPosition(i,new Vector3()).clone()});
+          samples.set(key,list);
+        }
+        expect(Math.abs(sum-1)).toBeLessThan(.001);
+      }
+    }
+    expect([...samples.keys()].sort()).toEqual(['armL','armR','legL','legR']);
+    for(const motion of [{speed:3.5,grounded:true},{speed:6,grounded:true},{speed:2,grounded:false},{speed:2,grounded:true,riding:true}]){
+      for(let i=0;i<30;i++)animator.update(1/60,motion);
+      root.updateMatrixWorld(true);
+      for(const [limb,list] of samples){
+        const distances=list.map(s=>s.mesh.getVertexPosition(s.index,new Vector3()).distanceTo(s.before));
+        expect(distances.every(Number.isFinite)).toBe(true);
+        expect(Math.max(...distances),`${model.name} ${limb} ${JSON.stringify(motion)}`).toBeGreaterThan(.005);
+      }
+    }
+  });
+});
+
 describe('School uniform arm weighting regression', () => {
   it('moves the whole arm surface together without stretching triangles back into the T pose', { timeout: 30_000 }, async () => {
     const root = await loadTextureFree('arms_out_in_uniform_rigged.glb');
@@ -163,6 +206,7 @@ describe.each([
   { label: 'kid boy', rig: 'kid-boy' as const, original: 'kid_boy.glb', generated: 'kid_boy_rigged.glb', meshCount: 22 },
   { label: 'little girl', rig: 'little-girl' as const, original: 'the_little_girl.glb', generated: 'the_little_girl_rigged.glb', meshCount: 1 },
   { label: 'school uniform', rig: 'uniform' as const, original: 'arms_out_in_uniform.glb', generated: 'arms_out_in_uniform_rigged.glb', meshCount: 6 },
+  { label: 'Messi', rig: 'messi' as const, original: 'lionel_messi_qatar_2022.glb', generated: 'lionel_messi_qatar_2022_rigged.glb', meshCount: 3 },
 ])('$label generated GLB rig', ({ rig, original, generated, meshCount }) => {
   it('contains the expected skinned meshes and valid four weight influences', { timeout: 30_000 }, async () => {
     const root = await loadTextureFree(generated);

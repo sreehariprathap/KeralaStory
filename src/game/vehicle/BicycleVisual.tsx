@@ -1,13 +1,22 @@
 import { useRef, type RefObject } from 'react';
 import { wheelAngle } from './wheelMath';
+import { bikeModel, type BikeModelId } from '../../content/assets/bikeProfiles';
+import { ModelAsset } from '../render/ModelAsset';
 import { useFrame } from '@react-three/fiber';
 import { Quaternion, Vector3, type Group } from 'three';
 function Tube({a,b,r=.025,color='#284838'}:{a:[number,number,number];b:[number,number,number];r?:number;color?:string}){
  const from=new Vector3(...a),to=new Vector3(...b),d=to.clone().sub(from),q=new Quaternion().setFromUnitVectors(new Vector3(0,1,0),d.clone().normalize());
  return <mesh position={from.add(to).multiplyScalar(.5)} quaternion={q} castShadow><cylinderGeometry args={[r,r,d.length(),8]}/><meshStandardMaterial color={color} roughness={.65}/></mesh>;
 }
-/** Original procedural roadster preview. Production GLB art gate remains open. */
-export function BicycleVisual({motion}:{motion?:RefObject<{speed:number;signedSpeed?:number}>}){
+type BikeMotion=RefObject<{speed:number;signedSpeed?:number}>;
+/** GLB bikes are single static meshes for now; only the procedural roadster spins its wheels. */
+export function BicycleVisual({motion,modelId}:{motion?:BikeMotion;modelId?:BikeModelId}){
+ const model=bikeModel(modelId);
+ if(!model.url)return <RoadsterVisual motion={motion}/>;
+ return <ModelAsset key={model.id} url={model.url} length={model.length} rotationY={model.rotationY} hiddenNodes={model.hiddenNodes} name={`bike-${model.id}`}/>;
+}
+/** Original procedural roadster preview. */
+function RoadsterVisual({motion}:{motion?:BikeMotion}){
  const front=useRef<Group>(null),rear=useRef<Group>(null);
  useFrame((_,dt)=>{const angle=wheelAngle((motion?.current.signedSpeed??motion?.current.speed??0)*Math.min(dt,.05),.35);if(front.current)front.current.rotation.x+=angle;if(rear.current)rear.current.rotation.x+=angle;});
  return <group name="roadster-bicycle-preview">
