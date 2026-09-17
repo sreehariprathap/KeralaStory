@@ -1,6 +1,7 @@
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
-import { createCarPhysics, CAR_MASS_KG, CAR_WHEELS } from '../src/game/vehicle/carPhysics';
+import { createCarPhysics, CAR_MASS_KG, CAR_WHEELS, DEFAULT_TOP_SPEED } from '../src/game/vehicle/carPhysics';
+import { VEHICLE_PROFILES } from '../src/content/assets/vehicleProfiles';
 import type { CarModelId } from '../src/content/assets/models';
 import { MAIN_PATH, safeGroundPosition } from '../src/content/world/definition';
 import { terrainMeshData } from '../src/game/world/traversalGeometry';
@@ -12,12 +13,12 @@ const worlds: RAPIER.World[] = [];
 beforeAll(async () => { await RAPIER.init(); });
 afterEach(() => { for (const world of worlds.splice(0)) world.free(); });
 
-function fixture(model: CarModelId, options: { ground?: boolean; slope?: boolean; feetY?: number } = {}) {
+function fixture(model: CarModelId, options: { ground?: boolean; slope?: boolean; feetY?: number; groundHalfSize?: number } = {}) {
   const world = new RAPIER.World({ x: 0, y: -20, z: 0 });
   worlds.push(world);
   const ground = options.ground ?? true;
   if (ground) {
-    const groundDesc = RAPIER.ColliderDesc.cuboid(30, 0.2, 30).setTranslation(0, -0.2, 0);
+    const groundDesc = RAPIER.ColliderDesc.cuboid(options.groundHalfSize ?? 30, 0.2, options.groundHalfSize ?? 30).setTranslation(0, -0.2, 0);
     if (options.slope) groundDesc.setRotation({ x: Math.sin(Math.PI / 36), y: 0, z: 0, w: Math.cos(Math.PI / 36) });
     world.createCollider(groundDesc);
   }
@@ -190,6 +191,22 @@ describe('real Rapier car physics', () => {
       expect(car.body.translation().z).toBeGreaterThan(startZ + 1);
     });
 
+    it(`${model} cruises at its top speed without pitching back and forth`, () => {
+      const { car, step } = fixture(model, { groundHalfSize: 300 });
+      for (let frame = 0; frame < 120; frame++) step();
+      for (let frame = 0; frame < 300; frame++) step(1);
+      let reversals = 0, previous = 0;
+      for (let frame = 0; frame < 240; frame++) {
+        step(1);
+        const pitchRate = car.body.angvel().x;
+        if (Math.abs(pitchRate) > .02 && Math.sign(pitchRate) !== Math.sign(previous)) reversals++;
+        previous = pitchRate;
+      }
+      expect(reversals).toBeLessThanOrEqual(1);
+      expect(car.motion.speed).toBeGreaterThan((VEHICLE_PROFILES[model].topSpeed ?? DEFAULT_TOP_SPEED) - .5);
+      expect(car.motion.speed).toBeLessThan((VEHICLE_PROFILES[model].topSpeed ?? DEFAULT_TOP_SPEED) + .5);
+    });
+
     it(`${model} disposal removes the chassis and vehicle controller`, () => {
       const { world, car } = fixture(model);
       const handle = car.body.handle;
@@ -200,4 +217,14 @@ describe('real Rapier car physics', () => {
       expect(world.vehicleControllers.size).toBe(0);
     });
   }
+});
+
+it('gives the cyberpunk car a higher top speed than the default cars', () => {
+  expect(VEHICLE_PROFILES.cyberpunk.topSpeed).toBeGreaterThan(DEFAULT_TOP_SPEED);
+  const speeds = (['admin', 'cyberpunk'] as const).map(model => {
+    const { car, step } = fixture(model, { groundHalfSize: 300 });
+    for (let frame = 0; frame < 600; frame++) step(1);
+    return car.motion.speed;
+  });
+  expect(speeds[1]).toBeGreaterThan(speeds[0] + 4);
 });

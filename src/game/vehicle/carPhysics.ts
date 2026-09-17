@@ -8,6 +8,9 @@ import { VEHICLE_PROFILES } from '../../content/assets/vehicleProfiles';
 
 export const CAR_MASS_KG = 1100;
 export const CAR_SUSPENSION_REST = .32;
+export const DEFAULT_TOP_SPEED = 8;
+const NITRO_EXTRA_SPEED = 12;
+const SPEED_LIMIT_FADE = 1.5;
 export interface CarMotion {
   speed: number; signedSpeed: number; throttle: number; grounded: boolean;
   nitroActive: boolean; nitroRemaining: number;
@@ -26,6 +29,7 @@ export function createCarPhysics(world: World, feet: Vec3, heading: number, mode
     .setAdditionalMassProperties(CAR_MASS_KG,{x:0,y:-.32,z:0},{x:1050,y:1650,z:850},{x:0,y:0,z:0,w:1}));
   // Keep a compact collision belly above the tyres' working travel on uneven tracks.
   const chassis = VEHICLE_PROFILES[model].chassis;
+  const topSpeed = VEHICLE_PROFILES[model].topSpeed ?? DEFAULT_TOP_SPEED;
   world.createCollider(ColliderDesc.cuboid(chassis.x,chassis.y,chassis.z).setTranslation(0,chassis.offset,0).setDensity(0).setFriction(.4).setRestitution(.03),body);
   // Vehicle suspension reads mass before the first world step.
   body.recomputeMassPropertiesFromColliders();
@@ -75,12 +79,15 @@ export function createCarPhysics(world: World, feet: Vec3, heading: number, mode
       // Force still goes through tyre contact: no velocity/position overrides,
       // artificial uphill lift, or traction while airborne.
       const driveForce=36000-18000*Math.min(1,Math.abs(speed)/10);
-      const maxDriveSpeed = nitro.active ? 20 : 8;
-      if(throttle>0) {if(speed<-.3)brake=true;else if(speed<maxDriveSpeed)force=driveForce*throttle*nitro.multiplier;reverseArmed=false;}
+      const maxDriveSpeed = nitro.active ? topSpeed + NITRO_EXTRA_SPEED : topSpeed;
+      // Fade force out over the last stretch below the cap. A hard on/off cutoff toggles full
+      // torque every few steps at top speed, which rocks the chassis (visible as vibration).
+      const limiter = Math.min(1, Math.max(0, (maxDriveSpeed - speed) / SPEED_LIMIT_FADE));
+      if(throttle>0) {if(speed<-.3)brake=true;else force=driveForce*throttle*nitro.multiplier*limiter;reverseArmed=false;}
       if(throttle<0) {if(speed>.25){brake=true;reverseArmed=false;}else if(reverseArmed&&speed>-4)force=30000*throttle;else brake=true;}
       if(intent.brake){force=0;reverseArmed=false;}
       motion.throttle=occupied&&!brake?Math.abs(throttle):0;
-      const target=occupied?-Math.max(-1,Math.min(1,intent.steer))*(.5-.23*Math.min(1,Math.abs(speed)/(nitro.active?20:14))):0;
+      const target=occupied?-Math.max(-1,Math.min(1,intent.steer))*(.5-.23*Math.min(1,Math.abs(speed)/(nitro.active?maxDriveSpeed:topSpeed+6))):0;
       steering+=(target-steering)*(1-Math.exp(-8*dt));
       for(let i=0;i<4;i++) {
         vehicle.setWheelSteering(i,i<2?steering:0);

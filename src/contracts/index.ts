@@ -51,6 +51,7 @@ export interface ExplorerControllerProps {
   returnBicycleToken?: number;
   carSpawnToken?: number;
   carModelId?: import('../content/assets/models').CarModelId;
+  carColor?: string;
   onCarSpawnResult?: (result: { ok: boolean; message: string }) => void;
 }
 

@@ -1,10 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { Box3, Group, Vector3 } from 'three';
+import { Box3, Group, Vector3, type Material, type Mesh } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { CAR_MODELS, CAR_PICKER_CATALOG } from '../src/content/assets/models';
 import { VEHICLE_PROFILES } from '../src/content/assets/vehicleProfiles';
 import { createCarWheelAnimation } from '../src/game/vehicle/carWheelAnimation';
+import { applyVehicleMaterials, removeHiddenVehicleNodes } from '../src/game/vehicle/vehicleMaterials';
 
 // Geometry-only loading keeps tests independent of browser image decoders.
 async function loadGeometry(url: string) {
@@ -41,5 +42,31 @@ describe('measured vehicle calibration', () => {
     createCarWheelAnimation(root, id);
     for (let i = 0; i < 4; i++) expect(root.getObjectByName(`car-wheel-spin-${i}`)).toBeTruthy();
     expect(new Box3().setFromObject(root, true).getSize(new Vector3()).z).toBeCloseTo(profile.length, 3);
+  });
+});
+
+describe('chassis belly clearance', () => {
+  it.each(Object.keys(VEHICLE_PROFILES) as (keyof typeof VEHICLE_PROFILES)[])('%s keeps its collision belly clear of the ground at rest', id => {
+    const { chassis } = VEHICLE_PROFILES[id];
+    // Body origin rests FEET_TO_CENTER (0.84 m) above the ground.
+    expect(.84 + chassis.offset - chassis.y).toBeGreaterThanOrEqual(.4);
+  });
+});
+
+describe('Mazda RX-7 presentation', () => {
+  it('drops the exported floor, replaces every flat black material, and exposes recolourable paint', async () => {
+    const model = CAR_MODELS.find(car => car.id === 'mazda-rx7')!;
+    const scene = await loadGeometry(model.url);
+    removeHiddenVehicleNodes(scene, 'mazda-rx7');
+    expect(scene.getObjectByName('Floor')).toBeUndefined();
+    const { owned, paint } = applyVehicleMaterials(scene, 'mazda-rx7');
+    expect(paint.length).toBe(2);
+    scene.traverse(object => {
+      const mesh = object as Mesh;
+      if (mesh.isMesh) expect((mesh.material as Material).name).toMatch(/^(paint|look)-/);
+    });
+    paint.forEach(material => material.color.set('#eef0f2'));
+    expect(paint.every(material => material.color.getHexString() === 'eef0f2')).toBe(true);
+    owned.forEach(material => material.dispose());
   });
 });

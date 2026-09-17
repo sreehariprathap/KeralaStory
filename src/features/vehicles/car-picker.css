@@ -149,6 +149,54 @@
   overflow-wrap: anywhere;
 }
 
+.car-picker__swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.car-picker__swatch {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  min-width: 3.25rem;
+  cursor: pointer;
+}
+
+.car-picker__swatch input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.car-picker__swatch-chip,
+.car-picker__custom-color {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent);
+  border-radius: 50%;
+}
+
+.car-picker__custom-color {
+  padding: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.car-picker__swatch:has(input:checked) .car-picker__swatch-chip {
+  box-shadow: 0 0 0 2px var(--paper-raised), 0 0 0 4px var(--forest);
+}
+
+.car-picker__swatch:has(input:focus-visible) .car-picker__swatch-chip {
+  outline: 3px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.car-picker__swatch-label {
+  font-size: 0.75rem;
+}
+
 @media (max-width: 36rem) {
   .car-picker__grid {
     grid-template-columns: 1fr;

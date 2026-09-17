@@ -1,5 +1,6 @@
 import { waterLevelAt, hasGroundAt, isWater, terrainHeight, walkableDeckHeight } from '../../content/world/kodassery';
 
+export const PHYSICS_STEP_SECONDS = 1 / 60;
 export const CAPSULE_RADIUS = 0.26;
 export const CAPSULE_HALF_HEIGHT = 0.58;
 export const FEET_TO_CENTER = CAPSULE_RADIUS + CAPSULE_HALF_HEIGHT;

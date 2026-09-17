@@ -5,6 +5,7 @@ import { PCFShadowMap, Object3D, DirectionalLight } from 'three';
 import type { ExplorerControllerProps, ExplorerProfile, GameSettings, Locale } from '../contracts';
 import { KeralaWorld } from '../game/world/KeralaWorld';
 import { ExplorerController } from '../game/player/ExplorerController';
+import { PHYSICS_STEP_SECONDS } from '../game/player/controllerMath';
 import { SummitVisibility } from '../game/camera/SummitVisibility';
 import { ExplorerAvatar } from '../game/player/ExplorerAvatar';
 
@@ -25,7 +26,7 @@ function SceneCanvas({active,settings,controller,onReady,onError,locale='en'}:{l
   return <Canvas shadows={settings.quality!=='low'?{type:PCFShadowMap}:false} dpr={settings.quality==='low'?1:settings.quality==='high'?[1,2]:[1,1.5]} camera={{position:[-31,99,-457],fov:52,near:.1,far:480}} gl={{antialias:true,alpha:false,powerPreference:'high-performance'}} onCreated={({gl})=>{gl.shadowMap.type=PCFShadowMap;gl.setClearColor('#c6dbd2');}} fallback={<div className="canvas-fallback">Your browser could not start the 3D scene. Try a desktop browser with hardware acceleration enabled.</div>}>
     <fog attach="fog" args={['#c6dbd2',95,285]}/><ambientLight intensity={.7} color="#dbe5d6"/><hemisphereLight args={['#e3efd6','#657952',1.35]}/><SunRig/><RenderMeter/>
     <ContextRecovery onError={onError}/><SummitVisibility reducedMotion={settings.reducedMotion}/>
-    <Suspense fallback={null}><Physics timeStep={1/60} paused={active&&controller.mode!=='playing'&&controller.mode!=='loading'} gravity={[0,-20,0]} colliders={false}>
+    <Suspense fallback={null}><Physics timeStep={PHYSICS_STEP_SECONDS}paused={active&&controller.mode!=='playing'&&controller.mode!=='loading'} gravity={[0,-20,0]} colliders={false}>
       <KeralaWorld locale={locale} quality={settings.quality} animated={!settings.reducedMotion&&(!active||controller.mode==='playing')}/>
       {active?<ExplorerController {...controller}/>:<EstablishingCamera/>}<Ready onReady={onReady}/>
     </Physics></Suspense>

@@ -19,9 +19,13 @@ export interface CarPickerProps {
   onClose: () => void;
   /** Omits the card's own border/header/close button when a host (e.g. a dialog) already provides them. */
   embedded?: boolean;
+  /** Paint presets; the colour section is shown only when the selected car supports paint. */
+  colors?: readonly { id: string; label: string; value: string }[];
+  selectedColor?: string;
+  onColorSelect?: (value: string) => void;
 }
 
-export function CarPicker({ catalog, selectedId, status, busy, preview, onSelect, onSpawn, onClose, embedded }: CarPickerProps) {
+export function CarPicker({ catalog, selectedId, status, busy, preview, onSelect, onSpawn, onClose, embedded, colors, selectedColor, onColorSelect }: CarPickerProps) {
   const selected = catalog.find((entry) => entry.id === selectedId);
   const spawnDisabled = busy || !selected?.available;
 
@@ -65,6 +69,25 @@ export function CarPicker({ catalog, selectedId, status, busy, preview, onSelect
           })}
         </div>
       </fieldset>
+
+      {colors && onColorSelect && (
+        <fieldset className="car-picker__options">
+          <legend className="car-picker__legend">Paint</legend>
+          <div className="car-picker__swatches">
+            {colors.map((color) => (
+              <label className="car-picker__swatch" key={color.id} title={color.label}>
+                <input type="radio" name="car-picker-color" value={color.value} checked={selectedColor?.toLowerCase() === color.value.toLowerCase()} disabled={busy} onChange={() => onColorSelect(color.value)} />
+                <span className="car-picker__swatch-chip" style={{ background: color.value }} aria-hidden="true" />
+                <span className="car-picker__swatch-label">{color.label}</span>
+              </label>
+            ))}
+            <label className="car-picker__swatch" title="Custom colour">
+              <input className="car-picker__custom-color" type="color" value={selectedColor ?? '#ffffff'} disabled={busy} onChange={(event) => onColorSelect(event.target.value)} />
+              <span className="car-picker__swatch-label">Custom</span>
+            </label>
+          </div>
+        </fieldset>
+      )}
 
       <div className="car-picker__actions">
         <button className="button button-primary" type="button" disabled={spawnDisabled} onClick={onSpawn}>

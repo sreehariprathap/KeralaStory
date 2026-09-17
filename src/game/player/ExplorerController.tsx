@@ -1,16 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { CapsuleCollider, RigidBody, useAfterPhysicsStep, useBeforePhysicsStep, useRapier } from '@react-three/rapier';
 import type { RapierCollider, RapierRigidBody } from '@react-three/rapier';
 import type { KinematicCharacterController } from '@dimforge/rapier3d-compat';
-import type { Group } from 'three';
+import type { Group, Vector3 } from 'three';
 import type { BicycleSave, ExplorerControllerProps, TravelMode, Vec3 } from '../../contracts';
 import { PARKING_SPOTS, nearestParking, safeGroundPosition, isCycleAllowed, isTravelAllowed } from '../../content/world/definition';
 import { useExplorerInput } from '../input/useExplorerInput';
 import { clearInput, headingFromMotion, readFollowMovement, readMovement } from '../input/inputState';
 import { ThirdPersonCamera } from '../camera/ThirdPersonCamera';
 import { ExplorerAvatar } from './ExplorerAvatar';
-import { CAPSULE_HALF_HEIGHT, CAPSULE_RADIUS, FEET_TO_CENTER, RUN_SPEED, WALK_SPEED, dampAngle, needsSafeReset } from './controllerMath';
+import { CAPSULE_HALF_HEIGHT, CAPSULE_RADIUS, FEET_TO_CENTER, PHYSICS_STEP_SECONDS, RUN_SPEED, WALK_SPEED, dampAngle, needsSafeReset } from './controllerMath';
+import { createPoseInterpolator } from '../vehicle/poseInterpolator';
+import type { CameraTargetKind } from '../camera/ThirdPersonCamera';
 import { computeExplorerMovement, createExplorerMotor } from './characterMotor';
 import { BicycleVisual } from '../vehicle/BicycleVisual';
 import { createBicycleState, stepBicycle } from '../vehicle/bicycleMotor';
@@ -32,7 +34,8 @@ export function ExplorerController(props: ExplorerControllerProps) {
   const tick=useRef(0),ready=useRef(false),riding=useRef(false),vehicle=useRef<TravelMode>('foot'),[showRider,setShowRider]=useState(false);
   const bike=useRef(createBicycleState(initialHeading));
   const car=useRef<CarPhysics|null>(null),carMotion=useRef(createCarMotion()),cameraCar=useRef<RapierRigidBody|null>(null);
-  const removeCar=()=>{car.current?.dispose();car.current=null;cameraCar.current=null;carParked.current=null;carMotion.current=createCarMotion();};
+  const carPose=useRef(createPoseInterpolator(PHYSICS_STEP_SECONDS));
+  const removeCar=()=>{car.current?.dispose();car.current=null;cameraCar.current=null;carParked.current=null;carMotion.current=createCarMotion();carPose.current.reset();};
   const parked=useRef<BicycleSave>({position:[...PARKING_SPOTS[0].position],headingRad:Math.PI});
   const carParked=useRef<Vec3|null>(null);
   const [spawnedCarModel,setSpawnedCarModel]=useState(props.carModelId);
@@ -85,7 +88,7 @@ export function ExplorerController(props: ExplorerControllerProps) {
     const position=rigidBody.translation(),feet:Vec3=[position.x,position.y-FEET_TO_CENTER,position.z];
     if(vehicle.current!=='foot'){finish(false,'Exit your vehicle before spawning a car.');return;}
     const candidates:[[number,number],[number,number],[number,number],[number,number]]=[[0,4],[2,4],[-2,4],[0,-4]];
-    for(const [right,forward] of candidates){const x=feet[0]+Math.cos(heading.current)*right+Math.sin(heading.current)*forward,z=feet[2]-Math.sin(heading.current)*right-Math.cos(heading.current)*forward;const valid=clearFeet(x,z,feet[1],'car',heading.current);if(valid&&isTravelAllowed('car',x,z)){const model=latest.current.carModelId??'admin';let replacement:CarPhysics;try{replacement=createCarPhysics(world,valid,heading.current,model);}catch{finish(false,'The car could not be prepared. Your current car is unchanged.');return;}removeCar();car.current=replacement;carMotion.current=car.current.motion;car.current.body.setEnabled(latest.current.mode==='playing'||latest.current.mode==='loading');carParked.current=valid;carParkedHeading.current=heading.current;setSpawnedCarModel(model);finish(true,'Car ready nearby. Close this panel and approach it to drive.');return;}}
+    for(const [right,forward] of candidates){const x=feet[0]+Math.cos(heading.current)*right+Math.sin(heading.current)*forward,z=feet[2]-Math.sin(heading.current)*right-Math.cos(heading.current)*forward;const valid=clearFeet(x,z,feet[1],'car',heading.current);if(valid&&isTravelAllowed('car',x,z)){const model=latest.current.carModelId??'admin';let replacement:CarPhysics;try{replacement=createCarPhysics(world,valid,heading.current,model);}catch{finish(false,'The car could not be prepared. Your current car is unchanged.');return;}removeCar();car.current=replacement;carMotion.current=car.current.motion;carPose.current.snap(replacement.body.translation(),replacement.body.rotation(),performance.now());car.current.body.setEnabled(latest.current.mode==='playing'||latest.current.mode==='loading');carParked.current=valid;carParkedHeading.current=heading.current;setSpawnedCarModel(model);finish(true,'Car ready nearby. Close this panel and approach it to drive.');return;}}
     finish(false,'No clear space to spawn the car. Move to open ground and try again.');
   },[props.carSpawnToken]);
 
@@ -172,7 +175,7 @@ export function ExplorerController(props: ExplorerControllerProps) {
   });
   useAfterPhysicsStep(()=>{
     const rigidBody=body.current;if(!rigidBody)return;
-    if(car.current){const carHeading=car.current.sample(),p=car.current.body.translation();carParked.current=[p.x,p.y-FEET_TO_CENTER,p.z];carParkedHeading.current=carHeading;if(vehicle.current==='car'){heading.current=carHeading;rigidBody.setTranslation(p,true);rigidBody.setNextKinematicTranslation(p);motion.current.grounded=carMotion.current.grounded;}}
+    if(car.current){const carHeading=car.current.sample(),p=car.current.body.translation();carPose.current.record(p,car.current.body.rotation(),performance.now());carParked.current=[p.x,p.y-FEET_TO_CENTER,p.z];carParkedHeading.current=carHeading;if(vehicle.current==='car'){heading.current=carHeading;rigidBody.setTranslation(p,true);rigidBody.setNextKinematicTranslation(p);motion.current.grounded=carMotion.current.grounded;}}
     const p=rigidBody.translation(),dt=Math.min(world.timestep,1/30),dx=p.x-previous.current.x,dz=p.z-previous.current.z;
     motion.current.speed=vehicle.current==='car'?carMotion.current.speed:Math.hypot(dx,dz)/dt;motion.current.signedSpeed=vehicle.current==='car'?carMotion.current.signedSpeed:motion.current.speed*(riding.current?Math.sign(bike.current.speed):1);
     if(!riding.current&&motion.current.speed>.06)heading.current=headingFromMotion(dx,dz);
@@ -190,11 +193,18 @@ export function ExplorerController(props: ExplorerControllerProps) {
   useFrame((_,delta)=>{
     if(visual.current)visual.current.rotation.y=riding.current?0:dampAngle(visual.current.rotation.y,Math.PI-heading.current,1-Math.exp(-15*Math.min(delta,.06)));
     if(parkedVisual.current){parkedVisual.current.visible=vehicle.current!=='bicycle';parkedVisual.current.position.set(...parked.current.position);parkedVisual.current.rotation.y=Math.PI-parked.current.headingRad;}
-    if(carParkedVisual.current){carParkedVisual.current.visible=car.current!==null;if(car.current){carParkedVisual.current.position.copy(car.current.body.translation());carParkedVisual.current.quaternion.copy(car.current.body.rotation());}}
+    if(carParkedVisual.current){carParkedVisual.current.visible=car.current!==null&&carPose.current.ready;if(car.current&&carPose.current.ready)carPose.current.sample(performance.now(),carParkedVisual.current.position,carParkedVisual.current.quaternion);}
   });
+  // Camera must follow what is drawn (interpolated), not the raw 60 Hz physics pose.
+  const cameraTarget=useCallback((outFeet:Vector3):CameraTargetKind|null=>{
+    if(vehicle.current==='car'&&car.current&&carPose.current.ready){carPose.current.sample(performance.now(),outFeet);outFeet.y-=FEET_TO_CENTER;return 'car';}
+    if(!visual.current)return null;
+    visual.current.getWorldPosition(outFeet);
+    return 'foot';
+  },[]);
   return <>
     <group ref={parkedVisual}><BicycleVisual/></group>
-    <group ref={carParkedVisual} visible={false}><group position={[0,-FEET_TO_CENTER,0]}>{spawnedCarModel&&<CarVisual modelId={spawnedCarModel} motion={carMotion} active={showRider&&vehicle.current==='car'&&mode==='playing'} reducedMotion={reducedMotion}/>}</group></group>
+    <group ref={carParkedVisual} visible={false}><group position={[0,-FEET_TO_CENTER,0]}>{spawnedCarModel&&<CarVisual modelId={spawnedCarModel} color={props.carColor} motion={carMotion} active={showRider&&vehicle.current==='car'&&mode==='playing'} reducedMotion={reducedMotion}/>}</group></group>
     <RigidBody ref={body} type="kinematicPosition" colliders={false} position={[spawn[0],spawn[1]+FEET_TO_CENTER,spawn[2]]} enabledRotations={[false,false,false]} name="explorer-body">
       <CapsuleCollider ref={collider} args={[CAPSULE_HALF_HEIGHT,CAPSULE_RADIUS]} friction={0}/>
       <group ref={visual} position={[0,-FEET_TO_CENTER,0]} rotation={[0,Math.PI-initialHeading,0]}>
@@ -202,6 +212,6 @@ export function ExplorerController(props: ExplorerControllerProps) {
         <group visible={!(showRider&&vehicle.current==='car')} position={[0,showRider?.25:0,showRider?-.2:0]}><ExplorerAvatar profile={profile} reducedMotion={reducedMotion} motion={motion}/></group>
       </group>
     </RigidBody>
-    <ThirdPersonCamera body={body} vehicleBody={cameraCar} input={input} azimuth={azimuth} heading={heading} motion={motion} mode={mode} sensitivity={sensitivity} reducedMotion={reducedMotion} resetToken={resetToken} cameraControl={cameraControl}/>
+    <ThirdPersonCamera body={body} vehicleBody={cameraCar} input={input} azimuth={azimuth} heading={heading} motion={motion} mode={mode} sensitivity={sensitivity} reducedMotion={reducedMotion} resetToken={resetToken} cameraControl={cameraControl} target={cameraTarget}/>
   </>;
 }

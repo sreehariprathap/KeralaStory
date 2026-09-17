@@ -21,16 +21,23 @@ interface Props {
   reducedMotion: boolean;
   resetToken: number;
   cameraControl: CameraControl;
+  /** Writes the rendered (interpolated) feet position; falls back to the raw body pose when absent. */
+  target?: (outFeet: Vector3) => CameraTargetKind | null;
 }
+export type CameraTargetKind = 'foot' | 'car';
+
+const FOOT_DISTANCE = 4.5, DRIVE_DISTANCE = 7.6;
+const FOOT_HEIGHT = 1.28, DRIVE_EXTRA_HEIGHT = .5, DRIVE_EXTRA_PITCH = .08;
 
 /** Environmental sphere sweep excludes the player and sensor-only discoveries. */
-export function ThirdPersonCamera({ body, vehicleBody, input, azimuth, heading, motion, mode, sensitivity, reducedMotion, resetToken, cameraControl }: Props) {
+export function ThirdPersonCamera({ body, vehicleBody, input, azimuth, heading, motion, mode, sensitivity, reducedMotion, resetToken, cameraControl, target }: Props) {
   const { world, rapier } = useRapier();
   const pitch = useRef(0.26);
   const distance = useRef(4.5);
   const initialized = useRef(false);
   const lastReset = useRef(resetToken);
   const manualLookGrace = useRef(0);
+  const driveBlend = useRef(0);
   const vectors = useMemo(() => ({ anchor: new Vector3(), target: new Vector3(), direction: new Vector3(), goal: new Vector3() }), []);
   const sphere = useMemo(() => new rapier.Ball(0.2), [rapier]);
 
@@ -58,14 +65,23 @@ export function ThirdPersonCamera({ body, vehicleBody, input, azimuth, heading, 
       controls.lookX = 0;
       controls.lookY = 0;
     }
-    const position = rigidBody.translation();
-    vectors.target.set(position.x, position.y - FEET_TO_CENTER + 1.28, position.z);
+    let kind = target?.(vectors.target) ?? null;
+    if (!kind) {
+      const position = rigidBody.translation();
+      vectors.target.set(position.x, position.y - FEET_TO_CENTER, position.z);
+      kind = 'foot';
+    }
+    const driveGoal = kind === 'car' ? 1 : 0;
+    driveBlend.current = !initialized.current || reducedMotion ? driveGoal : driveBlend.current + (driveGoal - driveBlend.current) * (1 - Math.exp(-3 * dt));
+    vectors.target.y += FOOT_HEIGHT + DRIVE_EXTRA_HEIGHT * driveBlend.current;
+    const maxDistance = FOOT_DISTANCE + (DRIVE_DISTANCE - FOOT_DISTANCE) * driveBlend.current;
+    const viewPitch = pitch.current + DRIVE_EXTRA_PITCH * driveBlend.current;
     if (!initialized.current || reducedMotion || vectors.anchor.distanceTo(vectors.target) > 12) vectors.anchor.copy(vectors.target);
     else vectors.anchor.lerp(vectors.target, 1 - Math.exp(-18 * dt));
-    vectors.direction.set(Math.sin(azimuth.current) * Math.cos(pitch.current), Math.sin(pitch.current), Math.cos(azimuth.current) * Math.cos(pitch.current));
-    const hit = world.castShape(vectors.anchor, { x: 0, y: 0, z: 0, w: 1 }, vectors.direction, sphere, 0.03, 4.5, true,
+    vectors.direction.set(Math.sin(azimuth.current) * Math.cos(viewPitch), Math.sin(viewPitch), Math.cos(azimuth.current) * Math.cos(viewPitch));
+    const hit = world.castShape(vectors.anchor, { x: 0, y: 0, z: 0, w: 1 }, vectors.direction, sphere, 0.03, maxDistance, true,
       rapier.QueryFilterFlags.EXCLUDE_SENSORS, undefined, undefined, rigidBody, candidate => !vehicleBody?.current || candidate.parent()?.handle !== vehicleBody.current.handle);
-    const allowedDistance = hit ? Math.max(0.24, hit.time_of_impact - 0.08) : 4.5;
+    const allowedDistance = hit ? Math.max(0.24, hit.time_of_impact - 0.08) : maxDistance;
     // Retract immediately; ease back out once the wall is clear.
     if (allowedDistance < distance.current || !initialized.current || reducedMotion) distance.current = allowedDistance;
     else distance.current += (allowedDistance - distance.current) * (1 - Math.exp(-5 * dt));
