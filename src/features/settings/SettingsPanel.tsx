@@ -11,6 +11,8 @@ interface SettingsPanelProps {
   onControlsChange?: (controls: ControlsPreference) => void;
   locale?: 'en' | 'ml';
   onLocaleChange?: (locale: 'en' | 'ml') => void;
+  developerMode?: boolean;
+  onDeveloperModeChange?: (enabled: boolean) => void;
 }
 
 const QUALITY_OPTIONS = [
@@ -19,7 +21,7 @@ const QUALITY_OPTIONS = [
   { value: 'high', label: 'settings.detailed', description: 'settings.detailedDescription' },
 ] as const;
 
-export function SettingsPanel({ settings, onChange, onResetPosition, controls, onControlsChange, locale, onLocaleChange }: SettingsPanelProps) {
+export function SettingsPanel({ settings, onChange, onResetPosition, controls, onControlsChange, locale, onLocaleChange, developerMode, onDeveloperModeChange }: SettingsPanelProps) {
   const t = useT();
   const update = <K extends keyof GameSettings>(key: K, value: GameSettings[K]) => {
     onChange({ ...settings, [key]: value });
@@ -86,6 +88,11 @@ export function SettingsPanel({ settings, onChange, onResetPosition, controls, o
             <span>{t(value === 'auto' ? 'settings.controlsAuto' : value === 'touch' ? 'settings.controlsTouch' : 'settings.controlsDesktop')}</span>
           </label>)}
         </div>
+        <label className="settings-panel__range-label" htmlFor="settings-touch-opacity">
+          {t('settings.touchOpacity')} <output htmlFor="settings-touch-opacity">{Math.round(settings.touchOpacity * 100)}%</output>
+        </label>
+        <p className="settings-panel__hint">{t('settings.touchOpacityHint')}</p>
+        <input id="settings-touch-opacity" className="settings-panel__range" name="touchOpacity" type="range" min="0.2" max="1" step="0.05" value={settings.touchOpacity} onChange={(event) => update('touchOpacity', Number(event.target.value))} />
       </fieldset>}
 
       {onLocaleChange && <fieldset className="settings-panel__group">
@@ -115,6 +122,11 @@ export function SettingsPanel({ settings, onChange, onResetPosition, controls, o
         />
         <span><strong>{t('settings.reduceMotion')}</strong><small>{t('settings.reduceMotionDescription')}</small></span>
       </label>
+
+      {onDeveloperModeChange&&<label className="settings-panel__check">
+        <input type="checkbox" name="developerMode" checked={developerMode ?? false} onChange={(event) => onDeveloperModeChange(event.target.checked)} />
+        <span><strong>{t('settings.developerMode')}</strong><small>{t('settings.developerModeHint')}</small></span>
+      </label>}
 
       {onResetPosition&&<button type="button" className="button button-secondary settings-panel__reset" onClick={onResetPosition}>
         {t('settings.returnOverlook')}

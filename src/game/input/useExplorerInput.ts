@@ -44,7 +44,7 @@ export function useExplorerInput(mode: InputMode, onPause: () => void, onMap: ()
     const visibility = () => { if (document.hidden) pause(); };
     const cancel = () => pause();
     // Pointer lock requires a user gesture; clicking the scene while in mouse-look mode requests it.
-    const click = () => { if (active() && latest.current.cameraControl === 'mouse' && document.pointerLockElement !== canvas) canvas.requestPointerLock().catch(() => {}); };
+    const click = (event: MouseEvent) => { if ((event as PointerEvent).pointerType === 'touch') return; if (active() && latest.current.cameraControl === 'mouse' && document.pointerLockElement !== canvas) canvas.requestPointerLock().catch(() => {}); };
     const mousemove = (event: MouseEvent) => {
       if (!active() || latest.current.cameraControl !== 'mouse' || document.pointerLockElement !== canvas) return;
       commands.addLook('mouse', event.movementX, event.movementY);

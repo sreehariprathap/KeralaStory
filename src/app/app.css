@@ -78,3 +78,5 @@ html,body,#root{width:100%;height:100%;overflow:hidden}button:disabled{cursor:wa
 .map-legend i.city{border-radius:2px;background:#eadcbc;border-color:#b99c6c}
 .landmark-list{max-height:190px}
 @media(max-width:760px){.atlas-layout{grid-template-columns:1fr}.atlas-drawing.is-interactive{max-height:56dvh}.highlight-list{grid-template-columns:1fr;max-height:180px}}
+.uses-touch .hud-actions{grid-auto-flow:column;gap:8px}.uses-touch .hud-icon{width:44px;height:44px}
+.uses-touch .inspection-panel{z-index:8;top:8px;left:50%;transform:translateX(-50%);max-width:min(240px,40vw);padding:6px;gap:4px}.uses-touch .inspection-panel>small,.uses-touch .inspection-panel>output,.uses-touch .inspection-panel>strong,.uses-touch .inspection-panel>button{display:none}

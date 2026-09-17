@@ -28,9 +28,10 @@ export const SettingsSchema = z.object({
   reducedMotion: z.boolean(), sensitivity: z.number().min(0.3).max(2),
   // .default() keeps older saves, which predate this setting, parsing successfully.
   cameraControl: CameraControlSchema.default('auto'),
+  touchOpacity: z.number().min(0.2).max(1).default(0.75),
 });
 export type GameSettings = z.infer<typeof SettingsSchema>;
-export const DEFAULT_SETTINGS: GameSettings = { quality: 'medium', muted: false, volume: 0.5, reducedMotion: false, sensitivity: 1, cameraControl: 'auto' };
+export const DEFAULT_SETTINGS: GameSettings = { quality: 'medium', muted: false, volume: 0.5, reducedMotion: false, sensitivity: 1, cameraControl: 'auto', touchOpacity: 0.75 };
 export const SaveSchema = z.object({
   version: z.literal(1), worldVersion: z.string().min(1), profile: ProfileSchema,
   position: Vec3Schema, headingRad: z.number().finite(), safeSpawnId: z.string().min(1),

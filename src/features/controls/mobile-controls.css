@@ -1,10 +1,43 @@
-.mobile-controls { --touch-size: clamp(44px, 13vw, 56px); --pad-size: 140px; position: absolute; inset: 0; z-index: 5; pointer-events: none; color: var(--paper-raised, #fff7e5); user-select: none; touch-action: none; }
+.mobile-controls { --touch-opacity: .75; --btn: clamp(72px, 19vmin, 92px); --pad-size: clamp(132px, 34vmin, 164px); --edge-x: max(18px, env(safe-area-inset-left)); --edge-r: max(18px, env(safe-area-inset-right)); --edge-b: max(18px, env(safe-area-inset-bottom)); position: absolute; inset: 0; z-index: 5; pointer-events: none; color: var(--paper-raised, #fff7e5); user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none; }
 .mobile-controls.is-disabled { visibility: hidden; }
-.mobile-controls button { font: inherit; color: inherit; pointer-events: auto; touch-action: none; }
-.mobile-controls__pad-cluster { position: absolute; left: max(16px, env(safe-area-inset-left)); bottom: max(18px, env(safe-area-inset-bottom)); width: 200px; height: 292px; }
-.mobile-controls__pad { position: absolute; left: 30px; bottom: 0; width: var(--pad-size); height: var(--pad-size); border: 1px solid #fff7e5a6; border-radius: 50%; background: #285943ba; box-shadow: 0 4px 18px #172e2470; }
-.mobile-controls__stick { position: absolute; left: calc(50% - 25px); top: calc(50% - 25px); width: 50px; height: 50px; border-radius: 50%; background: var(--paper-raised, #fff7e5); border: 2px solid var(--gold, #d5aa54); transform: translate(var(--stick-x, 0px), var(--stick-y, 0px)); transition: transform 80ms ease-out; }
-.mobile-controls__sprint { position: absolute; left: 30px; top: 0; min-height: 44px; max-width: 140px; padding: 7px 11px; border: 1px solid #fff7e566; border-radius: 6px; background: #24382ed9; font-size: 12px; }
+.mobile-controls button { font: inherit; color: inherit; pointer-events: auto; touch-action: none; -webkit-tap-highlight-color: transparent; }
+
+/* Drag-to-look surface: the right half of the screen, under every button and HUD element. */
+.mobile-controls__look { position: absolute; top: 0; right: 0; bottom: 0; width: 55%; pointer-events: auto; touch-action: none; }
+
+/* Shared round button. Opacity comes from settings; a held button turns fully solid. */
+.mobile-controls__btn { display: grid; place-items: center; width: var(--btn); height: var(--btn); padding: 0; border: 2px solid #fff7e5b3; border-radius: 50%; background: #24382ee0; box-shadow: 0 4px 18px #172e2466; opacity: var(--touch-opacity); transition: transform 70ms ease-out, background 70ms, opacity 70ms; }
+.mobile-controls__btn:active, .mobile-controls__btn.is-held { opacity: 1; transform: scale(.94); background: #3c6b52f0; }
+
+/* On foot: joystick bottom-left, sprint lock above it. */
+.mobile-controls__pad-cluster { position: absolute; left: var(--edge-x); bottom: var(--edge-b); display: flex; flex-direction: column; align-items: center; gap: 14px; opacity: var(--touch-opacity); }
+.mobile-controls__pad { position: relative; width: var(--pad-size); height: var(--pad-size); border: 2px solid #fff7e5a6; border-radius: 50%; background: #285943ba; box-shadow: 0 4px 18px #172e2470; }
+.mobile-controls__stick { position: absolute; left: calc(50% - 30px); top: calc(50% - 30px); width: 60px; height: 60px; border-radius: 50%; background: var(--paper-raised, #fff7e5); border: 2px solid var(--gold, #d5aa54); transform: translate(var(--stick-x, 0px), var(--stick-y, 0px)); transition: transform 80ms ease-out; }
+.mobile-controls__sprint { min-height: 48px; min-width: 120px; padding: 8px 14px; border: 2px solid #fff7e566; border-radius: 24px; background: #24382ed9; font-size: 14px; font-weight: 600; }
 .mobile-controls__sprint.is-active { background: var(--gold, #d5aa54); color: var(--ink, #24382e); }
-@media (orientation: landscape) and (max-height: 520px) { .mobile-controls__pad-cluster { bottom: max(10px, env(safe-area-inset-bottom)); transform: scale(.82); transform-origin: bottom left; } }
-@media (prefers-reduced-motion: reduce) { .mobile-controls__stick { transition: none; } }
+
+/* Driving, left: accelerate with brake/reverse directly beneath. */
+.mobile-controls__pedals { position: absolute; left: var(--edge-x); bottom: var(--edge-b); display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.mobile-controls__btn--gas { width: calc(var(--btn) * 1.3); height: calc(var(--btn) * 1.3); background: #2f6b47e6; }
+.mobile-controls__btn--brake { width: calc(var(--btn) * 1.1); height: calc(var(--btn) * 1.1); background: #8a3b2ce0; }
+.mobile-controls__btn--brake.is-held { background: #b24a36f5; }
+
+/* Right column: enter/exit sits mid-right; steering or jump sits below. */
+.mobile-controls__right { position: absolute; right: var(--edge-r); top: 42%; bottom: var(--edge-b); display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; gap: 14px; pointer-events: none; }
+.mobile-controls__btn--interact { gap: 0; align-content: center; background: #d5aa54f0; color: var(--ink, #24382e); border-color: #fff7e5; }
+.mobile-controls__btn--interact span { font-size: 13px; font-weight: 700; line-height: 1; }
+.mobile-controls__btn--interact.is-offer { animation: mobile-controls-pulse 1.4s ease-in-out infinite; }
+.mobile-controls__steer { display: flex; gap: 16px; margin-top: auto; }
+.mobile-controls__btn--steer { width: calc(var(--btn) * 1.15); height: calc(var(--btn) * 1.15); }
+.mobile-controls__btn--jump { margin-top: auto; }
+
+@keyframes mobile-controls-pulse { 0%, 100% { box-shadow: 0 0 0 0 #d5aa5499; } 50% { box-shadow: 0 0 0 12px #d5aa5400; } }
+
+/* Short landscape phones: tighten sizes and lift the enter/exit button a little. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .mobile-controls { --btn: clamp(64px, 17vh, 80px); --pad-size: clamp(120px, 36vh, 150px); --edge-b: max(12px, env(safe-area-inset-bottom)); }
+  .mobile-controls__right { top: 34%; }
+  .mobile-controls__pedals, .mobile-controls__pad-cluster { gap: 10px; }
+  .mobile-controls__sprint { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) { .mobile-controls__stick, .mobile-controls__btn { transition: none; } .mobile-controls__btn--interact.is-offer { animation: none; } }

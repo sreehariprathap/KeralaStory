@@ -17,7 +17,7 @@ const save: SaveV1 = {
     id: 'local', displayName: 'മലയാളി യാത്രികൻ', avatarPresetId: 'canopy',
     colors: { skin: '#ba805b', hair: '#292a25', clothing: '#285943' },
   }, position: [1, 2, 3], headingRad: 0, safeSpawnId: 'spawn', visitedLandmarkIds: [],
-  settings: { quality: 'medium', muted: false, volume: 0.5, reducedMotion: false, sensitivity: 1, cameraControl: 'auto' },
+  settings: { quality: 'medium', muted: false, volume: 0.5, reducedMotion: false, sensitivity: 1, cameraControl: 'auto', touchOpacity: 0.75 },
   updatedAt: '2026-09-14T00:00:00.000Z',
 };
 

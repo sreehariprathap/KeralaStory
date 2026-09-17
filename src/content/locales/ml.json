@@ -282,5 +282,15 @@
   "map.riverJump": "",
   "map.waterPark": "",
   "map.waterfall": "",
-  "map.dragHint": ""
+  "map.dragHint": "",
+  "controls.enterVehicle": "കയറുക",
+  "controls.exitVehicle": "ഇറങ്ങുക",
+  "controls.accelerate": "",
+  "controls.brakeReverse": "",
+  "controls.steerLeft": "",
+  "controls.steerRight": "",
+  "settings.touchOpacity": "",
+  "settings.touchOpacityHint": "",
+  "settings.developerMode": "",
+  "settings.developerModeHint": ""
 }

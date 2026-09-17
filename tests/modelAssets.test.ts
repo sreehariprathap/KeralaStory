@@ -30,7 +30,7 @@ const save: SaveV2 = {
   headingRad: 0,
   safeSpawnId: 'spawn',
   visitedLandmarkIds: [],
-  settings: { quality: 'medium', muted: false, volume: 0.5, reducedMotion: false, sensitivity: 1, cameraControl: 'auto' },
+  settings: { quality: 'medium', muted: false, volume: 0.5, reducedMotion: false, sensitivity: 1, cameraControl: 'auto', touchOpacity: 0.75 },
   updatedAt: '2026-09-15T00:00:00.000Z',
   bicycle: null,
 };

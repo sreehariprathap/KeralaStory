@@ -282,5 +282,15 @@
   "map.riverJump": "River jump",
   "map.waterPark": "Water park",
   "map.waterfall": "Waterfall",
-  "map.dragHint": "Drag to pan · scroll or pinch to zoom · tap to set a waypoint"
+  "map.dragHint": "Drag to pan · scroll or pinch to zoom · tap to set a waypoint",
+  "controls.enterVehicle": "Enter",
+  "controls.exitVehicle": "Exit",
+  "controls.accelerate": "Accelerate",
+  "controls.brakeReverse": "Brake / reverse",
+  "controls.steerLeft": "Steer left",
+  "controls.steerRight": "Steer right",
+  "settings.touchOpacity": "Touch button opacity",
+  "settings.touchOpacityHint": "Lower values let more of the world show through the on-screen buttons.",
+  "settings.developerMode": "Developer mode",
+  "settings.developerModeHint": "Restarts the app with the inspection panel for fast travel and scene checks."
 }
