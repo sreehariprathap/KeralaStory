@@ -7,3 +7,4 @@ playwright-report/
 .worktrees/
 .env*
 !.env.example
+.asset-cache/

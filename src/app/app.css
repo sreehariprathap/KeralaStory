@@ -78,3 +78,25 @@ html,body,#root{width:100%;height:100%;overflow:hidden}button:disabled{cursor:wa
 .map-legend i.city{border-radius:2px;background:#eadcbc;border-color:#b99c6c}
 .landmark-list{max-height:190px}
 @media(max-width:760px){.atlas-layout{grid-template-columns:1fr}.atlas-drawing.is-interactive{max-height:56dvh}.highlight-list{grid-template-columns:1fr;max-height:180px}}
+/* Installed app and phone polish: no pull-to-refresh or tap flashes, and the HUD stays clear of notches and home bars. */
+html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+body{background:#24382e}
+.hud{inset:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.hud .mobile-controls__pad-cluster{left:16px;bottom:18px}
+@media (orientation: landscape) and (max-height: 520px){.hud .mobile-controls__pad-cluster{bottom:10px}}
+/* Title screen: shift the header inside the notch without touching its responsive padding; extend the strip under the home bar. */
+.entry-shell{padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) 0 env(safe-area-inset-left,0px)}
+.region-strip{border-bottom:env(safe-area-inset-bottom,0px) solid #223d30}
+.inspection-panel{-webkit-user-select:text;user-select:text}
+/* Short landscape phones: keep the title actions clear of the region strip, and the sprint toggle clear of the wallet. */
+@media(orientation:landscape) and (max-height:520px){
+  .region-strip-title{display:none}
+  .region-strip{min-height:56px;padding-top:4px;padding-bottom:4px}
+  .region-stop small{display:none}
+  .entry-copy{top:17%}
+  .entry-copy h1{font-size:38px;margin:6px 0}
+  .entry-copy p{font-size:11px;line-height:1.6}
+  .entry-actions{margin-top:8px}
+  .journey-button{min-height:44px}
+  .hud .mobile-controls__sprint{top:auto;bottom:0;left:180px}
+}

@@ -5,6 +5,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { Box3, Matrix3, Matrix4, Quaternion, Vector3 } from 'three';
 
+// Sources live outside public/ so they are not shipped; only the rigged outputs are served.
+const sources = new URL('../asset-sources/characters/', import.meta.url);
 const assets = new URL('../public/assets/characters/', import.meta.url);
 const profiles = [
   { source: 'anime-style_teenage_boy.glb', output: 'anime-style_teenage_boy_rigged.glb', shoulder: [.12,.73,0], elbow: [.155,.56,0], wrist: [.16,.40,0], hip: [.075,.44,0], knee: [.075,.235,0], ankle: [.08,.055,0], relaxed: true, center: [0,0], armRadius: .065 },
@@ -21,7 +23,7 @@ const smooth = (lo, hi, value) => { const t = Math.max(0, Math.min(1, (value-lo)
 
 const only = process.argv.slice(2);
 for (const profile of profiles.filter(p => !only.length || only.includes(p.source))) {
-  const file = readFileSync(new URL(profile.source, assets));
+  const file = readFileSync(new URL(profile.source, sources));
   const jsonLength = file.readUInt32LE(12);
   const doc = JSON.parse(file.subarray(20,20+jsonLength).toString());
   if (doc.skins?.length || doc.animations?.length || doc.extensionsRequired?.length) throw new Error('Unexpected source format');

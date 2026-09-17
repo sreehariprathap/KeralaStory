@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { Box3, Bone, Mesh, Object3D, SkinnedMesh, Vector3 } from 'three';
@@ -30,7 +30,9 @@ type Json = {
 type ParsedGlb = { json: Json; binary: Uint8Array; file: Uint8Array };
 
 function readGlb(name: string): ParsedGlb {
-  const file = readFileSync(resolve(process.cwd(), 'public/assets/characters', name));
+  // Rig sources are kept out of public/; generated rigs are served from it.
+  const folder = existsSync(resolve(process.cwd(), 'public/assets/characters', name)) ? 'public/assets/characters' : 'asset-sources/characters';
+  const file = readFileSync(resolve(process.cwd(), folder, name));
   expect(file.subarray(0, 4).toString('ascii')).toBe('glTF');
   let offset = 12;
   let json: Json | undefined;

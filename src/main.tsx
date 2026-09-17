@@ -8,5 +8,8 @@ import '@fontsource/noto-serif/latin-400.css';
 import '@fontsource/noto-serif/latin-500.css';
 import './ui/tokens.css';
 import './app/app.css';
+import './game/render/gltfSetup';
 import { App } from './app/App';
+import { registerPwa } from './pwa/pwaClient';
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>);
+registerPwa();

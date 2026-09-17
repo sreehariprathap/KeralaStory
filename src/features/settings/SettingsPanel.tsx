@@ -1,4 +1,4 @@
-import type { ChangeEvent } from 'react';
+import type { ChangeEvent, ReactNode } from 'react';
 import type { ControlsPreference, GameSettings } from '../../contracts';
 import { useT } from '../i18n/translate';
 import './settings-panel.css';
@@ -11,6 +11,10 @@ interface SettingsPanelProps {
   onControlsChange?: (controls: ControlsPreference) => void;
   locale?: 'en' | 'ml';
   onLocaleChange?: (locale: 'en' | 'ml') => void;
+  haptics?: boolean;
+  onHapticsChange?: (haptics: boolean) => void;
+  /** Offline storage controls, supplied by the app shell. */
+  offline?: ReactNode;
 }
 
 const QUALITY_OPTIONS = [
@@ -19,7 +23,7 @@ const QUALITY_OPTIONS = [
   { value: 'high', label: 'settings.detailed', description: 'settings.detailedDescription' },
 ] as const;
 
-export function SettingsPanel({ settings, onChange, onResetPosition, controls, onControlsChange, locale, onLocaleChange }: SettingsPanelProps) {
+export function SettingsPanel({ settings, onChange, onResetPosition, controls, onControlsChange, locale, onLocaleChange, haptics, onHapticsChange, offline }: SettingsPanelProps) {
   const t = useT();
   const update = <K extends keyof GameSettings>(key: K, value: GameSettings[K]) => {
     onChange({ ...settings, [key]: value });
@@ -86,6 +90,15 @@ export function SettingsPanel({ settings, onChange, onResetPosition, controls, o
             <span>{t(value === 'auto' ? 'settings.controlsAuto' : value === 'touch' ? 'settings.controlsTouch' : 'settings.controlsDesktop')}</span>
           </label>)}
         </div>
+        {onHapticsChange && <label className="settings-panel__check">
+          <input type="checkbox" name="haptics" checked={haptics ?? true} onChange={(event) => onHapticsChange(event.target.checked)} />
+          <span><strong>{t('settings.haptics')}</strong><small>{t('settings.hapticsDescription')}</small></span>
+        </label>}
+      </fieldset>}
+
+      {offline && <fieldset className="settings-panel__group">
+        <legend>{t('settings.offline')}</legend>
+        {offline}
       </fieldset>}
 
       {onLocaleChange && <fieldset className="settings-panel__group">
