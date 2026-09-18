@@ -15,16 +15,18 @@ interface ProfileFormProps {
   onSubmit: (profile: ExplorerProfile) => void;
   onPreview?: (profile: ExplorerProfile) => void;
   initialProfile?: ExplorerProfile;
+  /** Equipped store character; wins over the saved profile's character. */
+  initialCharacterId?: string;
 }
 
 const makeId = () => globalThis.crypto?.randomUUID?.() ?? `explorer-${Date.now().toString(36)}`;
 
-export function ProfileForm({ onSubmit, onPreview, initialProfile }: ProfileFormProps) {
+export function ProfileForm({ onSubmit, onPreview, initialProfile, initialCharacterId }: ProfileFormProps) {
   const t = useT();
   const id = useId();
   const [displayName, setDisplayName] = useState(initialProfile?.displayName ?? '');
   const [avatarPresetId, setAvatarPresetId] = useState(initialProfile?.avatarPresetId ?? AVATAR_PRESETS[0].id);
-  const [characterModelId, setCharacterModelId] = useState(initialProfile?.characterModelId ?? 'procedural');
+  const [characterModelId, setCharacterModelId] = useState(initialCharacterId ?? initialProfile?.characterModelId ?? 'procedural');
   const [skin, setSkin] = useState(initialProfile?.colors.skin ?? SKIN_COLORS[0]);
   const [hair] = useState(initialProfile?.colors.hair ?? HAIR_COLORS[0]);
   const [error, setError] = useState<string | null>(null);

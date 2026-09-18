@@ -4,7 +4,7 @@ import type { MultiplayerSession } from './useMultiplayer';
 import { parseLobbyInput } from './lobbyModel';
 import './multiplayer.css';
 
-export function MultiplayerEntry({ session, profile, initialCode = '', errorMessage = '', onEnter, onClose }: { session: MultiplayerSession; profile: ExplorerProfile; initialCode?: string; errorMessage?: string; onEnter: () => void; onClose: () => void }) {
+export function MultiplayerEntry({ session, profile, initialCode = '', errorMessage = '', onEnter, onClose, showBack = true }: { session: MultiplayerSession; profile: ExplorerProfile; initialCode?: string; errorMessage?: string; onEnter: () => void; onClose: () => void; showBack?: boolean }) {
   const [name, setName] = useState(profile.displayName);
   const [code, setCode] = useState(initialCode);
   const [invalid, setInvalid] = useState('');
@@ -21,6 +21,6 @@ export function MultiplayerEntry({ session, profile, initialCode = '', errorMess
     <div className="multiplayer-actions"><button className="button button-primary" disabled={busy} onClick={() => connect(false)}>Create room</button><button className="button button-secondary" disabled={busy} onClick={() => connect(true)}>Join room</button></div>
     <p role="status">{invalid || errorMessage || (busy ? 'Connecting to your room…' : session.welcome ? `Room ${session.welcome.roomCode} · ${session.snapshot?.roster.length ?? 1}/10 guests` : '')}</p>
     {session.welcome && <button className="button button-primary" disabled={!session.snapshot?.players.some(player => player.id === session.welcome?.guestId) || session.phase !== 'connected'} onClick={onEnter}>Enter shared world</button>}
-    <button className="button button-secondary" onClick={onClose}>Back to title</button>
+    {showBack && <button className="button button-secondary" onClick={onClose}>Back to title</button>}
   </section>;
 }
