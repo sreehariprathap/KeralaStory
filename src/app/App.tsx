@@ -17,6 +17,7 @@ import { loadLocalSave, writeLocalSave, clearLocalSave } from '../persistence/lo
 import { collect as applyCollect, createCollectState, rollOver, todayKey } from '../game/collectables/collectState';
 import type { CollectItem } from '../game/collectables/types';
 import { WalletHud, heartsFoundToday } from '../features/wallet/WalletHud';
+import { shouldPersistSave } from '../features/multiplayer/roomSessionModel';
 
 import { LocaleProvider, translate, localizedPlace, localizedRegion, type TranslationKey, ENGLISH_CATALOG } from '../features/i18n/translate';
 import { LanguageToggle } from '../features/i18n/LanguageToggle';
@@ -72,6 +73,7 @@ export function App(){
   const haptic=useCallback((pattern:number|number[])=>{if(preferences.haptics&&touch)vibrate(pattern);},[preferences.haptics,touch]);
   const inspectMode=import.meta.env.DEV&&new URLSearchParams(window.location.search).has('inspect');
   const setDeveloperMode=(enabled:boolean)=>{const url=new URL(window.location.href);if(enabled)url.searchParams.set('inspect','');else url.searchParams.delete('inspect');window.location.replace(url.toString().replace('inspect=','inspect'));};
+  const inRoom=false;
   const [saved,setSaved]=useState(initial.save);
   const [profile,setProfile]=useState<ExplorerProfile>(initial.save?.profile??defaultProfile);
   const [preview,setPreview]=useState<ExplorerProfile>(initial.save?.profile??defaultProfile);
@@ -100,10 +102,11 @@ export function App(){
   const onSceneError=useCallback((error:string)=>{setSceneError(error);setMenu('none');setMode(m=>m==='menu'?'menu':'paused');},[]);
   const persist=useCallback(()=>{
     if(!active||profile.id==='preview'||!restored.current)return;
+    if(!shouldPersistSave(inRoom))return;
     const last=safeRef.current;
     const save:SaveV3={version:3,collect:collectRef.current,locale,bicycle:snapshotRef.current.bicycle??bicycleSpawn,worldVersion:WORLD_VERSION,profile,position:last.position,headingRad:last.headingRad,safeSpawnId:'origin',visitedLandmarkIds:visitedRef.current,settings,updatedAt:new Date().toISOString()};
     const result=writeLocalSave(save);if(!result.ok)setWarning(result.warning);else setSaved(save);
-  },[active,profile,settings,locale,bicycleSpawn]);
+  },[active,profile,settings,locale,bicycleSpawn,inRoom]);
   useEffect(()=>{if(!active)return;persist();const timer=setInterval(persist,5000);const hide=()=>{if(document.hidden)persist();};document.addEventListener('visibilitychange',hide);return()=>{clearInterval(timer);document.removeEventListener('visibilitychange',hide);};},[active,persist]);
   // A run of pickups becomes one write, not one per coin.
   useEffect(()=>{if(!active)return;const id=setTimeout(persist,500);return()=>clearTimeout(id);},[collectState,active,persist]);
