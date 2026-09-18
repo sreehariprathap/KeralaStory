@@ -85,9 +85,13 @@ export function createRouteRibbon(
     const nx = -s.tz, nz = s.tx, h = halfAt(s.x, s.z);
     for (let j = 0; j <= columns; j++) {
       const offset = (j / columns - .5) * 2 * h, x = s.x + nx * offset, z = s.z + nz * offset;
-      // Highest ground within ~0.7 m, so creases between vertices stay under the surface.
+      // Highest ground nearby, so creases between vertices stay under the surface. Padding is
+      // mostly across the road (curves can seam laterally); along the road the height already
+      // tracks the route exactly, so a wide forward/back pad would lift steep tracks off the ground.
       let ground = heightAt(x, z);
-      for (const [dx, dz] of [[.7, 0], [-.7, 0], [0, .7], [0, -.7], [.5, .5], [.5, -.5], [-.5, .5], [-.5, -.5]]) ground = Math.max(ground, heightAt(x + dx, z + dz));
+      for (const [across, along] of [[.7, 0], [-.7, 0], [.5, .5], [.5, -.5], [-.5, .5], [-.5, -.5], [0, .5], [0, -.5]]) {
+        ground = Math.max(ground, heightAt(x + nx * across + s.tx * along, z + nz * across + s.tz * along));
+      }
       positions.push(x, ground + .05, z);
       const c = car && Math.abs(offset) > h - .5 ? colors.shoulder : colors.surface;
       vertexColors.push(c[0], c[1], c[2]);
