@@ -63,7 +63,16 @@ export const LocaleSchema = z.enum(['en', 'ml']);
 export type Locale = z.infer<typeof LocaleSchema>;
 export const ControlsPreferenceSchema = z.enum(['auto', 'touch', 'desktop']);
 export type ControlsPreference = z.infer<typeof ControlsPreferenceSchema>;
-export const PreferencesSchema = z.object({ locale: LocaleSchema.default('en'), controls: ControlsPreferenceSchema.default('auto'), haptics: z.boolean().default(true) });
+export const DEFAULT_EQUIPPED = { carId: 'admin', carColor: '#b3121f', bikeId: 'roadster', characterId: 'procedural' } as const;
+// Ids are validated against the catalogues by resolveEquipped, so removed models never break parsing.
+export const EquippedSchema = z.object({
+  carId: z.string().min(1).max(64).default(DEFAULT_EQUIPPED.carId),
+  carColor: z.string().min(1).max(32).default(DEFAULT_EQUIPPED.carColor),
+  bikeId: z.string().min(1).max(64).default(DEFAULT_EQUIPPED.bikeId),
+  characterId: z.string().min(1).max(64).default(DEFAULT_EQUIPPED.characterId),
+});
+export type Equipped = z.infer<typeof EquippedSchema>;
+export const PreferencesSchema = z.object({ locale: LocaleSchema.default('en'), controls: ControlsPreferenceSchema.default('auto'), haptics: z.boolean().default(true), equipped: EquippedSchema.default({ ...DEFAULT_EQUIPPED }) });
 export type Preferences = z.infer<typeof PreferencesSchema>;
 export type TravelMode = 'foot' | 'bicycle' | 'car' | 'glider';
 export const BicycleSaveSchema = z.object({ position: Vec3Schema, headingRad: z.number().finite() });
