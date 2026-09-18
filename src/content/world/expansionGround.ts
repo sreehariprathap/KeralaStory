@@ -27,12 +27,26 @@ export function createExpansionGround(layout: ExpansionLayout, originalHeight: (
   const restShelves=[.25,.5,.75].map(t=>[...summitRoute.points[Math.round((summitRoute.points.length-1)*t)]] as [number,number,number]);
   const northXs=Array.from({length:55},(_,i)=>-78+i/54*166);
   const northZs=Array.from({length:67},(_,i)=>-499+i*2.5);
+  // Chalakkudy Dam headwaters: a mountain backdrop rises north of the reservoir (now widened
+  // east toward Kodassery Peaks), framing the river's source. It fades out toward the dam so
+  // the crest and downstream basin stay authored.
+  const reservoirHead=v2?.riverNodes.find(n=>n.id==='reservoir-head');
+  const reservoirEastArm=v2?.riverNodes.find(n=>n.id==='reservoir-east-arm');
+  const reservoirCenterX=reservoirHead&&reservoirEastArm?(reservoirHead.position[0]+reservoirEastArm.position[0])/2:reservoirHead?.position[0];
   const authoredHeight = (x: number, z: number) => {
     const route = field(x,z);
     let height = base - 8 + Math.sin(x * .018) * 3 + Math.sin(z * .021) * 3;
     const summitDistance = Math.hypot((x-summit[0]) * .9, z-summit[2]);
     height += (summit[1] - base + 8) * Math.exp(-Math.pow(summitDistance / 115, 2));
     if (x < -510) height = base - 26 * smooth((z + 401) / 5) + Math.sin(x * .035) * 1.5;
+    if (reservoirCenterX!==undefined) {
+      const north=smooth((-800-z)/30), lateral=Math.exp(-Math.pow((x-reservoirCenterX)/130,2));
+      height += 95*north*lateral;
+      // The dam access road climbs the hillside west of the crest; a broad local rise keeps that
+      // hillside built up under it, instead of a bare plateau edge dropping straight to the valley.
+      const shoulderDistance=Math.hypot((x+716)*.7,z+793);
+      height += 62*Math.exp(-Math.pow(shoulderDistance/95,2));
+    }
     if (route) {
       const blend = smooth((route.distance - route.width - 2) / 16);
       height = route.height * (1-blend) + height * blend;

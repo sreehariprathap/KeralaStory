@@ -124,6 +124,8 @@ export const LANDMARKS: Landmark[] = createV2Places({
   fuelStation: v2Grounded('chalakkudy-fuel', 'kadambode', -372, -132),
   coffeeShop: v2Grounded('chalakkudy-coffee', 'kadambode', -414, -120),
   malakkapparaTeaStop: v2Grounded('malakkappara-tea', 'kodassery', -532, -642),
+  // Set back from the wall's downstream face and buttress, on clear ground with a full view of the dam.
+  chalakudyDam: v2Grounded('chalakudy-dam', 'kodassery', -655, -785),
 });
 export const WORLD_REGIONS=[
   {id:'kodassery',name:'Kodassery Peaks',subtitle:'Misty canopy trails',number:'01',available:true},

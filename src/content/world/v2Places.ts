@@ -15,6 +15,7 @@ export interface V2PlaceAnchors {
   fuelStation: GroundedV2PlaceAnchor;
   coffeeShop: GroundedV2PlaceAnchor;
   malakkapparaTeaStop: GroundedV2PlaceAnchor;
+  chalakudyDam: GroundedV2PlaceAnchor;
 }
 
 type PlaceCopy = Pick<Landmark, 'label' | 'description' | 'iconId' | 'discoveryRadiusM'>;
@@ -40,7 +41,7 @@ const TOWN_COPY: Record<string, PlaceCopy> = {
   },
 };
 
-const PLACE_COPY: Record<'silverStorm' | 'fuelStation' | 'coffeeShop' | 'malakkapparaTeaStop', PlaceCopy> = {
+const PLACE_COPY: Record<'silverStorm' | 'fuelStation' | 'coffeeShop' | 'malakkapparaTeaStop' | 'chalakudyDam', PlaceCopy> = {
   silverStorm: {
     label: 'Silver Storm',
     description: 'A bright hillside park sits on a broad terrace, with a cool pool below the forest skyline.',
@@ -65,6 +66,12 @@ const PLACE_COPY: Record<'silverStorm' | 'fuelStation' | 'coffeeShop' | 'malakka
     iconId: 'tea',
     discoveryRadiusM: 10,
   },
+  chalakudyDam: {
+    label: 'Chalakkudy Dam',
+    description: 'An arch dam curves across the gorge in the far hills, holding back the reservoir where the Chalakkudy River begins its journey to the sea.',
+    iconId: 'waves',
+    discoveryRadiusM: 20,
+  },
 };
 
 function place(anchor: GroundedV2PlaceAnchor, copy: PlaceCopy): Landmark {
@@ -86,6 +93,7 @@ export function createV2Places(input: V2PlaceAnchors): Landmark[] {
     place(input.fuelStation, PLACE_COPY.fuelStation),
     place(input.coffeeShop, PLACE_COPY.coffeeShop),
     place(input.malakkapparaTeaStop, PLACE_COPY.malakkapparaTeaStop),
+    place(input.chalakudyDam, PLACE_COPY.chalakudyDam),
   ];
   const result = [...input.legacy, ...townPlaces, ...specialPlaces];
   const ids = new Set<string>();

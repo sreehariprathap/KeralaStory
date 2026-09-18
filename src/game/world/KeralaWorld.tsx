@@ -7,6 +7,7 @@ import { V2WorldDressing } from './V2WorldDressing';
 import { MountainExpansion } from './MountainExpansion';
 import { ChokkanaWorld } from './ChokkanaWorld';
 import { AthirappillyWorld } from './AthirappillyWorld';
+import { ChalakudyDam } from './ChalakudyDam';
 import type { Locale } from '../../contracts';
 import { translate, MALAYALAM_CATALOG, type TranslationKey } from '../../features/i18n/translate';
 import { RegionalDetails } from './RegionalDetails';
@@ -365,7 +366,7 @@ function KeralaGeometry({quality='medium',animated=true,locale='en'}:{quality?:'
   const roads=useMemo(()=>({village:ribbon(VILLAGE_PATH,3.8),tar:ribbon(VILLAGE_PATH.filter(([,z])=>z>=-260),3,.082),...Object.fromEntries(outsideKodalyCircle(CITY_PATH).flatMap((run,i)=>[[`city${i}`,ribbon(run,4.1)],[`cityTar${i}`,ribbon(run,3.1,.082)]])),temple:ribbon([[-6,-238],[12,-238],[22,-231]],2.4),tea:ribbon([[7,-190],[-10,-190]],2.1)}),[]);
   const frond=useMemo(()=>leafGeometry(),[]),banana=useMemo(()=>leafGeometry(true),[]),trunk=useMemo(()=>new CylinderGeometry(.75,1,1,7),[]),shrub=useMemo(()=>new CylinderGeometry(.4,1,1,7),[]);
   return <>
-    <ExpansionGround/><MountainExpansion locale={locale}/><ChokkanaWorld quality={quality} locale={locale}/><AthirappillyWorld quality={quality} animated={animated} locale={locale}/><KodasseryWorld quality={quality} animated={animated}/><RegionalDetails quality={quality} animated={animated}/>
+    <ExpansionGround/><MountainExpansion locale={locale}/><ChokkanaWorld quality={quality} locale={locale}/><AthirappillyWorld quality={quality} animated={animated} locale={locale}/><ChalakudyDam quality={quality} animated={animated} locale={locale}/><KodasseryWorld quality={quality} animated={animated}/><RegionalDetails quality={quality} animated={animated}/>
     <RigidBody type="fixed" colliders="trimesh"><mesh geometry={ground} receiveShadow><meshStandardMaterial vertexColors roughness={1}/></mesh></RigidBody>
     {Object.entries(roads).map(([key,geometry])=><mesh key={key} geometry={geometry} receiveShadow><meshStandardMaterial color={key==='tar'||key.startsWith('cityTar')?PALETTE.tar:PALETTE.sand} roughness={1} side={DoubleSide}/></mesh>)}
     <Water animated={animated}/><RiverNetwork animated={animated} quality={quality}/><TownWorld/><ChalakkudyCity/><V2WorldDressing/><CoconutGroves quality={quality}/><FlowerBeds quality={quality}/><Wildlife quality={quality}/><StuntParks/><GliderSites animated={animated}/><Stadium animated={animated}/><KodalyCircle quality={quality}/>

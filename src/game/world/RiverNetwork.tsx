@@ -8,7 +8,8 @@ import { waterMaterial } from './Waterfall';
 export function RiverNetwork({ animated, quality }: { animated: boolean; quality: 'low' | 'medium' | 'high' }) {
   const time = useMemo(() => ({ value: 0 }), []);
   const assets = useMemo(() => {
-    const meshes = EXPANSION_GROUND.v2!.river.meshes.filter(mesh => mesh.id !== 'athirappilly-drop');
+    // Both waterfall drops are hand-authored elsewhere (AthirappillyWorld, ChalakudyDam) as cascade curtains.
+    const meshes = EXPANSION_GROUND.v2!.river.meshes.filter(mesh => mesh.id !== 'athirappilly-drop' && mesh.id !== 'chalakudy-dam-spillway');
     const geometries = meshes.map(mesh => {
       const geometry = new BufferGeometry();
       geometry.setAttribute('position', new Float32BufferAttribute(mesh.vertices, 3));
