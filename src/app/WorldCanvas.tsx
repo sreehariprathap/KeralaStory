@@ -1,7 +1,7 @@
 import { Suspense, memo, useEffect, useRef, useMemo, useState, type RefObject } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { Physics } from '@react-three/rapier';
-import { PCFShadowMap, Object3D, DirectionalLight } from 'three';
+import { PCFShadowMap, Object3D, DirectionalLight, DefaultLoadingManager } from 'three';
 import type { ExplorerControllerProps, ExplorerProfile, GameSettings, Locale, PlayerSnapshot } from '../contracts';
 import { Collectables } from '../game/collectables/Collectables';
 import type { CollectItem } from '../game/collectables/types';
@@ -13,6 +13,10 @@ import { ExplorerAvatar } from '../game/player/ExplorerAvatar';
 import { SoccerMatch, type KickControl, type SoccerEvent } from '../game/soccer/SoccerMatch';
 import { createDprGovernor, frameloopFor, renderProfile, type RenderProfile } from '../game/render/renderBudget';
 import { MultiplayerRoomScene, type MultiplayerSceneProps } from '../features/multiplayer/MultiplayerRoomScene';
+import { reportLoadProgress } from '../game/render/loadProgress';
+
+// Set at module load, before any scene renders, so the first GLB request is counted.
+DefaultLoadingManager.onProgress = (_url, loaded, total) => reportLoadProgress(loaded, total);
 
 export interface SoccerSceneProps { active: boolean; kick: KickControl; onEvent: (event: SoccerEvent) => void; chargeBar: { current: HTMLElement | null } }
 
