@@ -9,9 +9,9 @@ export interface AssetHashes { version: 1; files: Record<string, AssetEntry> }
 export const ASSET_CACHE = 'kerala-assets-v1';
 export const ASSET_HASHES_URL = '/asset-hashes.json';
 
-const CACHEABLE = /^\/(?:assets|park)\/.+\.(?:glb|gltf|bin|png|jpe?g|webp|ktx2|mp3|ogg|wav)$/i;
+const CACHEABLE = /^\/assets\/.+\.(?:glb|gltf|bin|png|jpe?g|webp|ktx2|mp3|ogg|wav)$/i;
 
-/** World assets served from public/ (models, textures, audio). Built JS/CSS live under /app/ and are precached instead. */
+/** World assets under /assets/ (models, textures, audio). Built JS/CSS live under /app/ and are precached instead. */
 export function isCacheableAsset(pathname: string): boolean {
   return CACHEABLE.test(pathname);
 }

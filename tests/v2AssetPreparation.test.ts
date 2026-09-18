@@ -160,17 +160,4 @@ describe('supplied V2 GLB extraction and normalization', () => {
     prepared.dispose();
   });
 
-  it('removes the Silver Storm navigation and camera helpers', async () => {
-    const gltf = await new GLTFLoader().parseAsync(sanitizedGlb('/park/amusement_park.glb'), '');
-    const prepared = prepareEnvironmentAsset(gltf.scene, V2_ASSET_PROFILES.find(asset => asset.id === 'silver-storm')!);
-    expect(prepared.root.getObjectByName('CubeNavigationCollider')).toBeUndefined();
-    expect(prepared.drawMeshes).toBeLessThan(150);
-    expect(prepared.triangles).toBeLessThan(305000);
-    console.info(`Curated park: ${prepared.meshes} source meshes → ${prepared.drawMeshes} draw meshes; ${prepared.triangles} triangles; ${prepared.size.toArray().map(n => n.toFixed(2)).join(' × ')} m`);
-    const remainingNames: string[] = [];
-    prepared.root.traverse(node => remainingNames.push(node.name));
-    expect(remainingNames.some(name => /^NavCollider__/.test(name))).toBe(false);
-    expect(remainingNames.some(name => /^camera__[124]_$/.test(name))).toBe(false);
-    prepared.dispose();
-  }, 15000);
 });
