@@ -68,7 +68,9 @@ export function Shell(props: ShellProps) {
     previous.current = state.screen;
   }, [state.screen, props.reducedMotion]);
 
-  if (state.screen === 'playing' && !leaving) return null;
+  // The fade effect only runs after this render, so the first 'playing' render must already count as leaving.
+  const fading = leaving || (state.screen === 'playing' && previous.current === 'loading');
+  if (state.screen === 'playing' && !fading) return null;
 
   let screen: ReactNode;
   switch (state.screen) {
@@ -85,7 +87,7 @@ export function Shell(props: ShellProps) {
     case 'account': screen = <AccountScreen onBack={back}/>; break;
     case 'goodbye': screen = <GoodbyeScreen onBack={back}/>; break;
     case 'loading':
-    case 'playing': screen = <GameLoadScreen failed={false} leaving={leaving} onRetry={props.onRetry} onBack={props.onAbandonLoad}/>; break;
+    case 'playing': screen = <GameLoadScreen failed={false} leaving={fading} onRetry={props.onRetry} onBack={props.onAbandonLoad}/>; break;
     case 'loadError': screen = <GameLoadScreen failed leaving={false} onRetry={() => { props.onRetry(); dispatch({ type: 'RETRY' }); }} onBack={() => { props.onAbandonLoad(); back(); }}/>; break;
   }
   return <div className="shell" lang={props.locale}><div className="shell__bg" aria-hidden="true"/><div className="shell__content">{screen}</div></div>;

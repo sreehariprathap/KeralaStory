@@ -2,7 +2,7 @@
 .shell[lang="ml"]{font-family:'Noto Sans Malayalam','Oswald',sans-serif}
 .shell__bg{position:absolute;inset:0;background:url(/assets/menu-map.webp) center/cover no-repeat;opacity:.2;pointer-events:none}
 .shell__content{position:relative;height:100%}
-.shell button{font-family:inherit}
+.shell button,.shell h1,.shell h2,.shell h3{font-family:inherit}
 .shell-segments{display:flex;gap:3px;width:min(420px,70vw);height:16px;border:2px solid var(--shell-ink);padding:3px}
 .shell-segments i{flex:1;background:var(--shell-accent);opacity:.12;transition:opacity .2s}
 .shell-segments i.is-on{opacity:1}
@@ -22,7 +22,7 @@
 .shell-frame__head h1{margin:0;text-transform:uppercase;font-size:clamp(26px,3.4vw,40px);font-weight:700;letter-spacing:.5px}
 .shell-frame__sub{margin-left:auto;font-size:13px;letter-spacing:2px;color:var(--shell-muted);text-transform:uppercase}
 .shell-frame__back{border:0;background:none;color:var(--shell-muted);font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;padding:6px 0}
-.shell-frame__body{flex:1;min-height:0;overflow:auto}
+.shell-frame__body{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:16px}
 .shell-frame__foot{font-size:11px;letter-spacing:2px;color:var(--shell-faint);text-transform:uppercase}
 .uses-touch .shell-frame__foot,.uses-touch .shell-menu__hints{display:none}
 .shell-splash,.shell-load{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:16px}
@@ -42,11 +42,12 @@
 .shell-tab{border:0;border-bottom:4px solid transparent;background:none;padding:4px 0;text-transform:uppercase;font-weight:700;font-size:16px;color:var(--shell-faint);cursor:pointer}
 .shell-tab.is-active{color:var(--shell-ink);border-bottom-color:var(--shell-accent)}
 .shell-tab:disabled{opacity:.45;cursor:not-allowed}
-.shell-store{display:grid;grid-template-columns:minmax(240px,38%) 1fr;gap:24px;height:100%;min-height:0}
+.shell-store{flex:1;display:grid;grid-template-columns:minmax(240px,38%) 1fr;gap:24px;min-height:0}
 .shell-store .shell-list{overflow:auto}
 .shell-store .shell-list__item{font-size:18px}
-.shell-stage{border:2px solid rgba(15,61,26,.15);background:rgba(255,255,255,.75);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px;min-height:260px}
-.shell-stage__view{width:100%;flex:1;min-height:220px;display:grid;place-items:center}
+.shell-stage{border:2px solid rgba(15,61,26,.15);background:rgba(255,255,255,.75);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px;min-height:260px;overflow:hidden}
+.shell-stage__view{width:100%;flex:1;min-height:180px;display:grid;place-items:center}
+.shell-stage__view>*{width:100%;height:100%}
 .shell-swatches{display:flex;gap:8px}
 .shell-swatches button{width:28px;height:28px;border:2px solid #fff;outline:2px solid transparent;cursor:pointer}
 .shell-swatches button[aria-pressed="true"]{outline-color:var(--shell-accent)}

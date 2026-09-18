@@ -2,23 +2,22 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { getLoadProgress, subscribeLoadProgress } from '../../game/render/loadProgress';
 import { useT, type TranslationKey } from '../i18n/translate';
 import { ShellSegments } from './ShellFrame';
+import { displayPercent } from './loadPercent';
 import { useMenuNavigation } from './useMenuNavigation';
 
 const TIPS: TranslationKey[] = ['shell.tip.1', 'shell.tip.2', 'shell.tip.3', 'shell.tip.4', 'shell.tip.5'];
 const TIP_MS = 4000;
-
-/** Files finish before the player spawns, so real progress tops out at 95 until the world reports ready. */
-export function displayPercent(progress: number, leaving: boolean): number {
-  return leaving ? 100 : Math.round(Math.min(progress, 1) * 95);
-}
 
 export function GameLoadScreen({ failed, leaving, onRetry, onBack }: { failed: boolean; leaving: boolean; onRetry: () => void; onBack: () => void }) {
   const t = useT();
   const progress = useSyncExternalStore(subscribeLoadProgress, getLoadProgress);
   const [tip, setTip] = useState(() => Math.floor(Math.random() * TIPS.length));
   useEffect(() => { const id = setInterval(() => setTip(value => (value + 1) % TIPS.length), TIP_MS); return () => clearInterval(id); }, []);
+  const [started] = useState(() => performance.now());
+  const [now, setNow] = useState(started);
+  useEffect(() => { const id = setInterval(() => setNow(performance.now()), 250); return () => clearInterval(id); }, []);
   const { index } = useMenuNavigation({ count: 2, enabled: failed, onActivate: i => (i === 0 ? onRetry() : onBack()), onBack });
-  const percent = displayPercent(progress, leaving);
+  const percent = displayPercent(progress, now - started, leaving);
 
   if (failed) return <section className="shell-load" role="alert">
     <h1 className="shell-load__label">{t('shell.load.errorTitle')}</h1>
