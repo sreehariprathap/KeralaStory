@@ -4,6 +4,7 @@ import { GLIDER_LAUNCH } from '../../content/world/gliderSites';
 import { STADIUM, stadiumToWorld } from '../../content/world/stadiumLayout';
 import { staticArchitectureBoxes, canopyArchitectureBoxes } from '../../content/world/staticArchitecture';
 import { TOWN_BUILDINGS } from '../../content/world/v2Dressing';
+import { CHALAKKUDY_CITY } from '../../content/world/chalakkudyCity';
 import { stuntSites } from '../../game/world/stuntSites';
 import type { TranslationKey } from '../i18n/translate';
 
@@ -44,14 +45,21 @@ export function buildingFootprints(): Footprint[] {
     .map((b, i): Footprint => ({ id: b.id, x: b.position[0], z: b.position[2], width: b.size[0], depth: b.size[2], yaw: b.rotation[1], roof: i % 3 === 0 ? '#b8664a' : i % 3 === 1 ? '#a8573d' : '#c07a52' }));
   const towns = TOWN_BUILDINGS.map((b): Footprint => ({ id: b.id, x: b.x, z: b.z, width: b.width, depth: b.depth, yaw: 0, roof: b.roof }));
   const street = CHALAKKUDY_STREET.buildings.map((b): Footprint => ({ id: b.id, x: b.origin[0], z: b.origin[2], width: b.width, depth: b.depth, yaw: b.yaw, roof: '#a8573d' }));
-  return [...boxes, ...towns, ...street];
+  const city = CHALAKKUDY_CITY.footprints.map((b): Footprint => ({ ...b, yaw: 0 }));
+  return [...boxes, ...towns, ...street, ...city];
 }
 
-export interface CityLabel { id: string; label: string; tier: 'A' | 'B' | 'C'; center: readonly [number, number]; footprint: readonly (readonly [number, number])[] }
+export interface CityLabel { id: string; label: string; tier: 'A' | 'B' | 'C'; center: readonly [number, number]; footprint: readonly (readonly [number, number])[]; /** Part of a larger town. */ district?: boolean }
 
 /** Towns drawn as built-up districts. Kodaly is the original harbour town. */
 export function mapCities(): CityLabel[] {
-  return V2_LAYOUT.towns.map(t => ({ id: t.id, label: t.label, tier: t.tier, center: [t.center[0], t.center[2]] as const, footprint: t.footprint }));
+  return V2_LAYOUT.towns.flatMap(t => [
+    { id: t.id, label: t.label, tier: t.tier, center: [t.center[0], t.center[2]] as const, footprint: t.footprint },
+    ...(t.districts ?? []).map(d => {
+      const xs = d.footprint.map(p => p[0]), zs = d.footprint.map(p => p[1]);
+      return { id: d.id, label: d.label, tier: t.tier, district: true, center: [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...zs) + Math.max(...zs)) / 2] as const, footprint: d.footprint };
+    }),
+  ]);
 }
 
 /** Landmarks that sit inside a highlighted spot's circle would double up; keep the landmark list as is. */

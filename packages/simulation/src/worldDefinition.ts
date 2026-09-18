@@ -3,6 +3,7 @@ import { terrainMeshData } from '../../../src/game/world/traversalGeometry';
 import { staticArchitectureBoxes, canopyArchitectureBoxes, mountainArchitectureBoxes, waterfallBarrierBox } from '../../../src/content/world/staticArchitecture';
 import { staticForestBoxes } from '../../../src/content/world/staticForest';
 import { v2DressingBoxes } from '../../../src/content/world/v2Dressing';
+import { chalakkudyCityBoxes } from '../../../src/content/world/chalakkudyCity';
 import type { Vec3 } from '@kerala-story/protocol';
 
 export interface StaticBox { id: string; position: readonly number[]; size: readonly number[]; rotation: readonly number[] }
@@ -21,7 +22,7 @@ export function createCanonicalWorldDefinition(): SimulationWorldDefinition {
   return {
     version: WORLD_VERSION,
     meshes: [{ ...terrainMeshData('north'), id: 'terrain-north' }, { ...terrainMeshData('south'), id: 'terrain-south' }, ...EXPANSION_GROUND.chunks],
-    boxes: [...staticArchitectureBoxes(), ...canopyArchitectureBoxes(), ...mountainArchitectureBoxes(), waterfallBarrierBox(), ...staticForestBoxes(), ...CHALAKKUDY_STREET.boxes, ...v2DressingBoxes()],
+    boxes: [...staticArchitectureBoxes(), ...canopyArchitectureBoxes(), ...mountainArchitectureBoxes(), waterfallBarrierBox(), ...staticForestBoxes(), ...CHALAKKUDY_STREET.boxes, ...v2DressingBoxes(), ...chalakkudyCityBoxes()],
     safeSpawns: SAFE_SPAWNS,
     groundHeight: (x, z) => {
       const ground = hasGroundAt(x, z) ? terrainHeight(x, z) : null;

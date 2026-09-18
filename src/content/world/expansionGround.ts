@@ -10,6 +10,9 @@ const merge = (...axes: number[][]) => [...new Set(axes.flat().map(n=>Math.round
 
 export function createExpansionGround(layout: ExpansionLayout, originalHeight: (x: number, z: number) => number, v2?: WorldV2Layout) {
   const field = createRouteField(layout.routes);
+  // Car roads only: where a foot trail starts on a road, the road surface wins.
+  const carField = createRouteField(layout.routes.filter(route => route.allowedModes.includes('car')));
+  const footField = createRouteField(layout.routes.filter(route => !route.allowedModes.includes('car')));
   const profile = v2 ? createV2GroundProfile(v2) : null;
   const base = layout.anchors.find(anchor => anchor.id === 'kodassery-junction')!.position[1];
   const summit = layout.summitPosition;
@@ -77,6 +80,19 @@ export function createExpansionGround(layout: ExpansionLayout, originalHeight: (
   };
   const extensionHeight = (x:number,z:number) => {
     let height=profile?.apply(x,z,authoredHeight(x,z)) ?? authoredHeight(x,z);
+    // River banks and town pads are carved after the authored roads: restore each road surface with the
+    // same blend the authored pass used, so no later carving cuts a step across a road.
+    // Authored clearings (summit, falls, viewpoints) keep their own levelling.
+    const core=carField(x,z), v2Core=profile?.field(x,z);
+    // Clearings and the Athirappilly walking trail keep their own levels; both fade in over a few metres
+    // so the restored road surface meets them without a step.
+    const clearing=Math.min(...layout.anchors.filter(anchor=>['kodassery-summit','summit-trailhead','athirappilly-falls','athirappilly-lower-view'].includes(anchor.id))
+      .map(anchor=>smooth((Math.hypot(x-anchor.position[0],z-anchor.position[2])-(anchor.id==='kodassery-summit'?10:7)-2)/8)),1);
+    const foot=footField(x,z), footKeep=foot?smooth((foot.distance-foot.width-1)/6):1;
+    if(core&&!(v2Core&&v2Core.distance<core.distance)){
+      const weight=(1-smooth((core.distance-core.width-2)/16))*clearing*footKeep;
+      height=core.height*weight+height*(1-weight);
+    }
     if (z>=-499 && z<=92 && x>=-98 && x<=-78) {
       const blend=smooth((-78-x)/20);
       height=originalEdge(z)*(1-blend)+height*blend;
@@ -107,6 +123,6 @@ export function createExpansionGround(layout: ExpansionLayout, originalHeight: (
     for(const chunk of chunks) { const y=sampleTerrainChunk(chunk,x,z); if(y!==null)return y; }
     return null;
   };
-  const deckHeightAt=(x:number,z:number):number|null=>pointInPolygon(x,z,streamBridge.footprint)?crossing[1]:null;
+  const deckHeightAt=(x:number,z:number):number|null=>pointInPolygon(x,z,streamBridge.footprint)?crossing[1]:profile?.bridgeDeckAt(x,z)??null;
   return { chunks, originalNorthChunk, heightAt, field, restShelves, streamBridge, streamWater, deckHeightAt, v2:profile };
 }

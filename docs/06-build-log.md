@@ -492,3 +492,59 @@ Seven layout tests pass, including connectivity, grades, lengths, unique anchors
   - Any real-device testing: iPhone Add to Home Screen, Android full screen and landscape lock, Wake Lock, vibration, and frame rate on a mobile GPU.
   - KTX2 textures (no encoder installed).
   - Region-based scenery loading and far-distance tree versions (Phase 4).
+
+## 2026-09-17 — Chalakkudy Tier A city
+
+- Chalakkudy is now built out as a Tier A city (`src/content/world/chalakkudyCityPlan.ts`, `chalakkudyCity.ts`, `src/game/world/ChalakkudyCity.tsx`):
+  - Two four-lane (4 × 3.5 m) roads added to `V2_LAYOUT.roads`: MG Road (east–west, z = −60) and Chalakkudy Boulevard (north–south, x = −430). They level the terrain, draw on the map and are drivable. Road paint includes a double yellow centre line, dashed lane lines, edge lines and zebra crossings at the junction. Street lights line both sides.
+  - Chalakkudy Central Mall: three floors, a glass atrium, an entrance canopy and a car park reached by a driveway off MG Road.
+  - 15 modern shops along MG Road, each with a glass front and a painted signboard.
+  - Chalakkudy Motors, a walk-in car showroom with three cars on display inside and two on the forecourt.
+  - A gateway board for arrivals from the north.
+  - The 12 placeholder `chalakkudy-frontage-*` blocks were removed. The coffee street, the houses and the fuel station are unchanged.
+- All city colliders are shared with the multiplayer simulation. `WORLD_VERSION` is now `kodassery-diaries-v2-chalakkudy-city-1`.
+- Checks run:
+  - `npm run typecheck`: PASS.
+  - `npm run build`: PASS.
+  - New `tests/chalakkudyCity.test.ts`: 6/6 pass.
+  - Full `npm test`: the same 8 failures as the unchanged baseline, all in `.worktrees/*` copies plus the known load-sensitive `apps/server/tests/roomIntegration.test.ts`. Run on its own, that test passes.
+- Inspected in the dev server (Chrome) using the three new `?inspect` destinations: the mall and car park, the MG Road shops and lane paint, and the showroom with its display cars. Frame time was about 8 ms. Draw calls rise near the showroom (about 950) because each display car is a full GLB.
+- NOT yet done: mobile GPU profiling of the city, and interiors (the mall and shops are closed shells).
+
+## 2026-09-17 — Chalakkudy across the Kurumalippuzha
+
+- Chalakkudy now covers both banks of the Kurumalippuzha, as marked on the atlas.
+  - The town has two more districts. **Riverfront** covers the valley and both bridges; it counts as town area and draws on the map, but the ground is not levelled. **East** is a new district levelled at y = 37.
+  - Zones, the map and the town list all include both districts.
+- Two cable-stayed four-lane bridges (`CHALAKKUDY_BRIDGES`), each with a deck, walkways, parapets, piers, a pylon pair, stay cables and lamps:
+  - MG Road Bridge runs from MG Road to East Avenue.
+  - Kurumali North Bridge runs from the Link Road to Riverside Road.
+  - Each deck is a separate walkable structure between two road ends, so every road sample stays on dry, carved terrain. Deck heights feed `walkableDeckHeight`, and the colliders are shared with the server.
+- New four-lane roads:
+  - The Chalakkudy–Kodakara Highway, which replaces the old narrow Chalakkudy–Kodakara stretch. `kodakara-road` now starts in Kodakara.
+  - Riverside Road, East Avenue and Link Road.
+  - The Chalakkudy–Kodaly Highway: a ghat that loops down the escarpment and joins Kodaly by its north gate, between the Kodaly Stunt Park and the river.
+  - Every control segment is ≤10% grade.
+- Chalakkudy East also has three glass towers (River View Towers, East Plaza and Chalakkudy Tech Park) and three shops.
+- Checks run:
+  - `npm run typecheck`: PASS.
+  - `npm run build`: PASS.
+  - `vitest` outside `.worktrees`: 605/605 PASS.
+  - New tests cover: bridge ends meeting roads, decks over water keeping swimmers dry and cars allowed, the conversion of tilted collider rotations, highway endpoints, and every bridge sample lying inside Chalakkudy.
+- Inspected in the dev server using the new `?inspect` stops: both bridges (including a car driving on the north deck), Chalakkudy East, the Kodaly ghat, and the world map. Shadow striping on the tilted decks was fixed: the deck surfaces now receive shadows without casting them.
+- NOT yet done: mobile GPU profiling, and a drive from the ghat all the way into Kodaly in a car.
+
+## 2026-09-17 — NH 544 loop, seamless roads, scenery off the carriageway
+
+- **NH 544 loop.** The highway now runs Chalakkudy → Kodakara → Kurumali Bridge → Kodaly junction → up the ghat → Chalakkudy East → MG Road Bridge → Chalakkudy. A third cable-stayed bridge (`kurumali-highway-bridge`) crosses the Kurumalippuzha–Kurumali confluence. The Kodakara–village lane now branches from the loop at a fork east of Kodakara and falls with it through the fork, so the two roads meet at one grade. Kodaly Road runs from the junction into town. Green NH 544 direction boards stand at the junctions, and town boards moved off the carriageway.
+- **Roads blend into the ground.** Road surfaces are rebuilt as a dense mesh (rows and columns about 1 m apart) that follows the walkable surface, takes the highest ground within ~0.7 m, and fades to a dusty shoulder at its outer edge. Where a road ends on another road, its end flares into rounded kerb corners. No terrain pokes through any road any more (was up to 3.8 m on the forest road, 0.5 m on the Kodaly road).
+- **Road surfaces restored after carving.** River banks and town pads used to be carved after the authored roads, which cut steps across them — including a 26 m pit in the Chokkana forest road at Athirappilly. Each road's surface is now restored with the authored blend, while authored clearings and the Athirappilly walking trail keep their own levels so the trail still descends to the lower viewpoint.
+- **Bridges keep air beneath them.** The ground under each span is dug out to 3.5 m below the deck, fading in past the abutments. This fixed a 9 m mound that buried the new Kurumali deck mid-span.
+- **Nothing grows on a road.** A shared `isClearOfRoads` check now gates coconut palms (5 m clearance, so leaning fronds cannot overhang), village palms and shrubs, Kodassery trees and grass, and the forest colliders that mirror them. Chalakkudy's two street palms were removed: the mall car park and the MG Road shops stand there now.
+- Checks run:
+  - `npm run typecheck`: PASS. `npm run build`: PASS.
+  - `vitest` outside `.worktrees`: 607 of 608 pass. The one failure is the known load-sensitive `apps/server/tests/roomIntegration.test.ts`, which passes 3 of 3 when run on its own (~1.1 s). It also fails on the unchanged baseline under the same parallel load.
+  - New `tests/roadScenery.test.ts`: no palm, tree, shrub, flower or grass tuft stands within its own radius of any road or bridge; stunt ramps stay clear; every driveable road surface sits above the ground it covers.
+  - `tests/chalakkudyCity.test.ts` now asserts the loop end to end, including that Kodaly Road reaches the town edge and that each bridge meets road ends on both banks.
+- Inspected in the dev server: the MG Road/Boulevard crossroads (flared corners, zebra crossings), the Kodakara junction and NH boards, and the Kurumali bridge from the Kodaly junction.
+- NOT yet done: a full drive of the loop in a car, and mobile GPU profiling.

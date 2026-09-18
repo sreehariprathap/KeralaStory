@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerE
 import { ArrowUp, ArrowUpRight, Compass, FlagPennant, Mountains, Plus, Minus, HouseLine, Plant, Coffee, Storefront, Anchor, Waves, Boat, MapPin, Lighthouse, Bridge, Crosshair, Wind, SoccerBall, Motorcycle, SwimmingPool, Buildings, Lightning, type Icon } from '@phosphor-icons/react';
 import { LANDMARKS, MAIN_PATH, WORLD_REGIONS, RIVER_CENTERLINE, getZoneAtPosition, getAreaAt, EXPANSION_LAYOUT, WORLD_DEFINITION, terrainHeight, walkableDeckHeight } from '../../content/world/kodassery';
 import { V2_LAYOUT, V2_ROUTES } from '../../content/world/definition';
+import { CHALAKKUDY_BRIDGES } from '../../content/world/chalakkudyCityPlan';
 import { STADIUM } from '../../content/world/stadiumLayout';
 import type { PlayerSnapshot, Vec3, ZoneId } from '../../contracts';
 import { createRiverMesh } from '../../game/world/riverGeometry';
@@ -44,6 +45,7 @@ const GEOMETRY=(()=>{
   const roads=[
     {id:'main',d:smoothPath(simplify(MAIN_PATH.map(([x,z])=>xz(x,z)),2),{tension:.9}),width:6},
     ...V2_ROUTES.map(route=>({id:route.id,d:smoothPath(simplify(route.points.map(p=>xz(p[0],p[2])),2),{tension:.9}),width:route.widthM})),
+    ...CHALAKKUDY_BRIDGES.map(bridge=>({id:bridge.id,d:`M${xz(bridge.from[0],bridge.from[2]).join(' ')}L${xz(bridge.to[0],bridge.to[2]).join(' ')}`,width:bridge.width})),
     ...EXPANSION_LAYOUT.routes.filter(r=>r.allowedModes.length>1).map(route=>({id:route.id,d:smoothPath(simplify(route.points.map(p=>xz(p[0],p[2])),2),{tension:.9}),width:route.widthM})),
   ];
   const trails=EXPANSION_LAYOUT.routes.filter(r=>r.allowedModes.length===1).map(route=>({id:route.id,d:smoothPath(simplify(route.points.map(p=>xz(p[0],p[2])),2),{tension:.9})}));
@@ -187,7 +189,8 @@ export function ExplorerMap({player,visited,waypoint,onWaypoint,compact=false}:P
   const labels=useMemo(()=>{
     if(compact)return [];
     const requests:LabelRequest[]=[];
-    for(const city of GEOMETRY.cities)requests.push({id:`city-${city.id}`,text:city.label.toUpperCase(),x:city.at[0],y:city.at[1],fontSize:(city.tier==='A'?15:city.tier==='B'?13:12)*k,offset:0,priority:100,centered:true});
+    // Districts (Chalakkudy East, Riverfront) are smaller and give way to town names.
+    for(const city of GEOMETRY.cities)requests.push({id:`city-${city.id}`,text:city.label.toUpperCase(),x:city.at[0],y:city.at[1],fontSize:(city.district?10:city.tier==='A'?15:city.tier==='B'?13:12)*k,offset:0,priority:city.district?85:100,centered:true});
     for(const area of GEOMETRY.areas)requests.push({id:`area-${area.id}`,text:translate(`area.${area.id}` as TranslationKey,locale),x:area.label[0],y:area.label[1],fontSize:12*k,offset:0,priority:90,centered:true});
     for(const h of GEOMETRY.highlights){const [x,y]=point(h.position);requests.push({id:`hl-${h.id}`,text:h.label,x,y,fontSize:9.5*k,offset:7*k,priority:h.kind==='stadium'||h.kind==='paragliding'?80:70});}
     for(const l of LANDMARKS){if(GEOMETRY.doubled.has(l.id))continue;const [x,y]=point(l.position);requests.push({id:`lm-${l.id}`,text:localizedMapPlace(l.id,locale),x,y,fontSize:9*k,offset:6*k,priority:visited.includes(l.id)?60:55});}

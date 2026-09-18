@@ -1,11 +1,11 @@
-import { memo, useMemo } from 'react';
+import { memo, useEffect, useMemo } from 'react';
 import { RigidBody, TrimeshCollider, CuboidCollider } from '@react-three/rapier';
-import { BufferGeometry, Float32BufferAttribute } from 'three';
-import { EXPANSION_GROUND, EXPANSION_LAYOUT, V2_ROUTES, V2_LAYOUT, terrainHeight } from '../../content/world/definition';
+import { BufferGeometry, Color, Float32BufferAttribute } from 'three';
+import { EXPANSION_GROUND, EXPANSION_LAYOUT, V2_ROUTES, V2_LAYOUT, isClearOfRoads, terrainHeight } from '../../content/world/definition';
 import { ExpansionSign } from './ExpansionSign';
 import type { ExpansionRoute } from '../../contracts/worldExpansion';
 import type { TerrainChunk } from './expansionTerrain';
-import { routeSurfaceHeight, visibleRoutePoints } from './routeVisualGeometry';
+import { createRouteRibbon } from './routeVisualGeometry';
 
 const WORLD_ROUTES = [...EXPANSION_LAYOUT.routes, ...V2_ROUTES];
 
@@ -19,23 +19,18 @@ function Chunk({chunk}:{chunk:TerrainChunk}) {
     <TrimeshCollider args={[collision[0],collision[1]]} friction={.9}/>
   </RigidBody>;
 }
+/** Whichever is higher, deck or ground: bridge ends never leave a lip of terrain above the road. */
+const surfaceHeight=(x:number,z:number)=>Math.max(EXPANSION_GROUND.deckHeightAt(x,z)??-Infinity,terrainHeight(x,z));
+const rgb=(hex:string)=>{const c=new Color(hex);return [c.r,c.g,c.b] as const;};
+const CAR_COLORS={surface:rgb('#686d5e'),shoulder:rgb('#8e8b72')},TRAIL_COLORS={surface:rgb('#c4b387'),shoulder:rgb('#c4b387')};
+/** Dense, ground-hugging road surface with flared junction corners (see createRouteRibbon). */
 function RouteRibbon({route,routes}:{route:ExpansionRoute;routes:readonly ExpansionRoute[]}) {
   const geometry=useMemo(()=>{
-    const vertices:number[]=[],indices:number[]=[],across=6,points=visibleRoutePoints(route,routes);
-    points.forEach((p,i)=>{
-      const before=points[Math.max(0,i-1)],after=points[Math.min(points.length-1,i+1)];
-      const dx=after[0]-before[0],dz=after[2]-before[2],length=Math.hypot(dx,dz)||1;
-      const centerTerrainHeight=EXPANSION_GROUND.deckHeightAt(p[0],p[2])??terrainHeight(p[0],p[2]);
-      for(let j=0;j<=across;j++){
-        const offset=(j/across-.5)*route.widthM,x=p[0]-dz/length*offset,z=p[2]+dx/length*offset;
-        const sampledTerrainHeight=EXPANSION_GROUND.deckHeightAt(x,z)??terrainHeight(x,z);
-        vertices.push(x,routeSurfaceHeight(p,centerTerrainHeight,sampledTerrainHeight)+.045,z);
-        if(i<route.points.length-1&&j<across){const a=i*(across+1)+j;indices.push(a,a+1,a+across+1,a+1,a+across+2,a+across+1);}
-      }
-    });
-    const g=new BufferGeometry();g.setAttribute('position',new Float32BufferAttribute(vertices,3));g.setIndex(indices);g.computeVertexNormals();return g;
+    const mesh=createRouteRibbon(route,routes,surfaceHeight,route.allowedModes.includes('car')?CAR_COLORS:TRAIL_COLORS);
+    const g=new BufferGeometry();g.setAttribute('position',new Float32BufferAttribute(mesh.positions,3));g.setAttribute('color',new Float32BufferAttribute(mesh.colors,3));g.setIndex(mesh.indices);g.computeVertexNormals();return g;
   },[route,routes]);
-  return <mesh geometry={geometry} receiveShadow><meshStandardMaterial color={route.allowedModes.includes('car')?'#686d5e':'#c4b387'} roughness={1} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1}/></mesh>;
+  useEffect(()=>()=>geometry.dispose(),[geometry]);
+  return <mesh geometry={geometry} receiveShadow><meshStandardMaterial vertexColors roughness={1} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1}/></mesh>;
 }
 /** Original north ground is rendered by KodasseryWorld; these chunks share only its edges. */
 export const ExpansionGround=memo(function ExpansionGround(){return <>
@@ -45,8 +40,11 @@ export const ExpansionGround=memo(function ExpansionGround(){return <>
   </RigidBody>
   {EXPANSION_GROUND.chunks.map(chunk=><Chunk key={chunk.id} chunk={chunk}/>)}
   {WORLD_ROUTES.map(route=><RouteRibbon key={route.id} route={route} routes={WORLD_ROUTES}/>)}
-  {[...V2_LAYOUT.towns.filter(t=>!t.existing),V2_LAYOUT.park].map(site=>{
-    const x=site.center[0]+7,z=site.center[2];
-    return <ExpansionSign key={site.id} position={[x,terrainHeight(x,z),z]} label={`${site.label} · ${site.id==='chalakkudy'?'first street':'site'}`} width={4}/>;
+  {/* Chalakkudy has its own city gateway board. */}
+  {[...V2_LAYOUT.towns.filter(t=>!t.existing&&t.id!=='chalakkudy'),V2_LAYOUT.park].map(site=>{
+    // First spot beside the centre that is clear of every road (Kodakara's centre is on NH 544).
+    const [dx,dz]=([[7,0],[0,14],[0,-14],[-14,0],[14,14]] as const).find(([dx,dz])=>isClearOfRoads(site.center[0]+dx,site.center[2]+dz,1))??[7,0];
+    const x=site.center[0]+dx,z=site.center[2]+dz;
+    return <ExpansionSign key={site.id} position={[x,terrainHeight(x,z),z]} label={`${site.label} · site`} width={4}/>;
   })}
 </>;});

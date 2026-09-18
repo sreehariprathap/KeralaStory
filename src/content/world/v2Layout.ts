@@ -2,6 +2,7 @@ import type { MapBounds, Vec3 } from '../../contracts';
 import type { ExpansionLayout, PolygonXZ } from '../../contracts/worldExpansion';
 import type { RiverNode, RiverReach, RoadProposal, TownSite, WorldV2Layout } from '../../contracts/worldV2';
 import { nearestRouteSample } from './expansionLayout';
+import { CHALAKKUDY_CITY_ROADS, CHALAKKUDY_DISTRICTS, CITY_ROAD_WIDTH_M } from './chalakkudyCityPlan';
 
 const rectangle = (xMin: number, zMin: number, xMax: number, zMax: number): PolygonXZ =>
   [[xMin, zMin], [xMax, zMin], [xMax, zMax], [xMin, zMax]];
@@ -27,7 +28,7 @@ export function createV2Layout(input: {
   const forestJoin = nearestRouteSample(expansion.routes.find(r => r.id === 'chokkana-main-road')!, -565, -290).position;
   const legacyStart = input.legacyRiver[0], legacyEnd = input.legacyRiver.at(-1)!;
   const towns: TownSite[] = [
-    { id: 'chalakkudy', label: 'Chalakkudy', tier: 'A', regionId: 'kadambode', footprint: rectangle(-555, -195, -305, -45), center: [-430, 49, -120], existing: false },
+    { id: 'chalakkudy', label: 'Chalakkudy', tier: 'A', regionId: 'kadambode', footprint: rectangle(-555, -195, -305, -45), center: [-430, 49, -120], existing: false, districts: CHALAKKUDY_DISTRICTS },
     { id: 'kodakara', label: 'Kodakara', tier: 'B', regionId: 'kadambode', footprint: rectangle(-295, -265, -125, -145), center: [-210, 32, -200], existing: false },
     { id: 'kodaly', label: 'Kodaly', tier: 'C', regionId: 'kodaly', footprint: rectangle(-10, -54, 77, 65), center: input.kodalyCenter, existing: true },
     { id: 'malakkappara', label: 'Malakkappara', tier: 'C', regionId: 'kodassery', footprint: rectangle(-615, -755, -495, -625), center: [-555, base + 7, -680], existing: false },
@@ -60,9 +61,13 @@ export function createV2Layout(input: {
   ];
   const roads: RoadProposal[] = [
     { id: 'malakkappara-road', label: 'Malakkappara forest road', widthM: 5.5, points: [fallsParking, [-565, base, -495], [-550, base + 2, -570], [-555, base + 7, -680]] },
-    { id: 'chalakkudy-road', label: 'Forest–Chalakkudy road', widthM: 5.5, points: [forestJoin, [-595, 65, -195], [-565, 56, -100], [-430, 49, -120], [-430, 49, -155]] },
-    { id: 'kodakara-road', label: 'Chalakkudy–Kodakara road', widthM: 5.5, points: [[-430, 49, -155], [-330, 41, -205], [-210, 32, -200], [-105, 30, -190], input.villageRoadJoin] },
+    { id: 'chalakkudy-road', label: 'Forest–Chalakkudy road', widthM: 5.5, // Gentler control grades: rounding a corner shortens the path, which steepens the sampled grade.
+    points: [forestJoin, [-595, 67, -195], [-565, 58, -100], [-430, 49, -120], [-430, 49, -155]] },
+    // Branches off the NH 544 loop east of Kodakara, falling with it through the fork, then on to the village.
+    { id: 'kodakara-road', label: 'Kodakara–village road', widthM: 5.5, points: [[-190, 31.62, -197.14], [-160, 28.8, -200], [-105, 30, -190], input.villageRoadJoin] },
     { id: 'silver-storm-road', label: 'Silver Storm access', widthM: 5.5, points: [input.parkRoadJoin ?? [0, base + 4, -481], [0, base + 6, -515], [105, base + 5, -565], [110, base + 4, -630], [40, base + 4, -665], [40, base + 4, -685]] },
+    // Tier A Chalakkudy: four-lane city roads on the levelled town pad.
+    ...CHALAKKUDY_CITY_ROADS.map(road => ({ ...road, widthM: CITY_ROAD_WIDTH_M })),
   ];
   const park: WorldV2Layout['park'] = {
     id: 'silver-storm', label: 'Silver Storm', footprint: rectangle(-15, -735, 90, -635),
@@ -84,7 +89,7 @@ export function createV2Layout(input: {
     reviewNotes: [
       'Malakkappara sits upstream, on the wooded plateau east of the river.',
       'Silver Storm is east/right of the summit, below its skyline; its pool is on the north-east side.',
-      'Chalakkudy is the largest town. Kodakara connects it to the existing village road.',
+      'Chalakkudy is the largest town: a Tier A city on both banks of the Kurumalippuzha, joined by two four-lane bridges, with four-lane highways to Kodakara and down the ghat to Kodaly.',
       'Kurumalippuzha joins the existing river crossing; Kodaly keeps its harbor and lighthouse.',
       'The main downstream outlet requires a new shoreline in V2-02; it is not existing sea.',
       'Footprints and control-point elevations are proposed. Grounding, rounded bends and sightlines await V2-02.',

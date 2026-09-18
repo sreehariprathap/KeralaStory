@@ -10,6 +10,8 @@ export interface TownSite {
   footprint: PolygonXZ;
   center: Vec3;
   existing: boolean;
+  /** Further districts of the same town: levelled to `y` when given, otherwise town area only (zone and map). */
+  districts?: readonly { id: string; label: string; footprint: PolygonXZ; y?: number }[];
 }
 export interface RiverNode {
   id: string;

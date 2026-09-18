@@ -7,6 +7,7 @@ import { CuboidCollider, RigidBody } from '@react-three/rapier';
 import { BufferGeometry, Float32BufferAttribute, Color, CatmullRomCurve3, Vector3, Object3D, DoubleSide, InstancedMesh, Box3, Mesh } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { KODASSERY_PATH, terrainHeight } from '../../content/world/kodassery';
+import { isClearOfRoads } from '../../content/world/definition';
 import { ImportedTrees, type ImportedTreeInstance } from './ImportedTrees';
 import { Waterfall } from './Waterfall';
 import { isWaterfallFootprint } from './waterfallGeometry';
@@ -90,13 +91,13 @@ export function GrassAssetMesh({ data, url }: { data: Instance[]; url: string })
   return <instancedMesh ref={ref} args={[geometry, material, data.length]} frustumCulled={false} />;
 }
 
-function generateForest(){
+export function generateForest(){
   const trunks:Instance[]=[], leaves:Instance[]=[], importedFallbackTrunks:Instance[]=[], importedFallbackLeaves:Instance[]=[], importedTrees:ImportedTreeInstance[][]=KODASSERY_TREES.map(()=>[]), rocks:Instance[]=[], grass:Instance[]=[],clouds:Instance[]=[];
   const r=rng(831);
   for(let i=0;i<230;i++){
     const x=(r()-.5)*148,z=-496+r()*162;
     const nearest=Math.min(...TRAIL_POINTS.map(p=>Math.hypot(p.x-x,p.z-z)));
-    if(nearest<6 || (x>4&&x<37&&z>-436&&z<-400) || (x>24&&z>-405&&z<-370))continue;
+    if(nearest<6 || !isClearOfRoads(x,z,6) || (x>4&&x<37&&z>-436&&z<-400) || (x>24&&z>-405&&z<-370))continue;
     const h=6+r()*9,y=terrainHeight(x,z),s=.8+r()*.5;
     // Every seventeenth authored position uses a supplied tree. Keeping the
     // source position and height makes the replacement deterministic and
@@ -117,7 +118,7 @@ function generateForest(){
   }
   for(let i=0;i<850;i++){
     const x=(r()-.5)*125,z=-483+r()*147;
-    if(Math.min(...TRAIL_POINTS.map(p=>Math.hypot(p.x-x,p.z-z)))<3)continue;
+    if(Math.min(...TRAIL_POINTS.map(p=>Math.hypot(p.x-x,p.z-z)))<3||!isClearOfRoads(x,z,1.5))continue;
     grass.push({position:[x,terrainHeight(x,z)+.35,z],scale:[.35+r()*.5,.4+r()*.6,.35+r()*.4],rotation:[0,r()*6,0],color:greens[Math.floor(r()*greens.length)]});
   }
   for(let i=0;i<35;i++){clouds.push({position:[-130+r()*250,88+r()*40,-500-r()*100],scale:[14+r()*20,2+r()*4,6+r()*10],color:'#e5eadb'});}

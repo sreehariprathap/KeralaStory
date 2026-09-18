@@ -4,6 +4,7 @@ import { roundedPath, pointInPolygon } from './expansionLayout';
 import { createRouteField } from '../../game/world/expansionTerrain';
 import { createRiverField } from '../../game/world/riverGeometry';
 import { STADIUM, stadiumRectDistance } from './stadiumLayout';
+import { cityBridgeDeckAt, cityBridgeUnderside } from './chalakkudyCityPlan';
 
 const smooth = (t: number) => { const u = Math.max(0, Math.min(1, t)); return u * u * (3 - 2 * u); };
 
@@ -29,6 +30,8 @@ export function createV2Routes(layout: WorldV2Layout): ExpansionRoute[] {
 export function createV2GroundProfile(layout: WorldV2Layout) {
   const routes = createV2Routes(layout), field = createRouteField(routes), river = createRiverField(layout.riverReaches);
   const sites = [...layout.towns.filter(t => !t.existing), layout.park];
+  // Extra town districts level to their own height.
+  const districts = layout.towns.flatMap(t => t.districts ?? []).flatMap(d => d.y === undefined ? [] : [{ footprint: d.footprint, center: [0, d.y, 0] as const }]);
   const southShoreZ = layout.riverNodes.find(n => n.id === 'main-outlet')!.position[2];
   /** Preserve the original corridor, except the already separate terrain to its north/west. */
   const apply = (x: number, z: number, previous: number): number => {
@@ -39,7 +42,7 @@ export function createV2GroundProfile(layout: WorldV2Layout) {
       const blend = smooth((z + 260) / 50);
       y = y * (1 - blend) + lowland * blend;
     }
-    for (const site of sites) {
+    for (const site of [...sites, ...districts]) {
       const xs = site.footprint.map(p => p[0]), zs = site.footprint.map(p => p[1]);
       const dx = Math.max(Math.min(...xs) - x, 0, x - Math.max(...xs));
       const dz = Math.max(Math.min(...zs) - z, 0, z - Math.max(...zs));
@@ -63,6 +66,9 @@ export function createV2GroundProfile(layout: WorldV2Layout) {
       const blend = 1 - smooth((road.distance - road.width - 2) / 12);
       y = y * (1 - blend) + road.height * blend;
     }
+    // Nothing may fill a bridge span: dig out anything that would reach the underside of a deck.
+    const underside = cityBridgeUnderside(x, z);
+    if (underside && underside.target < y) y = y * (1 - underside.weight) + Math.min(y, underside.target) * underside.weight;
     if (x < -78 && z > southShoreZ - 20) {
       const blend = smooth((z - southShoreZ + 20) / 20);
       y = y * (1 - blend) + 3.5 * blend;
@@ -70,5 +76,5 @@ export function createV2GroundProfile(layout: WorldV2Layout) {
     return y;
   };
   const siteAt = (x: number, z: number) => sites.find(site => pointInPolygon(x, z, site.footprint));
-  return { routes, field, river, apply, siteAt, southShoreZ };
+  return { routes, field, river, apply, siteAt, southShoreZ, bridgeDeckAt: cityBridgeDeckAt };
 }

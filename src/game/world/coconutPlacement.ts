@@ -6,11 +6,13 @@ import {
 import { isWaterfallFootprint } from './waterfallGeometry';
 import { isStuntGround } from './stuntSites';
 import { isKodalyCityGround } from '../../content/world/kodalyCircle';
+import { CHALAKKUDY_CITY } from '../../content/world/chalakkudyCity';
 
 export interface CoconutCandidate { x: number; z: number; variant: number; height: number; yaw: number; lean: number }
 
 const CELL = 14;
-const ROAD_CLEARANCE = 3;
+/** Metres beyond the road shoulder: far enough that leaning fronds never overhang the carriageway. */
+const ROAD_CLEARANCE = 5;
 const PATH_CLEARANCE = 5.5;
 const POINT_CLEARANCE = 9;
 /** Coconut palms are a lowland tree: full density below FULL, none above NONE (metres). */
@@ -44,6 +46,8 @@ const KEEP_CLEAR_POINTS: readonly Vec3[] = [...LANDMARKS.map(l => l.position), .
 const KEEP_CLEAR_AREAS = [
   inflate(JETTY_BOUNDS, 3), inflate(QUAY_BOUNDS, 3), inflate(BRIDGE_BOUNDS, 4),
   footprintBounds(V2_LAYOUT.park.footprint, 8),
+  // Chalakkudy's shops, mall car park and showroom forecourt.
+  ...CHALAKKUDY_CITY.clearAreas,
   // Kodassery treehouses and their branch trail.
   { xMin: 4, xMax: 37, zMin: -436, zMax: -370 },
 ];

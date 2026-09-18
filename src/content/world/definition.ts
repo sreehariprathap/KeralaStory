@@ -7,7 +7,7 @@ import type { ExpansionLayout } from '../../contracts/worldExpansion';
 import { createExpansionLayout, areaAt, pointInPolygon } from './expansionLayout';
 import type { Landmark, MapBounds, TravelMode, Vec3, ZoneId } from '../../contracts';
 
-export const WORLD_VERSION = 'kodassery-diaries-v2-dressing-2';
+export const WORLD_VERSION = 'kodassery-diaries-v2-chalakkudy-city-1';
 export const ORIGINAL_WORLD_BOUNDS: MapBounds = { xMin: -78, xMax: 88, zMin: -484, zMax: 92 };
 const PRE_V2_BOUNDS: MapBounds = { xMin: -680, xMax: 96.5, zMin: -740, zMax: 92 };
 let activeGround: ReturnType<typeof createExpansionGround> | undefined;
@@ -87,7 +87,7 @@ export function hasGroundAt(x:number,z:number):boolean {
 }
 export function getAreaAt(x: number, z: number) { return areaAt(EXPANSION_LAYOUT, x, z); }
 export function getZoneAtPosition(x: number, z: number): ZoneId {
-  const town=V2_LAYOUT.towns.find(t=>pointInPolygon(x,z,t.footprint));
+  const town=V2_LAYOUT.towns.find(t=>pointInPolygon(x,z,t.footprint)||t.districts?.some(d=>pointInPolygon(x,z,d.footprint)));
   return town?.regionId ?? (getAreaAt(x,z) ? 'kodassery' : getZoneAt(z));
 }
 export const SPAWN:Vec3=[0,terrainHeight(0,-460)+.05,-460];
@@ -243,6 +243,18 @@ export function isCycleAllowed(x: number, z: number): boolean {
 
 /** Cars may leave the road ribbons and climb any authored dry terrain. Only
  * unsupported gaps, water and near-vertical terrain are rejected. */
+/**
+ * True when (x, z) is at least `margin` metres beyond the paved edge (incl. shoulder) of every authored
+ * road and trail, and off every bridge deck. Scenery (trees, palms, shrubs, grass) must pass this.
+ */
+export function isClearOfRoads(x: number, z: number, margin: number): boolean {
+  for (const field of [EXPANSION_GROUND.field, EXPANSION_GROUND.v2?.field]) {
+    const road = field?.(x, z);
+    if (road && road.distance <= road.width + margin) return false;
+  }
+  for (const [dx, dz] of [[0, 0], [margin, 0], [-margin, 0], [0, margin], [0, -margin]]) if (EXPANSION_GROUND.v2?.bridgeDeckAt(x + dx, z + dz) != null) return false;
+  return true;
+}
 export function isCarTerrainAllowed(x: number, z: number): boolean {
   return carTerrain(x, z, false);
 }
