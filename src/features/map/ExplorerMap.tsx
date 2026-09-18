@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
-import { ArrowUp, ArrowUpRight, Compass, FlagPennant, Mountains, Plus, Minus, HouseLine, Plant, Coffee, Storefront, Anchor, Waves, Boat, MapPin, Lighthouse, Bridge, Crosshair, Wind, SoccerBall, Motorcycle, SwimmingPool, Buildings, Lightning, type Icon } from '@phosphor-icons/react';
+import { ArrowUp, ArrowUpRight, Compass, FlagPennant, Mountains, Plus, Minus, HouseLine, Plant, Coffee, Storefront, Anchor, Waves, Boat, MapPin, Lighthouse, Bridge, Crosshair, Wind, SoccerBall, Motorcycle, SwimmingPool, Buildings, Lightning, AirplaneTilt, Umbrella, type Icon } from '@phosphor-icons/react';
 import { LANDMARKS, MAIN_PATH, WORLD_REGIONS, RIVER_CENTERLINE, getZoneAtPosition, getAreaAt, EXPANSION_LAYOUT, WORLD_DEFINITION, terrainHeight, walkableDeckHeight } from '../../content/world/kodassery';
 import { V2_LAYOUT, V2_ROUTES } from '../../content/world/definition';
 import { CHALAKKUDY_BRIDGES } from '../../content/world/chalakkudyCityPlan';
@@ -11,7 +11,7 @@ import { bearingToWaypoint, distanceToWaypoint, mapToWorldViewport } from './map
 import { localizedMapPlace, localizedPlace, localizedRegion, translate, useLocale, type TranslationKey } from '../i18n/translate';
 import { smoothPath, simplify, type Point2 } from './smoothPath';
 import { layoutLabels, type LabelRequest } from './labelLayout';
-import { HIGHLIGHT_STYLE, buildingFootprints, mapCities, mapHighlights, type Highlight, type HighlightKind } from './mapFeatures';
+import { HIGHLIGHT_STYLE, airfieldSurfaces, buildingFootprints, mapCities, mapHighlights, type Highlight, type HighlightKind } from './mapFeatures';
 import { reliefImage, type ReliefImage } from './mapRelief';
 
 interface Props {player:PlayerSnapshot;visited:string[];waypoint:Vec3|null;onWaypoint:(position:Vec3|null)=>void;compact?:boolean}
@@ -23,7 +23,7 @@ const MIN_ZOOM=1,MAX_ZOOM=8;
 const point=(v:Vec3):[number,number]=>{const p=worldToMap(v,mapBounds);return [p.u*W,p.v*H];};
 const xz=(x:number,z:number):Point2=>point([x,0,z]);
 
-const landmarkIcons:Record<string,Icon>={mountain:Mountains,house:HouseLine,waves:Waves,plant:Plant,temple:HouseLine,tea:Coffee,bridge:Bridge,boat:Boat,shop:Storefront,lighthouse:Lighthouse,anchor:Anchor};
+const landmarkIcons:Record<string,Icon>={mountain:Mountains,house:HouseLine,waves:Waves,plant:Plant,temple:HouseLine,tea:Coffee,bridge:Bridge,boat:Boat,shop:Storefront,lighthouse:Lighthouse,anchor:Anchor,plane:AirplaneTilt,beach:Umbrella};
 const highlightIcons:Record<HighlightKind,Icon>={paragliding:Wind,stadium:SoccerBall,'stunt-park':Motorcycle,'river-jump':Lightning,'water-park':SwimmingPool,waterfall:Waves};
 const elevation=(x:number,z:number)=>walkableDeckHeight(x,z) ?? terrainHeight(x,z);
 
@@ -60,10 +60,12 @@ const GEOMETRY=(()=>{
   const bridge={a:xz(WORLD_DEFINITION.bridgeBounds.xMin+2,WORLD_DEFINITION.bridgeBounds.zMin),b:xz(WORLD_DEFINITION.bridgeBounds.xMin+2,WORLD_DEFINITION.bridgeBounds.zMax)};
   const pitch=(()=>{const c=xz(STADIUM.center.x,STADIUM.center.z);return {x:c[0],y:c[1],deg:-STADIUM.yaw*180/Math.PI,w:STADIUM.pitch.halfWidth*2*UNIT,h:STADIUM.pitch.halfLength*2*UNIT,padW:STADIUM.pad.halfWidth*2*UNIT,padH:STADIUM.pad.halfLength*2*UNIT};})();
   const shore=xz(-78,V2_LAYOUT.riverNodes.find(n=>n.id==='main-outlet')?.position[2]??220);
+  const airfield=airfieldSurfaces().map(s=>{const [x0,y0]=xz(s.xMin,s.zMin),[x1,y1]=xz(s.xMax,s.zMax);return {...s,x:x0,y:y0,width:x1-x0,height:y1-y0};});
+  const runway=airfield.find(s=>s.id==='runway')!;
     // A highlight standing on a landmark (Silver Storm) is drawn once, as the highlight.
   const highlights=mapHighlights();
   const doubled=new Set(LANDMARKS.filter(l=>highlights.some(h=>Math.hypot(h.position[0]-l.position[0],h.position[2]-l.position[2])<30)).map(l=>l.id));
-  return {rivers,riverNames,roads,trails,areas,streams,cities,buildings,bridge,pitch,shore,highlights,doubled};
+  return {rivers,riverNames,roads,trails,areas,streams,cities,buildings,bridge,pitch,shore,airfield,runway,highlights,doubled};
 })();
 
 interface View {cx:number;cy:number;zoom:number}
@@ -236,6 +238,9 @@ export function ExplorerMap({player,visited,waypoint,onWaypoint,compact=false}:P
           <path d={`M${-GEOMETRY.pitch.w/2} 0H${GEOMETRY.pitch.w/2}`} stroke="#f7f7f0" strokeWidth=".4"/>
           <circle r={GEOMETRY.pitch.w*.14} fill="none" stroke="#f7f7f0" strokeWidth=".4"/>
         </g>
+        {/* Nedumbassery's runway, apron and taxiways, with the runway centreline. */}
+        {GEOMETRY.airfield.map(s=><rect key={s.id} x={s.x} y={s.y} width={s.width} height={s.height} fill={s.color} stroke="#6f6a5c" strokeWidth={.5*k}/>)}
+        <path d={`M${GEOMETRY.runway.x+4*k} ${GEOMETRY.runway.y+GEOMETRY.runway.height/2}H${GEOMETRY.runway.x+GEOMETRY.runway.width-4*k}`} stroke="#f4f3ee" strokeWidth={.8*k} strokeDasharray={`${4*k} ${4*k}`}/>
         {/* Rivers. */}
         {GEOMETRY.streams.map((d,i)=><path key={`s${i}`} d={d} fill="#7cb8c4" stroke="#4f8f98" strokeWidth={.8*k}/>)}
         {GEOMETRY.rivers.map((d,i)=><path key={i} d={d} fill="#7cb8c4" stroke="#4f8f98" strokeWidth={1*k} strokeLinejoin="round"/>)}

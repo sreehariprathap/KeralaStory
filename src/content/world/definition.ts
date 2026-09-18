@@ -3,6 +3,7 @@ import { createV2Layout } from './v2Layout';
 import { createChalakkudyStreet } from './townLayout';
 import { createExpansionPlaces } from './expansionPlaces';
 import { createV2Places } from './v2Places';
+import { SNEHA_THEERAM, isSnehaSea } from './snehaTheeram';
 import type { ExpansionLayout } from '../../contracts/worldExpansion';
 import { createExpansionLayout, areaAt, pointInPolygon } from './expansionLayout';
 import type { Landmark, MapBounds, TravelMode, Vec3, ZoneId } from '../../contracts';
@@ -26,10 +27,12 @@ export function waterLevelAt(x:number,z:number):number|null {
   if(surface!=null)return surface;
   const water=EXPANSION_LAYOUT.waterBodies.find(w=>w.id==='chokkana-stream-water'&&pointInPolygon(x,z,w.footprint));
   if(water)return water.surfaceY;
-  if(x< -78 && x>=WORLD_BOUNDS.xMin && z>= (EXPANSION_GROUND.v2?.southShoreZ ?? Infinity) && z<=WORLD_BOUNDS.zMax)return WATER_LEVEL;
+  if(isSeaAt(x,z))return WATER_LEVEL;
   return isRiver(x,z)||(x>=-78 && z>=-499 && (z>90||x>83)) ? WATER_LEVEL : null;
 }
 export function isWater(x:number,z:number){return waterLevelAt(x,z)!==null;}
+/** Open sea west of the original world: Sneha Theeram's bay and the coast on toward the river mouth. */
+export function isSeaAt(x:number,z:number){return x>=WORLD_BOUNDS.xMin && z<=WORLD_BOUNDS.zMax && isSnehaSea(x,z);}
 /** Water surface a body at `feetY` is in, or null. A bridge or pier only keeps you dry while you stand on it, not beneath it. */
 export function openWaterSurfaceAt(x:number,z:number,feetY:number):number|null{
   const deck=walkableDeckHeight(x,z);
@@ -125,7 +128,10 @@ export const LANDMARKS: Landmark[] = createV2Places({
   coffeeShop: v2Grounded('chalakkudy-coffee', 'kadambode', -414, -120),
   malakkapparaTeaStop: v2Grounded('malakkappara-tea', 'kodassery', -532, -642),
   // Set back from the wall's downstream face and buttress, on clear ground with a full view of the dam.
-  chalakudyDam: v2Grounded('chalakudy-dam', 'kodassery', -655, -785),
+  chalakudyDam: v2Grounded('chalakudy-dam', 'kodassery', -645, -778),
+  // Beside the terminal's forecourt, where the airport road ends.
+  airport: v2Grounded('nedumbassery-airport', 'kodaly', -612, 93),
+  beach: v2Grounded('sneha-theeram', 'kodaly', SNEHA_THEERAM.landmark[0], SNEHA_THEERAM.landmark[1]),
 });
 export const WORLD_REGIONS=[
   {id:'kodassery',name:'Kodassery Peaks',subtitle:'Misty canopy trails',number:'01',available:true},

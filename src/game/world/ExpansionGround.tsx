@@ -5,17 +5,30 @@ import { EXPANSION_GROUND, EXPANSION_LAYOUT, V2_ROUTES, V2_LAYOUT, isClearOfRoad
 import { ExpansionSign } from './ExpansionSign';
 import type { ExpansionRoute } from '../../contracts/worldExpansion';
 import type { TerrainChunk } from './expansionTerrain';
+import { beachSand, coastDistance } from '../../content/world/snehaTheeram';
 import { createRouteRibbon } from './routeVisualGeometry';
 
 const WORLD_ROUTES = [...EXPANSION_LAYOUT.routes, ...V2_ROUTES];
 
+const GRASS=new Color('#7d9361'),SAND=new Color('#e3cf9c'),WET_SAND=new Color('#bfa877');
+/** Grass everywhere, but Sneha Theeram's crescent reads as pale dry sand darkening to wet sand at the waterline. */
+function groundColors(vertices:readonly number[]){
+  const colors=new Float32Array(vertices.length),color=new Color();
+  for(let i=0;i<vertices.length;i+=3){
+    const x=vertices[i],y=vertices[i+1],z=vertices[i+2],sand=beachSand(x,z,y);
+    color.copy(GRASS);
+    if(sand>0){const d=coastDistance(x,z)??99;color.lerp(d<5?WET_SAND.clone().lerp(SAND,Math.max(0,d)/5):SAND,sand);}
+    colors[i]=color.r;colors[i+1]=color.g;colors[i+2]=color.b;
+  }
+  return colors;
+}
 function Chunk({chunk}:{chunk:TerrainChunk}) {
   const geometry=useMemo(()=>{
-    const g=new BufferGeometry();g.setAttribute('position',new Float32BufferAttribute(chunk.vertices,3));g.setIndex(chunk.indices);g.computeVertexNormals();return g;
+    const g=new BufferGeometry();g.setAttribute('position',new Float32BufferAttribute(chunk.vertices,3));g.setAttribute('color',new Float32BufferAttribute(groundColors(chunk.vertices),3));g.setIndex(chunk.indices);g.computeVertexNormals();return g;
   },[chunk]);
   const collision=useMemo(()=>[new Float32Array(chunk.vertices),new Uint32Array(chunk.indices)] as const,[chunk]);
   return <RigidBody type="fixed" colliders={false}>
-    <mesh geometry={geometry} receiveShadow><meshStandardMaterial color="#7d9361" roughness={1}/></mesh>
+    <mesh geometry={geometry} receiveShadow><meshStandardMaterial vertexColors roughness={1}/></mesh>
     <TrimeshCollider args={[collision[0],collision[1]]} friction={.9}/>
   </RigidBody>;
 }

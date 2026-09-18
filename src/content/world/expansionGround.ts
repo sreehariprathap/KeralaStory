@@ -27,25 +27,33 @@ export function createExpansionGround(layout: ExpansionLayout, originalHeight: (
   const restShelves=[.25,.5,.75].map(t=>[...summitRoute.points[Math.round((summitRoute.points.length-1)*t)]] as [number,number,number]);
   const northXs=Array.from({length:55},(_,i)=>-78+i/54*166);
   const northZs=Array.from({length:67},(_,i)=>-499+i*2.5);
-  // Chalakkudy Dam headwaters: a mountain backdrop rises north of the reservoir (now widened
-  // east toward Kodassery Peaks), framing the river's source. It fades out toward the dam so
-  // the crest and downstream basin stay authored.
-  const reservoirHead=v2?.riverNodes.find(n=>n.id==='reservoir-head');
-  const reservoirEastArm=v2?.riverNodes.find(n=>n.id==='reservoir-east-arm');
-  const reservoirCenterX=reservoirHead&&reservoirEastArm?(reservoirHead.position[0]+reservoirEastArm.position[0])/2:reservoirHead?.position[0];
+  // Peringalkuthu Dam headwaters: the reservoir fills a highland basin that spans both of its arms,
+  // held up by a scarp to the south and backed by hills to the north. In front of the dam the scarp
+  // steps back into a gorge, so the crest spans the gap and the spillway falls to the river basin.
+  const reservoirArms=v2?['reservoir-west-arm','reservoir-east-arm'].map(id=>v2.riverNodes.find(n=>n.id===id)!.position):null;
+  const damCrest=v2?.riverNodes.find(n=>n.id==='dam-crest')?.position;
+  const reservoir=reservoirArms&&damCrest?{
+    centerX:(reservoirArms[0][0]+reservoirArms[1][0])/2,
+    halfSpan:Math.abs(reservoirArms[1][0]-reservoirArms[0][0])/2+55,
+    crestX:damCrest[0], crestZ:damCrest[2], level:damCrest[1]+4,
+  }:null;
   const authoredHeight = (x: number, z: number) => {
     const route = field(x,z);
     let height = base - 8 + Math.sin(x * .018) * 3 + Math.sin(z * .021) * 3;
     const summitDistance = Math.hypot((x-summit[0]) * .9, z-summit[2]);
     height += (summit[1] - base + 8) * Math.exp(-Math.pow(summitDistance / 115, 2));
     if (x < -510) height = base - 26 * smooth((z + 401) / 5) + Math.sin(x * .035) * 1.5;
-    if (reservoirCenterX!==undefined) {
-      const north=smooth((-800-z)/30), lateral=Math.exp(-Math.pow((x-reservoirCenterX)/130,2));
-      height += 95*north*lateral;
-      // The dam access road climbs the hillside west of the crest; a broad local rise keeps that
-      // hillside built up under it, instead of a bare plateau edge dropping straight to the valley.
-      const shoulderDistance=Math.hypot((x+716)*.7,z+793);
-      height += 62*Math.exp(-Math.pow(shoulderDistance/95,2));
+    if (reservoir) {
+      const lateral=1-smooth((Math.abs(x-reservoir.centerX)-reservoir.halfSpan)/70);
+      // 1 inside the gorge in front of the crest, where the plateau edge steps back behind the dam wall,
+      // so the wall's whole downstream face stands clear above the spillway basin.
+      const gorge=1-smooth((Math.abs(x-reservoir.crestX)-30)/14);
+      const edgeZ=-770*(1-gorge)+(reservoir.crestZ-7)*gorge, scarp=30*(1-gorge)+8*gorge;
+      const plateau=smooth((edgeZ-z)/scarp)*lateral;
+      height=height*(1-plateau)+Math.max(height,reservoir.level)*plateau;
+      // Wooded hills rise behind the lake and frame it against the sky.
+      const ridge=.72+.18*Math.sin(x*.019+1.3)+.1*Math.sin(x*.043+z*.031);
+      height+=85*smooth((-868-z)/55)*lateral*ridge;
     }
     if (route) {
       const blend = smooth((route.distance - route.width - 2) / 16);
@@ -107,9 +115,10 @@ export function createExpansionGround(layout: ExpansionLayout, originalHeight: (
       const weight=(1-smooth((core.distance-core.width-2)/16))*clearing*footKeep;
       height=core.height*weight+height*(1-weight);
     }
-    if (z>=-499 && z<=92 && x>=-98 && x<=-78) {
-      const blend=smooth((-78-x)/20);
-      height=originalEdge(z)*(1-blend)+height*blend;
+    if (z>=-499 && z<=102 && x>=-98 && x<=-78) {
+      // South of the old world's coast the seam fades out over ten metres into Sneha Theeram's headland.
+      const blend=1-(1-smooth((-78-x)/20))*(1-smooth((z-92)/10));
+      height=originalEdge(Math.min(z,92))*(1-blend)+height*blend;
     }
     if (x>=-78 && x<=88 && z>=-519 && z<=-499) {
       const blend=smooth((-499-z)/20), edge=sampleTerrainChunk(originalNorthChunk,x,-499)!;

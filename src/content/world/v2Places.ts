@@ -16,6 +16,8 @@ export interface V2PlaceAnchors {
   coffeeShop: GroundedV2PlaceAnchor;
   malakkapparaTeaStop: GroundedV2PlaceAnchor;
   chalakudyDam: GroundedV2PlaceAnchor;
+  airport: GroundedV2PlaceAnchor;
+  beach: GroundedV2PlaceAnchor;
 }
 
 type PlaceCopy = Pick<Landmark, 'label' | 'description' | 'iconId' | 'discoveryRadiusM'>;
@@ -41,7 +43,7 @@ const TOWN_COPY: Record<string, PlaceCopy> = {
   },
 };
 
-const PLACE_COPY: Record<'silverStorm' | 'fuelStation' | 'coffeeShop' | 'malakkapparaTeaStop' | 'chalakudyDam', PlaceCopy> = {
+const PLACE_COPY: Record<'silverStorm' | 'fuelStation' | 'coffeeShop' | 'malakkapparaTeaStop' | 'chalakudyDam' | 'airport' | 'beach', PlaceCopy> = {
   silverStorm: {
     label: 'Silver Storm',
     description: 'A bright hillside park sits on a broad terrace, with a cool pool below the forest skyline.',
@@ -67,10 +69,22 @@ const PLACE_COPY: Record<'silverStorm' | 'fuelStation' | 'coffeeShop' | 'malakka
     discoveryRadiusM: 10,
   },
   chalakudyDam: {
-    label: 'Chalakkudy Dam',
-    description: 'An arch dam curves across the gorge in the far hills, holding back the reservoir where the Chalakkudy River begins its journey to the sea.',
+    label: 'Peringalkuthu Dam',
+    description: 'An arch dam curves across the gorge in the far hills, holding back a long reservoir where the Chalakkudy River begins its journey to the sea.',
     iconId: 'waves',
     discoveryRadiusM: 20,
+  },
+  airport: {
+    label: 'Nedumbassery Airport',
+    description: 'A long runway on the lowland, a terminal under sloping Kerala roofs, and aircraft waiting on the apron.',
+    iconId: 'plane',
+    discoveryRadiusM: 30,
+  },
+  beach: {
+    label: 'Sneha Theeram',
+    description: 'A curved golden beach under coconut palms, with bright umbrellas, fishing boats on the sand and the sea breeze.',
+    iconId: 'beach',
+    discoveryRadiusM: 24,
   },
 };
 
@@ -94,6 +108,8 @@ export function createV2Places(input: V2PlaceAnchors): Landmark[] {
     place(input.coffeeShop, PLACE_COPY.coffeeShop),
     place(input.malakkapparaTeaStop, PLACE_COPY.malakkapparaTeaStop),
     place(input.chalakudyDam, PLACE_COPY.chalakudyDam),
+    place(input.airport, PLACE_COPY.airport),
+    place(input.beach, PLACE_COPY.beach),
   ];
   const result = [...input.legacy, ...townPlaces, ...specialPlaces];
   const ids = new Set<string>();

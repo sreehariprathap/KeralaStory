@@ -7,6 +7,8 @@ import { isWaterfallFootprint } from './waterfallGeometry';
 import { isStuntGround } from './stuntSites';
 import { isKodalyCityGround } from '../../content/world/kodalyCircle';
 import { CHALAKKUDY_CITY } from '../../content/world/chalakkudyCity';
+import { NEDUMBASSERY_AIRPORT } from '../../content/world/airport';
+import { SNEHA_THEERAM_DRESSING } from '../../content/world/snehaTheeramDressing';
 
 export interface CoconutCandidate { x: number; z: number; variant: number; height: number; yaw: number; lean: number }
 
@@ -48,6 +50,8 @@ const KEEP_CLEAR_AREAS = [
   footprintBounds(V2_LAYOUT.park.footprint, 8),
   // Chalakkudy's shops, mall car park and showroom forecourt.
   ...CHALAKKUDY_CITY.clearAreas,
+  // Nedumbassery's runway, apron and buildings.
+  ...NEDUMBASSERY_AIRPORT.clearAreas,
   // Kodassery treehouses and their branch trail.
   { xMin: 4, xMax: 37, zMin: -436, zMax: -370 },
 ];
@@ -97,6 +101,16 @@ export function coconutCandidates(weights: readonly number[], heights: readonly 
     while (pick > weights[variant] && variant < weights.length - 1) pick -= weights[variant++];
     const [lo, hi] = heights[variant];
     out.push({ x, z, variant, height: lo + draws[4] * (hi - lo), yaw: draws[5] * Math.PI * 2, lean: (draws[6] - .5) * .12 });
+  }
+  // Sneha Theeram's beach palms, leaning out over the sand; their own seed leaves the groves above untouched.
+  const beach = rng(20002);
+  for (const palm of SNEHA_THEERAM_DRESSING.palms) {
+    const pick0 = beach() * total;
+    if (!isCoconutSpotOpen(palm.x, palm.z) || out.some(tree => Math.hypot(tree.x - palm.x, tree.z - palm.z) < 5)) continue;
+    let pick = pick0, variant = 0;
+    while (pick > weights[variant] && variant < weights.length - 1) pick -= weights[variant++];
+    const [lo, hi] = heights[variant];
+    out.push({ x: palm.x, z: palm.z, variant, height: lo + (palm.height - 10) / 5 * (hi - lo), yaw: palm.yaw, lean: palm.lean });
   }
   return out;
 }

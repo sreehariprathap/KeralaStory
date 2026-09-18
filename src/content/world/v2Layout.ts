@@ -3,6 +3,7 @@ import type { ExpansionLayout, PolygonXZ } from '../../contracts/worldExpansion'
 import type { RiverNode, RiverReach, RoadProposal, TownSite, WorldV2Layout } from '../../contracts/worldV2';
 import { nearestRouteSample } from './expansionLayout';
 import { CHALAKKUDY_CITY_ROADS, CHALAKKUDY_DISTRICTS, CITY_ROAD_WIDTH_M } from './chalakkudyCityPlan';
+import { NEDUMBASSERY_AIRPORT_PLAN } from './airportPlan';
 
 const rectangle = (xMin: number, zMin: number, xMax: number, zMax: number): PolygonXZ =>
   [[xMin, zMin], [xMax, zMin], [xMax, zMax], [xMin, zMax]];
@@ -33,27 +34,25 @@ export function createV2Layout(input: {
     { id: 'kodaly', label: 'Kodaly', tier: 'C', regionId: 'kodaly', footprint: rectangle(-10, -54, 77, 65), center: input.kodalyCenter, existing: true },
     { id: 'malakkappara', label: 'Malakkappara', tier: 'C', regionId: 'kodassery', footprint: rectangle(-615, -755, -495, -625), center: [-555, base + 7, -680], existing: false },
   ];
-  // The Chalakkudy Dam: an arch dam impounding a reservoir at the river's headwaters, in the
-  // hills at the map's north-west corner. The lake sits behind the crest; the spillway drops
-  // to the same 'headwaters' basin that already fed the river downstream, so nothing below it moves.
-  // The lake bends east toward Kodassery Peaks so it reads as a real reservoir, not a pond.
-  const damCrestY = base + 10 + 46;
+  // Peringalkuthu Dam: an arch dam in a gorge at the river's headwaters, in the hills at the
+  // map's north-west corner. Its lake fills a highland basin behind the crest, with long arms
+  // reaching west and east; the spillway drops to the same 'headwaters' basin that already fed
+  // the river downstream, so nothing below it moves.
+  const damCrestY = base + 10 + 36;
   /**
-   * A programmatic switchback climb between two fixed rails. Each leg holds a safe grade, and
-   * consecutive same-side legs are spaced `2*forwardStep` apart so the rounded, terrain-carved
-   * road never overlaps a nearby leg sitting at a very different elevation.
+   * Heights along a road at one even grade from `y0` to `y1`, so no stretch of the climb is steeper
+   * than the rest (rounding the bends later shortens the path a little, steepening it evenly).
    */
-  function hairpinRoad(originX: number, originZ: number, bearing: readonly [number, number], legs: number, amplitude: number, forwardStep: number, riseTotal: number, y0: number): Vec3[] {
-    const length = Math.hypot(bearing[0], bearing[1]), fx = bearing[0] / length, fz = bearing[1] / length, nx = -fz, nz = fx;
-    const rise = riseTotal / legs;
-    return Array.from({ length: legs + 1 }, (_, i) => {
-      const side = i % 2 === 0 ? -1 : 1;
-      return [originX + fx * forwardStep * i + nx * amplitude * side, y0 + rise * i, originZ + fz * forwardStep * i + nz * amplitude * side] as Vec3;
-    });
+  function gradedRoad(points: readonly (readonly [number, number])[], y0: number, y1: number): Vec3[] {
+    const lengths = points.map((p, i) => i ? Math.hypot(p[0] - points[i - 1][0], p[1] - points[i - 1][1]) : 0);
+    const total = lengths.reduce((a, b) => a + b, 0);
+    let along = 0;
+    return points.map((p, i) => { along += lengths[i]; return [p[0], y0 + (y1 - y0) * along / total, p[1]] as Vec3; });
   }
   const riverNodes: RiverNode[] = [
-    { id: 'reservoir-head', kind: 'source', position: [-690, damCrestY, -812] },
-    { id: 'reservoir-east-arm', kind: 'source', position: [-612, damCrestY, -802] },
+    { id: 'reservoir-head', kind: 'source', position: [-690, damCrestY, -848] },
+    { id: 'reservoir-west-arm', kind: 'source', position: [-818, damCrestY, -838] },
+    { id: 'reservoir-east-arm', kind: 'source', position: [-566, damCrestY, -838] },
     { id: 'dam-crest', kind: 'lip', position: [-690, damCrestY, -796] },
     { id: 'headwaters', kind: 'basin', position: [-690, base + 10, -790] },
     { id: 'upper-river-join', kind: 'join', position: [-637, upstream.surfaceY, -493] },
@@ -71,16 +70,24 @@ export function createV2Layout(input: {
     return { id, label, from, to, kind, points, widthsM: points.map(() => width) };
   };
   const riverReaches: RiverReach[] = [
-    reach('chalakudy-reservoir', 'Chalakkudy Reservoir', 'reservoir-head', 'dam-crest', [], 60, 'pool'),
-    // The eastern arm: the lake widens toward Kodassery Peaks, doubling the water's surface area.
-    // Its final approach swings back onto the crest's own north-south line before narrowing, so
-    // its band never passes near the spillway's lip just south of the crest.
+    // One broad lake behind the crest: a deep middle and two long, rounded arms west and east. Every band
+    // narrows onto the crest's own north-south line, so none passes the spillway lip just south of it.
     {
-      id: 'chalakudy-reservoir-east', label: 'Chalakkudy Reservoir', from: 'reservoir-east-arm', to: 'dam-crest', kind: 'pool',
-      points: [node('reservoir-east-arm'), [-655, damCrestY, -806], [-690, damCrestY, -805], node('dam-crest')],
-      widthsM: [72, 72, 20, 20],
+      id: 'chalakudy-reservoir', label: 'Peringalkuthu Reservoir', from: 'reservoir-head', to: 'dam-crest', kind: 'pool',
+      points: [node('reservoir-head'), [-690, damCrestY, -826], [-690, damCrestY, -812], node('dam-crest')],
+      widthsM: [92, 84, 60, 44],
     },
-    reach('chalakudy-dam-spillway', 'Chalakkudy Dam Spillway', 'dam-crest', 'headwaters', [], 28, 'waterfall'),
+    {
+      id: 'chalakudy-reservoir-west', label: 'Peringalkuthu Reservoir', from: 'reservoir-west-arm', to: 'dam-crest', kind: 'pool',
+      points: [node('reservoir-west-arm'), [-790, damCrestY, -842], [-748, damCrestY, -846], [-712, damCrestY, -838], [-690, damCrestY, -812], node('dam-crest')],
+      widthsM: [34, 62, 76, 80, 50, 40],
+    },
+    {
+      id: 'chalakudy-reservoir-east', label: 'Peringalkuthu Reservoir', from: 'reservoir-east-arm', to: 'dam-crest', kind: 'pool',
+      points: [node('reservoir-east-arm'), [-592, damCrestY, -842], [-632, damCrestY, -846], [-668, damCrestY, -838], [-690, damCrestY, -812], node('dam-crest')],
+      widthsM: [34, 62, 76, 80, 50, 40],
+    },
+    reach('chalakudy-dam-spillway', 'Peringalkuthu Dam Spillway', 'dam-crest', 'headwaters', [], 28, 'waterfall'),
     reach('malakkappara-river', 'Chalakkudy River', 'headwaters', 'upper-river-join', [[-670, base + 6, -680], [-650, base + 1, -575]], 24),
     reach('chalakudy-upstream', 'Chalakkudy River', 'upper-river-join', 'falls-lip', [], 44),
     reach('athirappilly-drop', 'Athirappilly Waterfalls', 'falls-lip', 'falls-base', [], 58, 'waterfall'),
@@ -99,20 +106,25 @@ export function createV2Layout(input: {
     { id: 'silver-storm-road', label: 'Silver Storm access', widthM: 5.5, points: [input.parkRoadJoin ?? [0, base + 4, -481], [0, base + 6, -515], [105, base + 5, -565], [110, base + 4, -630], [40, base + 4, -665], [40, base + 4, -685]] },
     // Tier A Chalakkudy: four-lane city roads on the levelled town pad.
     ...CHALAKKUDY_CITY_ROADS.map(road => ({ ...road, widthM: CITY_ROAD_WIDTH_M })),
-    // Sixteen switchbacks up the hillside west of the dam, well clear of the reservoir and
-    // its river approach, arriving level with the crest at the west buttress. The wide margin
-    // below the road-grade limit absorbs how much shorter the rounded, terrain-carved corners
-    // run than the straight control polyline.
-    { id: 'chalakudy-dam-road', label: 'Chalakkudy Dam access road', widthM: 5.5,
-      points: hairpinRoad(-756, -1081, [0, 1], 16, 40, 18, damCrestY - 78, 78) },
+    // Malakkappara to the top of the dam: level out of town between the shops, a wide swing round the
+    // valley head at one even grade, then back west along the lake's southern shoulder onto the east
+    // end of the crest walkway.
+    { id: 'chalakudy-dam-road', label: 'Peringalkuthu Dam road', widthM: 5.5,
+      points: [[-555, base + 7, -680], [-540, base + 7, -696], ...gradedRoad([[-470, -692], [-370, -735], [-390, -810], [-478, -812], [-556, -782], [-610, -784], [-658, -797]], base + 8, damCrestY + .6)] },
   ];
   const park: WorldV2Layout['park'] = {
     id: 'silver-storm', label: 'Silver Storm', footprint: rectangle(-15, -735, 90, -635),
     center: [40, base + 4, -685], poolFootprint: rectangle(52, -725, 77, -710),
   };
+  const airport: WorldV2Layout['airport'] = {
+    id: NEDUMBASSERY_AIRPORT_PLAN.id, label: NEDUMBASSERY_AIRPORT_PLAN.label,
+    footprint: NEDUMBASSERY_AIRPORT_PLAN.footprint, center: NEDUMBASSERY_AIRPORT_PLAN.center,
+  };
   const points: readonly (readonly [number, number])[] = [
     [input.existingBounds.xMin, input.existingBounds.zMin], [input.existingBounds.xMax, input.existingBounds.zMax],
-    ...towns.flatMap(t => t.footprint), ...park.footprint,
+    ...towns.flatMap(t => t.footprint), ...park.footprint, ...airport.footprint,
+    // The hills behind the reservoir, so the lake is framed by a skyline rather than the map edge.
+    [-690, -935],
     ...roads.flatMap(r => r.points.map(p => [p[0], p[2]] as const)),
     ...riverReaches.flatMap(r => r.points.flatMap((p, i) => {
       const half = r.widthsM[i] / 2;
@@ -122,9 +134,11 @@ export function createV2Layout(input: {
   return {
     status: 'layout-approved',
     bounds: { xMin: Math.min(...points.map(p => p[0])) - 20, xMax: Math.max(...points.map(p => p[0])) + 20, zMin: Math.min(...points.map(p => p[1])) - 20, zMax: Math.max(...points.map(p => p[1])) + 20 },
-    towns, riverNodes, riverReaches, roads, park,
+    towns, riverNodes, riverReaches, roads, park, airport,
     reviewNotes: [
-      'The Chalakkudy Dam impounds the reservoir at the river headwaters, in the hills at the north-west corner.',
+      'Peringalkuthu Dam impounds the reservoir at the river headwaters, in the hills at the north-west corner; a graded road climbs to its crest from Malakkappara.',
+      'Nedumbassery Airport lies on the lowland south-west of Chalakkudy, reached by Airport Road over the Chalakkudy River.',
+      'Sneha Theeram is the curved beach between Kodaly\'s headland and the Chalakkudy River mouth.',
       'Malakkappara sits upstream, on the wooded plateau east of the river.',
       'Silver Storm is east/right of the summit, below its skyline; its pool is on the north-east side.',
       'Chalakkudy is the largest town: a Tier A city on both banks of the Kurumalippuzha, joined by two four-lane bridges, with four-lane highways to Kodakara and down the ghat to Kodaly.',

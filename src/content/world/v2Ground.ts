@@ -5,6 +5,10 @@ import { createRouteField } from '../../game/world/expansionTerrain';
 import { createRiverField } from '../../game/world/riverGeometry';
 import { STADIUM, stadiumRectDistance } from './stadiumLayout';
 import { cityBridgeDeckAt, cityBridgeUnderside } from './chalakkudyCityPlan';
+import { SNEHA_HEADLAND, coastDistance } from './snehaTheeram';
+
+/** Sea level shared with the original world (definition.ts re-exports the same value). */
+const WATER_LEVEL = 8;
 
 const smooth = (t: number) => { const u = Math.max(0, Math.min(1, t)); return u * u * (3 - 2 * u); };
 
@@ -29,18 +33,31 @@ export function createV2Routes(layout: WorldV2Layout): ExpansionRoute[] {
 
 export function createV2GroundProfile(layout: WorldV2Layout) {
   const routes = createV2Routes(layout), field = createRouteField(routes), river = createRiverField(layout.riverReaches);
-  const sites = [...layout.towns.filter(t => !t.existing), layout.park];
+  const sites = [...layout.towns.filter(t => !t.existing), layout.park, layout.airport];
   // Extra town districts level to their own height.
   const districts = layout.towns.flatMap(t => t.districts ?? []).flatMap(d => d.y === undefined ? [] : [{ footprint: d.footprint, center: [0, d.y, 0] as const }]);
   const southShoreZ = layout.riverNodes.find(n => n.id === 'main-outlet')!.position[2];
   /** Preserve the original corridor, except the already separate terrain to its north/west. */
   const apply = (x: number, z: number, previous: number): number => {
-    if (x >= -78 && z >= -481) return previous;
+    // The original world owns its own ground; south of its coast (z > 92) the shared x = -78 edge is ours.
+    if (x >= -78 && z >= -481 && z <= 92) return previous;
     let y = previous;
     if (z > -260) {
       const lowland = Math.max(10, 49 - (z + 120) * .12) + Math.sin(x * .012) * 1.5;
       const blend = smooth((z + 260) / 50);
       y = y * (1 - blend) + lowland * blend;
+    }
+    // Sneha Theeram: a gentle sand slope up from the waterline, the sea floor falling away below it.
+    const coast = coastDistance(x, z);
+    if (coast !== null) {
+      if (coast < 0) y = Math.min(y, Math.max(3.5, WATER_LEVEL - .9 + coast * .16));
+      else {
+        // Under Kodaly's headland (where NH 544 loops high above the bay) the shore climbs as a grassy
+        // bluff instead of a flat beach, so the road's embankment never stands as a sheer wall.
+        const headland = 1 - smooth((Math.hypot(x - SNEHA_HEADLAND[0], z - SNEHA_HEADLAND[1]) - 30) / 90);
+        const beach = WATER_LEVEL + .35 + coast * (.06 + .34 * headland), blend = 1 - smooth((coast - 30) / 45);
+        y = y * (1 - blend) + beach * blend;
+      }
     }
     for (const site of [...sites, ...districts]) {
       const xs = site.footprint.map(p => p[0]), zs = site.footprint.map(p => p[1]);
@@ -57,7 +74,10 @@ export function createV2GroundProfile(layout: WorldV2Layout) {
       const blend = 1 - smooth((bank.distance - bank.halfWidth) / 20);
       if (blend > 0) {
         const bed = bank.height - 3 + 6 * smooth((bank.distance - bank.halfWidth + 5) / 12);
-        y = y * (1 - blend) + bed * blend;
+        // Beyond the end of a lake band (the reservoir's face against the dam) banks may only dig, never
+        // build up: otherwise the lake's bank would fill the gorge in front of the dam wall.
+        const lakeEnd = bank.segment.kind === 'pool' && (bank.t <= 0 || bank.t >= 1);
+        y = lakeEnd ? Math.min(y, y * (1 - blend) + bed * blend) : y * (1 - blend) + bed * blend;
       }
     }
     if (surface !== null) y = Math.min(y, surface - 2.5);
@@ -69,10 +89,6 @@ export function createV2GroundProfile(layout: WorldV2Layout) {
     // Nothing may fill a bridge span: dig out anything that would reach the underside of a deck.
     const underside = cityBridgeUnderside(x, z);
     if (underside && underside.target < y) y = y * (1 - underside.weight) + Math.min(y, underside.target) * underside.weight;
-    if (x < -78 && z > southShoreZ - 20) {
-      const blend = smooth((z - southShoreZ + 20) / 20);
-      y = y * (1 - blend) + 3.5 * blend;
-    }
     return y;
   };
   const siteAt = (x: number, z: number) => sites.find(site => pointInPolygon(x, z, site.footprint));

@@ -7,7 +7,7 @@ import { CarVisual } from '../vehicle/CarVisual';
 import { createCityGeometry, createPaintGeometry } from './chalakkudyCityGeometry';
 
 /** Flat, lit signboard: one small canvas per sign, sized to the board's aspect. */
-function Signboard({ sign }: { sign: CitySign }) {
+export function Signboard({ sign }: { sign: CitySign }) {
   const texture = useMemo(() => {
     const canvas = document.createElement('canvas');
     canvas.width = sign.width > 10 ? 1024 : sign.height > sign.width ? 128 : 512;

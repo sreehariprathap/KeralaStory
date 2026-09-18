@@ -16,7 +16,7 @@ const sag = (x: number) => Math.sqrt(Math.max(ARC_RADIUS * ARC_RADIUS - x * x, 0
 // terracotta pagoda-style tower roofs and a cream crest, rather than cold industrial concrete.
 const STONE = ['#cbbe95', '#bfae82'], MOSS = '#7c8f52', ROOF = '#b5623c', CREAM = '#eadfbd';
 
-/** The dam impounding the Chalakkudy River's headwaters reservoir, in the hills at the map's north-west corner. */
+/** Peringalkuthu Dam, impounding the Chalakkudy River's headwaters reservoir in the hills at the map's north-west corner. */
 export function ChalakudyDam({ quality, animated, locale }: { quality: 'low' | 'medium' | 'high'; animated: boolean; locale: Locale }) {
   const time = useMemo(() => ({ value: 0 }), []);
   const assets = useMemo(() => {
@@ -38,12 +38,12 @@ export function ChalakudyDam({ quality, animated, locale }: { quality: 'low' | '
   useFrame((_, delta) => { if (animated) time.value += Math.min(delta, .05); });
 
   const { cx, cz, topY, bottomY, wallSegments, arcPoints } = assets;
-  const wallHeight = topY - bottomY, midY = (topY + bottomY) / 2, crestTopY = topY + 1.4;
+  const wallHeight = topY - bottomY, midY = (topY + bottomY) / 2, crestTopY = topY + 1.4, buttressTopY = topY + .6;
   const mossTopY = bottomY + wallHeight * .22;
 
-  // A pedestrian staircase up the east buttress: two straight flights around a mid-height landing,
-  // each within a comfortable stair pitch. The hairpin road climbs the west hillside instead.
-  const stairX = cx + HALF_SPAN + 4;
+  // A pedestrian staircase up the west buttress: two straight flights around a mid-height landing,
+  // each within a comfortable stair pitch. The road from Malakkappara arrives at the east end.
+  const stairX = cx - HALF_SPAN - 6.8;
   const stairBaseZ = cz + 20, landingZ = cz + 6, stairTopZ = cz - 3;
   const landingY = bottomY + wallHeight * .45;
   const flight1 = { rise: landingY - bottomY, run: stairBaseZ - landingZ };
@@ -74,10 +74,14 @@ export function ChalakudyDam({ quality, animated, locale }: { quality: 'low' | '
       <mesh position={[0, 11.9, 0]} rotation={[0, Math.PI / 4, 0]} castShadow><coneGeometry args={[3.4, 2.4, 4]}/><meshStandardMaterial color={ROOF} roughness={.7}/></mesh>
       <mesh position={[0, 13.4, 0]}><sphereGeometry args={[.28, 8, 8]}/><meshStandardMaterial color="#e2c88f" roughness={.5} metalness={.2}/></mesh>
     </group>)}
-    {/* Buttress rock anchoring each end of the arc into the canyon walls. */}
-    {[arcPoints[0], arcPoints.at(-1)!].map(([x, z], i) => <mesh key={i} position={[x, midY, z]} castShadow receiveShadow>
-      <boxGeometry args={[10, wallHeight + 6, THICKNESS + 6]}/><meshStandardMaterial color="#7c8b5f" roughness={1}/>
-    </mesh>)}
+    {/* Buttress rock anchoring each end of the arc into the gorge walls, trimmed flush with the crest
+        walkway and paved on top: the dam road drives straight on at the east end, the stairs arrive at the west. */}
+    {[arcPoints[0], arcPoints.at(-1)!].map(([x, z], i) => <group key={i}>
+      <mesh position={[x, (buttressTopY + bottomY) / 2, z]} castShadow receiveShadow>
+        <boxGeometry args={[10, buttressTopY - bottomY, THICKNESS + 6]}/><meshStandardMaterial color="#7c8b5f" roughness={1}/>
+      </mesh>
+      <mesh position={[x, buttressTopY + .01, z]} receiveShadow><boxGeometry args={[10.2, .1, THICKNESS + 6.2]}/><meshStandardMaterial color={CREAM} roughness={.9}/></mesh>
+    </group>)}
     {/* Pedestrian staircase up the east buttress, two flights around a landing. */}
     <group>
       <mesh position={[stairX, bottomY + flight1.rise / 2, stairBaseZ - flight1.run / 2]} rotation={[Math.atan2(flight1.rise, flight1.run), 0, 0]} castShadow receiveShadow>
@@ -94,10 +98,10 @@ export function ChalakudyDam({ quality, animated, locale }: { quality: 'low' | '
         <boxGeometry args={[3.2, .12, flight2.run / 18 * .85]}/><meshStandardMaterial color={i % 4 === 0 ? MOSS : '#dccf9e'} roughness={1}/>
       </mesh>)}
       {/* Timber rail posts along the outer edge, a lantern at the landing. */}
-      {[.2, .8].map((t, i) => <mesh key={i} position={[stairX + 1.7, bottomY + wallHeight * t + 1, stairBaseZ - (stairBaseZ - stairTopZ) * t]} castShadow>
+      {[.2, .8].map((t, i) => <mesh key={i} position={[stairX - 1.7, bottomY + wallHeight * t + 1, stairBaseZ - (stairBaseZ - stairTopZ) * t]} castShadow>
         <cylinderGeometry args={[.08, .08, 2, 6]}/><meshStandardMaterial color="#6d4a30" roughness={1}/>
       </mesh>)}
-      <mesh position={[stairX - 2.3, landingY + 1.6, landingZ]}><sphereGeometry args={[.22, 8, 8]}/><meshStandardMaterial color="#f4d78a" emissive="#f4d78a" emissiveIntensity={.6} roughness={.6}/></mesh>
+      <mesh position={[stairX + 2.3, landingY + 1.6, landingZ]}><sphereGeometry args={[.22, 8, 8]}/><meshStandardMaterial color="#f4d78a" emissive="#f4d78a" emissiveIntensity={.6} roughness={.6}/></mesh>
     </group>
     {/* Spillway curtains, falling from the crest gates to the basin below. */}
     {assets.curtains.map((geometry, i) => <mesh key={i} geometry={geometry} material={assets.material}/>)}
@@ -108,11 +112,13 @@ export function ChalakudyDam({ quality, animated, locale }: { quality: 'low' | '
     <RigidBody type="fixed" colliders={false}>
       {[wallSegments[0], wallSegments[Math.floor(wallSegments.length / 2)], wallSegments.at(-1)!].map((segment, i) =>
         <CuboidCollider key={i} args={[HALF_SPAN * 2 / 3 / 2, wallHeight / 2 + .35, THICKNESS]} position={[segment.x, midY + .35, segment.z]} rotation={[0, segment.yaw, 0]}/>)}
+      {/* Both buttresses, walkable at crest level. */}
+      {[arcPoints[0], arcPoints.at(-1)!].map(([x, z], i) => <CuboidCollider key={`buttress-${i}`} args={[5, (buttressTopY - bottomY) / 2, THICKNESS / 2 + 3]} position={[x, (buttressTopY + bottomY) / 2, z]}/>)}
       {/* Ramp colliders under each stair flight, angled to match the steps. */}
       <CuboidCollider args={[1.6, .3, Math.hypot(flight1.rise, flight1.run) / 2]} position={[stairX, bottomY + flight1.rise / 2 + .3, stairBaseZ - flight1.run / 2]} rotation={[Math.atan2(flight1.rise, flight1.run), 0, 0]}/>
       <CuboidCollider args={[2, .3, 1.75]} position={[stairX, landingY + .35, landingZ]}/>
       <CuboidCollider args={[1.6, .3, Math.hypot(flight2.rise, flight2.run) / 2]} position={[stairX, landingY + flight2.rise / 2 + .3, landingZ - flight2.run / 2]} rotation={[Math.atan2(flight2.rise, flight2.run), 0, 0]}/>
     </RigidBody>
-    <ExpansionSign position={[cx + 30, terrainHeight(cx + 30, cz + 6), cz + 6]} label={localizedPlace('chalakudy-dam', locale)} width={4.5}/>
+    <ExpansionSign position={[cx + 45, terrainHeight(cx + 45, cz + 18), cz + 18]} label={localizedPlace('chalakudy-dam', locale)} width={5.5}/>
   </group>;
 }

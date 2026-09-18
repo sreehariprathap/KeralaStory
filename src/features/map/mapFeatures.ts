@@ -5,6 +5,8 @@ import { STADIUM, stadiumToWorld } from '../../content/world/stadiumLayout';
 import { staticArchitectureBoxes, canopyArchitectureBoxes } from '../../content/world/staticArchitecture';
 import { TOWN_BUILDINGS } from '../../content/world/v2Dressing';
 import { CHALAKKUDY_CITY } from '../../content/world/chalakkudyCity';
+import { NEDUMBASSERY_AIRPORT } from '../../content/world/airport';
+import { NEDUMBASSERY_AIRPORT_PLAN } from '../../content/world/airportPlan';
 import { stuntSites } from '../../game/world/stuntSites';
 import type { TranslationKey } from '../i18n/translate';
 
@@ -45,7 +47,7 @@ export function buildingFootprints(): Footprint[] {
     .map((b, i): Footprint => ({ id: b.id, x: b.position[0], z: b.position[2], width: b.size[0], depth: b.size[2], yaw: b.rotation[1], roof: i % 3 === 0 ? '#b8664a' : i % 3 === 1 ? '#a8573d' : '#c07a52' }));
   const towns = TOWN_BUILDINGS.map((b): Footprint => ({ id: b.id, x: b.x, z: b.z, width: b.width, depth: b.depth, yaw: 0, roof: b.roof }));
   const street = CHALAKKUDY_STREET.buildings.map((b): Footprint => ({ id: b.id, x: b.origin[0], z: b.origin[2], width: b.width, depth: b.depth, yaw: b.yaw, roof: '#a8573d' }));
-  const city = CHALAKKUDY_CITY.footprints.map((b): Footprint => ({ ...b, yaw: 0 }));
+  const city = [...CHALAKKUDY_CITY.footprints, ...NEDUMBASSERY_AIRPORT.footprints].map((b): Footprint => ({ ...b, yaw: 0 }));
   return [...boxes, ...towns, ...street, ...city];
 }
 
@@ -64,3 +66,13 @@ export function mapCities(): CityLabel[] {
 
 /** Landmarks that sit inside a highlighted spot's circle would double up; keep the landmark list as is. */
 export const LANDMARK_IDS = new Set(LANDMARKS.map(l => l.id));
+
+/** Nedumbassery's paved airside, drawn under the roads: runway, apron and taxiways (world-metre rectangles). */
+export function airfieldSurfaces(): { id: string; xMin: number; xMax: number; zMin: number; zMax: number; color: string }[] {
+  const { runway: r, apron: a, taxiways } = NEDUMBASSERY_AIRPORT_PLAN;
+  return [
+    { id: 'apron', xMin: a.xMin, xMax: a.xMax, zMin: a.zMin, zMax: a.zMax, color: '#c9c8c0' },
+    ...taxiways.map(x => ({ id: `taxiway-${x}`, xMin: x - 9, xMax: x + 9, zMin: a.zMax, zMax: r.z - r.width / 2, color: '#8e8f8a' })),
+    { id: 'runway', xMin: r.xMin, xMax: r.xMax, zMin: r.z - r.width / 2, zMax: r.z + r.width / 2, color: '#5d6166' },
+  ];
+}

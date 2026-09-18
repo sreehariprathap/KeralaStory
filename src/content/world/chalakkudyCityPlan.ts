@@ -26,6 +26,9 @@ export const CHALAKKUDY_CITY_ROADS: readonly CityRoadPlan[] = [
   { id: 'chalakkudy-kodaly-road', label: 'Kodaly Road', points: [[-100, 13.8, -58], [-80, 13.4, -54], [-8, 13.6, -54]] },
   { id: 'chalakkudy-riverside-road', label: 'Riverside Road', points: [[-202, 44, -116.5], [-275, 46.5, -120], [-292, 48.09, -58.63]] },
   { id: 'chalakkudy-east-link', label: 'Link Road', points: [[-168, 38, -48.5], [-168, 37.36, 0]] },
+  // Airport Road: off MG Road, over the Chalakkudy River, then a long easy descent to Nedumbassery's forecourt.
+  { id: 'chalakkudy-airport-link', label: 'Airport Road', points: [[-500, CITY_PAD_Y, -60], [-500, 48.8, -48]] },
+  { id: 'nedumbassery-airport-road', label: 'Airport Road', points: [[-500, 40, 50], [-430, 34.73, 62], [-440, 33.2, 80], [-560, 24.3, 80]] },
 ];
 
 /** Green direction boards beside the carriageway, `along` metres from the road's start, facing its traffic. */
@@ -38,6 +41,7 @@ export const CHALAKKUDY_ROAD_SIGNS: readonly CityRoadSignPlan[] = [
   { route: 'chalakkudy-kodaly-highway', along: 'end', label: `Kodaly → · ${NH_LABEL} ↑ Kodakara` },
   { route: 'chalakkudy-kodaly-road', along: 'end', label: 'Welcome to Kodaly · കൊടാലി' },
   { route: 'chalakkudy-mg-road', along: 'end', label: `${NH_LABEL} → Chalakkudy East · Kodaly` },
+  { route: 'nedumbassery-airport-road', along: 20, label: 'Nedumbassery Airport · നെടുമ്പാശ്ശേരി' },
 ];
 
 /** A straight, evenly graded deck between two road ends (feet heights at each end). */
@@ -48,6 +52,8 @@ export const CHALAKKUDY_BRIDGES: readonly CityBridgePlan[] = [
   // North crossing: the Link Road to Riverside Road, which runs along the west bank to the MG Road bridgehead.
   { id: 'chalakkudy-north-bridge', label: 'Kurumali North Bridge', from: [-168, 38, -48.5], to: [-202, 44, -116.5], width: 18 },  // National highway over the Kurumalippuzha–Kurumali confluence: Kodakara side to the Kodaly junction.
   { id: 'kurumali-highway-bridge', label: `${NH_LABEL} · Kurumali Bridge`, from: [-100, 13.8, -58], to: [-100, 22.5, -146], width: 18 },
+  // Airport Road over the Chalakkudy River, south from MG Road.
+  { id: 'chalakkudy-airport-bridge', label: 'Airport Road Bridge', from: [-500, 48.8, -48], to: [-500, 40, 50], width: 18 },
 ];
 
 /** Deck frame: unit axis, length, and the local position of a point (along from `from`, across to the right). */

@@ -43,6 +43,8 @@ export interface WorldV2Layout {
   riverReaches: readonly RiverReach[];
   roads: readonly RoadProposal[];
   park: { id: 'silver-storm'; label: string; footprint: PolygonXZ; center: Vec3; poolFootprint: PolygonXZ };
+  /** Levelled like a town pad; the runway, terminal and aircraft are built on it. */
+  airport: { id: 'nedumbassery-airport'; label: string; footprint: PolygonXZ; center: Vec3 };
   /** Heights are design targets until shared terrain/collision is built. Not safe spawns. */
   reviewNotes: readonly string[];
 }
