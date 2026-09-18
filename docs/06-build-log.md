@@ -566,3 +566,19 @@ Seven layout tests pass, including connectivity, grades, lengths, unique anchors
   - The generated-rig suite runs over every catalog entry: each new character deforms both arms and both legs while walking, running, falling and riding, with normalized weights. The vehicle suite measures the Supercar's wheels against its meshes.
 - Inspected in the dev server: Raja, Spidey, Player 07 and Luffy walking, and all four cars spawned (each sits on its wheels and faces forward).
 - NOT yet done: mobile GPU profiling of the heavier new characters.
+
+## 2026-09-18 — Splash screen and retro main menu
+
+- Replaced the "An Explorer's Tale" title with a logo splash (Malayalam → English crossfade, segmented green loader, "BY SREEHARI") and a white PS2-era main menu over the Kerala story map at 20%. Spec: `docs/superpowers/specs/2026-09-18-splash-and-retro-menu-design.md`.
+- The 3D world now mounts only after New Game, Load Game, or entering a room, behind a load screen. The closed in-game car spawner no longer renders a live preview, so the menu runs no WebGL at all.
+- Game Store: cars, bikes, and characters, all free; Equip sets the spawner defaults and the player character (stored in preferences as `equipped`).
+- Account and the lobby browser are SOON placeholders; Exit appears only in the installed PWA.
+- Deviations from the spec:
+  - The load bar is not pure download progress. `THREE.DefaultLoadingManager` only counts downloads, which finish long before parsing and shader compiles, so the bar sat at 95% for most of the load. Downloads now fill 70% and elapsed time eases the rest toward 95%; it reaches 100% when the player spawns.
+  - `menu-map.webp` is 1100 px at quality 45 (176 KB). At 1600 px it could not get under the 200 KB target.
+- Checks run:
+  - `npm run typecheck`: PASS. `npm run build`: PASS. The entry chunk has no three.js renderer and grew about 4 KB (820 → 824 KB).
+  - `vitest` outside `.worktrees`: all pass except `tests/expansionLayout.test.ts`, which fails the same way before this work, and the load-sensitive `apps/server/tests/roomIntegration.test.ts`, which passes on its own.
+  - Browser walkthrough with headless Chromium (Playwright; the Chrome DevTools MCP profile was locked by another session), at 1280×800 and at 390×844 with touch: splash crossfade, menu keyboard navigation (skips disabled Load Game), store equip of Supercar and Luffy saved to preferences, New Game preselecting Luffy, load screen to gameplay, Supercar preselected in the spawner, pause → Quit to main menu with no canvas left mounted, Load Game back to gameplay, invite link landing on Multiplayer with the code filled, and menu reached with logo/map requests blocked and no broken images. No console errors.
+  - Production build timing (headless, software GL): splash visible at about 1.2 s, menu at about 5.0 s, gameplay about 10.6 s after New Game.
+- NOT yet done: Exit in an installed PWA (no installed app to test), gamepad input on real hardware, and real-device mobile timing.
