@@ -23,10 +23,12 @@ function Chunk({chunk}:{chunk:TerrainChunk}) {
 const surfaceHeight=(x:number,z:number)=>Math.max(EXPANSION_GROUND.deckHeightAt(x,z)??-Infinity,terrainHeight(x,z));
 const rgb=(hex:string)=>{const c=new Color(hex);return [c.r,c.g,c.b] as const;};
 const CAR_COLORS={surface:rgb('#686d5e'),shoulder:rgb('#8e8b72')},TRAIL_COLORS={surface:rgb('#c4b387'),shoulder:rgb('#c4b387')};
+// Unsealed tracks are graded earth, dusty at the edges.
+const DIRT_COLORS={surface:rgb('#9a8560'),shoulder:rgb('#8e8256')};
 /** Dense, ground-hugging road surface with flared junction corners (see createRouteRibbon). */
 function RouteRibbon({route,routes}:{route:ExpansionRoute;routes:readonly ExpansionRoute[]}) {
   const geometry=useMemo(()=>{
-    const mesh=createRouteRibbon(route,routes,surfaceHeight,route.allowedModes.includes('car')?CAR_COLORS:TRAIL_COLORS);
+    const mesh=createRouteRibbon(route,routes,surfaceHeight,route.surface==='dirt'?DIRT_COLORS:route.allowedModes.includes('car')?CAR_COLORS:TRAIL_COLORS);
     const g=new BufferGeometry();g.setAttribute('position',new Float32BufferAttribute(mesh.positions,3));g.setAttribute('color',new Float32BufferAttribute(mesh.colors,3));g.setIndex(mesh.indices);g.computeVertexNormals();return g;
   },[route,routes]);
   useEffect(()=>()=>geometry.dispose(),[geometry]);

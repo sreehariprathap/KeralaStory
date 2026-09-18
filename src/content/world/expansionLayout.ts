@@ -59,11 +59,11 @@ export function roundedPath(control: readonly XZ[], radius: number): XZ[] {
   lineTo(control[control.length - 1]);
   return result;
 }
-function route(id: string, controls: readonly XZ[], radius: number, height: (distance: number, total: number) => number, foot = false): ExpansionRoute {
+function route(id: string, controls: readonly XZ[], radius: number, height: (distance: number, total: number) => number, foot = false, options: { widthM?: number; surface?: 'paved' | 'dirt' } = {}): ExpansionRoute {
   const flat = roundedPath(controls, radius), total = flat.reduce((s, p, i) => i ? s + Math.hypot(p[0] - flat[i - 1][0], p[1] - flat[i - 1][1]) : 0, 0);
   let distance = 0;
   const points: Vec3[] = flat.map((p, i) => { if (i) distance += Math.hypot(p[0] - flat[i - 1][0], p[1] - flat[i - 1][1]); return [p[0], height(distance, total), p[1]]; });
-  return { id, points, widthM: foot ? 3 : 5.5, shoulderM: foot ? .5 : .75, allowedModes: foot ? ['foot'] : ['foot', 'bicycle', 'car'] };
+  return { id, points, widthM: options.widthM ?? (foot ? 3 : 5.5), shoulderM: foot ? .5 : .75, allowedModes: foot ? ['foot'] : ['foot', 'bicycle', 'car'], surface: options.surface };
 }
 
 /** A1 authored profiles; A2 must conform ground/collision before activating these places. */
@@ -86,6 +86,21 @@ export function createExpansionLayout(input: { junction: Vec3; panoramaTargets: 
   const falls = route('athirappilly-view-trail', [[-600, -430], [-567, -434], [-543, -390], [-554, -348], [-580, -335]], 8,
     (s, total) => base - 26 * smooth(s / total), true);
   const summitPosition = [...summit.points[summit.points.length - 1]] as Vec3;
+  // Straight graded track up the open south face, clear of the walking trail's switchbacks. It is
+  // steep (about half a metre climbed per metre) but hugs the slope, so every vehicle can drive it.
+  // Bearing and length chosen so the straight line hugs the south face: about six metres of cut and
+  // eight of fill, 23 m clear of the walking trail, at the gentlest grade a straight climb allows here.
+  const trackFoot: XZ = [-325, -803];
+  const trackFootY = 75;
+  // The summit anchor levels a cap around the peak, so the track climbs to the cap's edge and the
+  // flat top carries it the rest of the way; ending inside the cap would leave a step.
+  const trackRun = Math.hypot(summitPosition[0] - trackFoot[0], summitPosition[2] - trackFoot[1]);
+  const trackTop: XZ = [
+    summitPosition[0] - (summitPosition[0] - trackFoot[0]) / trackRun * 12,
+    summitPosition[2] - (summitPosition[2] - trackFoot[1]) / trackRun * 12,
+  ];
+  const track = route('summit-offroad-track', [trackFoot, trackTop], 28,
+    (s, total) => trackFootY + (summitPosition[1] - trackFootY) * (s / total), false, { widthM: 6, surface: 'dirt' });
   const anchor = (id: string, areaId: AreaId, position: Vec3, iconId: string, discoveryRadiusM = 10): ExpansionAnchor => ({ id, areaId, position, iconId, discoveryRadiusM });
   const anchors = [
     anchor('kodassery-junction', 'chokkana', [...junction], 'signpost'),
@@ -97,6 +112,7 @@ export function createExpansionLayout(input: { junction: Vec3; panoramaTargets: 
     anchor('chokkana-tea-stop', 'chokkana', nearestRouteSample(loop, -275, -401).position, 'tea'),
     anchor('athirappilly-falls', 'athirappilly', [...falls.points[0]], 'waves'),
     anchor('athirappilly-lower-view', 'athirappilly', [...falls.points[falls.points.length - 1]], 'waves'),
+    anchor('summit-track-foot', 'kodassery-summit', [...track.points[0]], 'mountain'),
   ];
   const areas: ExpansionLayout['areas'] = [
     { id: 'kodassery-summit', zoneId: 'kodassery', footprint: [[-225,-740],[-25,-740],[-25,-485],[-100,-485],[-190,-530],[-225,-610]], labelPosition: [-135,-663] },
@@ -105,7 +121,7 @@ export function createExpansionLayout(input: { junction: Vec3; panoramaTargets: 
   ];
   return {
     bounds: { xMin: Math.min(...areas.flatMap(a => a.footprint.map(p => p[0]))), xMax: 96.5, zMin: Math.min(...areas.flatMap(a => a.footprint.map(p => p[1]))), zMax: 92 },
-    areas, routes: [road, spur, summit, loop, falls], anchors, summitPosition,
+    areas, routes: [road, spur, summit, loop, falls, track], anchors, summitPosition,
     panoramaTargets: [...input.panoramaTargets.map(p => [...p] as Vec3), anchors[4].position, [-625, base - 12, -395]],
     waterBodies: [
       { id: 'chalakudy-upstream', kind: 'river', surfaceY: base - 2, footprint: [[-659,-493],[-615,-493],[-612,-400],[-659,-400]] },

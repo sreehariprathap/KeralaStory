@@ -110,6 +110,8 @@ export const INSPECTION_DESTINATIONS: InspectionDestination[] = [
   { id: 'v2-chalakkudy-showroom', label: 'Chalakkudy — Motors car showroom', position: [-532, terrainHeight(-532, -128) + 0.1, -128], headingRad: 0, group: 'V2 planned sites', available: true },
   { id: 'v2-chalakkudy-mg-road', label: 'Chalakkudy — four-lane MG Road', position: [-540, terrainHeight(-540, -62) + 0.1, -62], headingRad: Math.PI / 2, group: 'V2 planned sites', available: true },
   // West bridgehead facing the MG Road bridge (heading = atan2(dx, -dz) toward the far end).
+  // Foot of the straight summit track, facing the peak (heading = atan2(dx, -dz)).
+  { id: 'summit-track-foot', label: 'Kodassery — summit off-road track', position: [-325, terrainHeight(-325, -803) + 0.1, -803], headingRad: Math.atan2(195, -107), group: 'Mountain and forest expansion', available: true },
   { id: 'v2-chalakkudy-mg-bridge', label: 'Chalakkudy — MG Road bridge over the Kurumalippuzha', position: [-290, terrainHeight(-290, -68) + 0.1, -68], headingRad: Math.atan2(67.2, -56.8), group: 'V2 planned sites', available: true },
   { id: 'v2-chalakkudy-east', label: 'Chalakkudy East — towers and East Avenue', position: [-160, terrainHeight(-160, 8) + 0.1, 8], headingRad: -Math.PI / 2, group: 'V2 planned sites', available: true },
   { id: 'v2-chalakkudy-north-bridge', label: 'Chalakkudy — Kurumali North Bridge', position: [-168, terrainHeight(-168, -38) + 0.1, -38], headingRad: Math.atan2(-34, 68), group: 'V2 planned sites', available: true },

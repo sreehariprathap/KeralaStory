@@ -52,6 +52,12 @@ const COPY: Record<string, PlaceCopy> = {
     iconId: 'waves',
     discoveryRadiusM: 10,
   },
+  'summit-track-foot': {
+    label: 'Summit Track',
+    description: 'A graded earth track leaves the plateau and runs dead straight up the open south face to the peak.',
+    iconId: 'mountain',
+    discoveryRadiusM: 12,
+  },
   'athirappilly-lower-view': {
     label: 'Athirappilly Lower View',
     description: 'A separate footpath ends at a dry side-on terrace below the falling water.',
