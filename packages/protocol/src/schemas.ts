@@ -12,7 +12,7 @@ export const RoomPhaseSchema = z.enum(['waiting', 'playing', 'closing']);
 export const SeatIdSchema = z.enum(['driver', 'frontPassenger', 'rearLeft', 'rearRight', 'rider', 'passenger']);
 export const AvatarAppearanceSchema = z.object({
   avatarPresetId: z.enum(['canopy', 'clay', 'river']),
-  characterModelId: z.enum(['nick', 'little-girl', 'kid-boy', 'cartoon-kid', 'teenage-boy', 'messi', 'spidey', 'mask-player', 'lungi-raja', 'straw-hat']).optional(),
+  characterModelId: z.enum(['nick', 'little-girl', 'kid-boy', 'cartoon-kid', 'teenage-boy', 'messi', 'mask-player', 'straw-hat']).optional(),
   colors: z.object({
     skin: z.enum(['#ba805b', '#dba77e', '#8e5e43']),
     hair: z.enum(['#292a25', '#4b3329', '#242d35']),

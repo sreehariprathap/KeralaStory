@@ -161,7 +161,6 @@ describe.each([
   { label: 'kid boy', rig: 'kid-boy' as const, original: 'kid_boy.glb', generated: 'kid_boy_rigged.glb', meshCount: 22 },
   { label: 'little girl', rig: 'little-girl' as const, original: 'the_little_girl.glb', generated: 'the_little_girl_rigged.glb', meshCount: 1 },
   { label: 'Messi', rig: 'messi' as const, original: 'lionel_messi_qatar_2022.glb', generated: 'lionel_messi_qatar_2022_rigged.glb', meshCount: 3 },
-  { label: 'lungi Raja', rig: 'fitted' as const, original: 'lungi_raja.glb', generated: 'lungi_raja_rigged.glb', meshCount: 1 },
   { label: 'straw hat', rig: 'fitted' as const, original: 'monkey_d_luffy.glb', generated: 'monkey_d_luffy_rigged.glb', meshCount: 23 },
 ])('$label generated GLB rig', ({ rig, original, generated, meshCount }) => {
   it('contains the expected skinned meshes and valid four weight influences', { timeout: 30_000 }, async () => {

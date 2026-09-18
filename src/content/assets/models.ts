@@ -5,11 +5,9 @@ export const CHARACTER_MODELS = [
   { id: 'cartoon-kid', name: 'Kuttu', url: '/assets/characters/cartoon_kid_rigged.glb', rig: 'fitted', rotationY: 0 },
   { id: 'teenage-boy', name: 'Achu', url: '/assets/characters/anime-style_teenage_boy_rigged.glb', rig: 'relaxed', rotationY: 0 },
   { id: 'messi', name: 'Messi', url: '/assets/characters/lionel_messi_qatar_2022_rigged.glb', rig: 'messi', rotationY: 0 },
-  // Supplied with their own Mixamo skeletons; the limb bones drive the same walk cycle.
-  { id: 'spidey', name: 'Spidey', url: '/assets/characters/ultimate_spider_man.glb', rig: 'mixamo', rotationY: 0 },
+  // Supplied with its own Mixamo skeleton; the limb bones drive the same walk cycle.
   { id: 'mask-player', name: 'Player 07', url: '/assets/characters/squid_game_player_rig_version.glb', rig: 'mixamo', rotationY: 0 },
-  // Rigged here from static sources (scripts/rig-characters.mjs).
-  { id: 'lungi-raja', name: 'Raja', url: '/assets/characters/lungi_raja_rigged.glb', rig: 'fitted', rotationY: 0 },
+  // Rigged here from a static source (scripts/rig-characters.mjs).
   { id: 'straw-hat', name: 'Luffy', url: '/assets/characters/monkey_d_luffy_rigged.glb', rig: 'fitted', rotationY: 0 },
 ] as const;
 export const CAR_MODELS = [

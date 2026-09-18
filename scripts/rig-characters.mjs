@@ -14,8 +14,6 @@ const profiles = [
   { source: 'kid_boy.glb', output: 'kid_boy_rigged.glb', shoulder: [.105,.655,.012], elbow: [.23,.545,.012], wrist: [.325,.455,.012], hip: [.045,.385,.015], knee: [.045,.205,.015], ankle: [.045,.05,.015], skirt: false },
   // T-pose, realistic eight-head proportions; the arms sit slightly behind the torso centre.
   { source: 'lionel_messi_qatar_2022.glb', output: 'lionel_messi_qatar_2022_rigged.glb', shoulder: [.11,.793,-.03], elbow: [.265,.795,-.03], wrist: [.40,.795,-.022], hip: [.065,.46,-.01], knee: [.064,.27,-.02], ankle: [.068,.055,-.02], skirt: false },
-  // Lungi Raja: arms angled down and out; the lungi is blended like a skirt so the legs swing inside it.
-  { source: 'lungi_raja.glb', output: 'lungi_raja_rigged.glb', shoulder: [.10,.72,0], elbow: [.25,.57,0], wrist: [.39,.43,0], hip: [.07,.45,0], knee: [.095,.24,0], ankle: [.105,.06,0], skirt: true },
   // Straw-hat boy: a wide T pose with the arms level at four-fifths height.
   { source: 'monkey_d_luffy.glb', output: 'monkey_d_luffy_rigged.glb', shoulder: [.10,.80,0], elbow: [.28,.80,0], wrist: [.45,.80,0], hip: [.05,.45,0], knee: [.055,.24,0], ankle: [.055,.05,0], skirt: false },
   { source: 'the_little_girl.glb', output: 'the_little_girl_rigged.glb', shoulder: [.083,.663,0], elbow: [.24,.655,0], wrist: [.38,.65,0], hip: [.043,.43,0], knee: [.043,.205,0], ankle: [.043,.05,0], skirt: true },
