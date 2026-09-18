@@ -160,9 +160,10 @@ export function App(){
     const held=new Set<string>();
     const keydown=(event:KeyboardEvent)=>{
       if(event.code==='KeyC'||event.code==='KeyB'){held.add(event.code);return;}
-      const digit=/^(?:Digit|Numpad)([1-9])$/.exec(event.code);
+      // 0 is the tenth entry, so the whole car catalog is reachable.
+      const digit=/^(?:Digit|Numpad)([0-9])$/.exec(event.code);
       if(!digit||event.repeat)return;
-      const index=Number(digit[1])-1;
+      const index=(Number(digit[1])+9)%10;
       if(held.has('KeyC')&&CAR_MODELS[index]){event.preventDefault();setCarModelId(CAR_MODELS[index].id);setCarSpawnToken(n=>n+1);}
       else if(held.has('KeyB')&&BIKE_MODELS[index]){event.preventDefault();setBikeModelId(BIKE_MODELS[index].id);setBikeSpawnToken(n=>n+1);}
     };
@@ -268,7 +269,7 @@ export function App(){
         <option value="" disabled>Fast travel to an area</option>
         {(['Existing landmarks','Mountain and forest expansion','V2 planned sites','Stunt parks'] as const).map(group=><optgroup key={group} label={group}>{INSPECTION_DESTINATIONS.filter(place=>place.group===group).map(place=><option key={place.id} value={place.id} disabled={!place.available}>{place.landmarkId?localizedPlace(place.landmarkId,locale):place.label}</option>)}</optgroup>)}
       </select>
-      <output>{snapshot.position.map(n=>n.toFixed(1)).join(', ')} · {snapshot.grounded?'grounded':'airborne'}</output><output data-render-metrics="true">Measuring renderer…</output><small>Planned sites show current terrain only. Unbuilt terrain is unavailable.</small><small>Cheats: hold <kbd>C</kbd> + 1–{CAR_MODELS.length} to spawn a car, <kbd>B</kbd> + 1–{BIKE_MODELS.length} to spawn a bike ({BIKE_MODELS.map((m,i)=>`${i+1} ${m.name}`).join(', ')}).</small></aside>}
+      <output>{snapshot.position.map(n=>n.toFixed(1)).join(', ')} · {snapshot.grounded?'grounded':'airborne'}</output><output data-render-metrics="true">Measuring renderer…</output><small>Planned sites show current terrain only. Unbuilt terrain is unavailable.</small><small>Cheats: hold <kbd>C</kbd> + 1–9/0 to spawn one of {CAR_MODELS.length} cars, <kbd>B</kbd> + 1–{BIKE_MODELS.length} to spawn a bike ({BIKE_MODELS.map((m,i)=>`${i+1} ${m.name}`).join(', ')}).</small></aside>}
 
     <UpdateToast/>
   </main></LocaleProvider>;

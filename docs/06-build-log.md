@@ -548,3 +548,21 @@ Seven layout tests pass, including connectivity, grades, lengths, unique anchors
   - `tests/chalakkudyCity.test.ts` now asserts the loop end to end, including that Kodaly Road reaches the town edge and that each bridge meets road ends on both banks.
 - Inspected in the dev server: the MG Road/Boulevard crossroads (flared corners, zebra crossings), the Kodakara junction and NH boards, and the Kurumali bridge from the Kodaly junction.
 - NOT yet done: a full drive of the loop in a car, and mobile GPU profiling.
+
+## 2026-09-17 — Character and car catalogue refresh
+
+- Removed at the user's request: the Maya (school uniform), Tommy, Appu and Kichu characters, and the Mazda RX-7. Their served GLBs and the three rig sources behind them are deleted, along with the rig profiles, the saved-profile enum entries, and the Mazda-specific calibration test. The showroom's red display car is now the muscle car.
+- Added the four remaining car files, measured against the same normalization the renderer applies (rotate, centre, scale to `length`, wheels from the tyre meshes):
+  - Golf GTI, Sports coupe and Toy car have tyres fused into one mesh per model, so their wheels are positioned for physics but do not spin, as with the Bronco. The Toy car is authored rotated 45 degrees and facing backwards; its catalog rotation corrects both.
+  - The Supercar is the only new car with separate corner meshes, so its wheels steer and spin. It hides its exported shadow plane and exposes its `488_PAINT` material as recolourable paint.
+  - Inspect-mode car cheats now reach the tenth car with the 0 key.
+- Added the four remaining character files:
+  - Spidey and Player 07 ship Mixamo skeletons. A new `mixamo` rig maps their limb bones onto the existing walk cycle, so they animate without a generated rig.
+  - Raja (lungi) and Luffy are static sources rigged by `scripts/rig-characters.mjs` from measured joint positions. Raja's lungi reuses the skirt blend.
+  - `lionel_messi.glb` is left out: it duplicates the rigged Qatar Messi already in the catalog.
+- Checks run:
+  - `npm run typecheck`: PASS. `npm run build`: PASS.
+  - `vitest` outside `.worktrees`: all pass except the known load-sensitive `apps/server/tests/roomIntegration.test.ts`, which passes on its own.
+  - The generated-rig suite runs over every catalog entry: each new character deforms both arms and both legs while walking, running, falling and riding, with normalized weights. The vehicle suite measures the Supercar's wheels against its meshes.
+- Inspected in the dev server: Raja, Spidey, Player 07 and Luffy walking, and all four cars spawned (each sits on its wheels and faces forward).
+- NOT yet done: mobile GPU profiling of the heavier new characters.

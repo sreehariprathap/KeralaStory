@@ -24,8 +24,6 @@ export const CAR_PAINT_COLORS = [
   { id: 'yellow', label: 'Yellow', value: '#e7b416' },
   { id: 'silver', label: 'Silver', value: '#a7adb4' },
 ] as const;
-const TRIM: MaterialLook = { color: '#202226', metalness: .2, roughness: .7 };
-const GLASS: MaterialLook = { color: '#1b2a36', metalness: .6, roughness: .08, opacity: .82 };
 const wheel = (x: number, y: number, z: number, radius: number, ...nodes: string[]): VehicleWheel => ({ x, y, z, radius, nodes });
 /** Measured from transformed GLB mesh bounds. +Z forward, front-right/front-left first. */
 export const VEHICLE_PROFILES: Record<CarModelId, VehicleProfile> = {
@@ -54,22 +52,29 @@ export const VEHICLE_PROFILES: Record<CarModelId, VehicleProfile> = {
     wheel(1.0445,.42,1.65,.42), wheel(-1.0445,.42,1.65,.42),
     wheel(1.0445,.42,-1.5,.42), wheel(-1.0445,.42,-1.5,.42),
   ] },
-  'mazda-rx7': { length: 4.3, chassis: { x: .9716, y: .375, z: 1.8813, offset: -.035 },
-    hiddenNodes: ['Floor'],
-    // The source ships every material as flat unlit black; these looks were mapped from a per-mesh render.
-    paint: { materials: ['02_-_Default', 'Material_9'], defaultColor: CAR_PAINT_COLORS[0].value },
-    materialOverrides: {
-      Material_3: GLASS,
-      Material_4: { ...GLASS, color: '#3d5566' },
-      Material_5: { ...GLASS, color: '#4e6878' },
-      Material_7: { color: '#141414', roughness: .95 },
-      Material_14: { color: '#f4f1e0', emissive: '#6b6650', roughness: .3 },
-      Material_17: { color: '#8a0f16', emissive: '#3a0508', roughness: .4 },
-      '*': TRIM,
-    },
+  // Measured from the tyre meshes after the same normalization the renderer applies.
+  'golf-gti': { length: 4, chassis: { x: .85, y: .45, z: 1.8, offset: .12 }, wheels: [
+    wheel(.7141,.29143,1.19086,.29143), wheel(-.7141,.29143,1.19086,.29143),
+    wheel(.73581,.29143,-1.28533,.29143), wheel(-.73581,.29143,-1.28533,.29143),
+  ] },
+  'sports-coupe': { length: 4.2, chassis: { x: 1, y: .5, z: 1.85, offset: .2 }, wheels: [
+    wheel(.8993,.4803,.8091,.4803), wheel(-.8993,.4803,.8091,.4803),
+    wheel(.8993,.4803,-1.1078,.4803), wheel(-.8993,.4803,-1.1078,.4803),
+  ] },
+  // The only new car whose corners are separate meshes, so its wheels steer and spin.
+  supercar: { length: 4.4, chassis: { x: 1.05, y: .5, z: 1.95, offset: .18 }, topSpeed: 15,
+    hiddenNodes: ['488_shadow_488_SHADOW_0'],
+    paint: { materials: ['488_PAINT'], defaultColor: CAR_PAINT_COLORS[0].value },
     wheels: [
-    wheel(.866,.22,1.65,.22), wheel(-.866,.22,1.65,.22),
-    wheel(.866,.22,-1.5,.22), wheel(-.866,.22,-1.5,.22),
+      wheel(.9111,.47504,1.24403,.47031,'tyre_fl_488_WHEELS_0','rim_fl_488_WHEELS_0','bdisk_fl_488_WHEELS_0','caliper_fl_488_WHEELS_0'),
+      wheel(-.91111,.47504,1.24403,.47031,'tyre_fr_488_WHEELS_0','rim_fr_488_WHEELS_0','bdisk_fr_488_WHEELS_0','caliper_fr_488_WHEELS_0'),
+      wheel(.9292,.47429,-1.43997,.47429,'tyre_rl_488_WHEELS_0','rim_rl_488_WHEELS_0','bdisk_rl_488_WHEELS_0','caliper_rl_488_WHEELS_0'),
+      wheel(-.92922,.47429,-1.43997,.47429,'tyre_rr_488_WHEELS_0','rim_rr_488_WHEELS_0','bdisk_rr_488_WHEELS_0','caliper_rr_488_WHEELS_0'),
+    ] },
+  // Wheels are fused into the body: estimated from the lowest geometry at each corner.
+  'toy-car': { length: 4, chassis: { x: 1, y: .7, z: 1.7, offset: .35 }, wheels: [
+    wheel(.5995,.4648,1.101,.4648), wheel(-.5995,.4648,1.101,.4648),
+    wheel(.5995,.4648,-1.2257,.4648), wheel(-.5995,.4648,-1.2257,.4648),
   ] },
   cyberpunk: { length: 4.5, chassis: { x: 1.2387, y: .6225, z: 1.9688, offset: .2525 }, topSpeed: 14, wheels: [
     wheel(0.8024,0.4424,1.2636,0.4198,"��������������_����������������3_0"),

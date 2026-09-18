@@ -133,9 +133,10 @@ describe.each(CHARACTER_MODELS)('$name selectable avatar', model => {
           expect(Number.isFinite(weight)&&weight>=0).toBe(true);
           if(weight<.5)continue;
           const bone=mesh.skeleton.bones[indices.getComponent(i,j)];
-          const match=bone.name.match(/(?:Hip|Knee|Shoulder|Elbow)_([LR])_/)??bone.name.match(/J_Bip_([LR])_(?:Upper|Lower)(?:Arm|Leg)_/);
+          // Generated Kerala rigs, VRM (J_Bip) rigs, and authored Mixamo skeletons.
+          const match=bone.name.match(/(?:Hip|Knee|Shoulder|Elbow)_([LR])_/)??bone.name.match(/J_Bip_([LR])_(?:Upper|Lower)(?:Arm|Leg)_/)??bone.name.match(/^mixamorig:?(Left|Right)(?:UpLeg|ForeArm|Leg|Arm)_/);
           if(!match)continue;
-          const limb=/(Shoulder|Elbow|Arm)/.test(bone.name)?'arm':'leg', key=limb+match[1];
+          const limb=/(Shoulder|Elbow|Arm)/.test(bone.name)?'arm':'leg', key=limb+match[1][0];
           const list=samples.get(key)??[];
           if(list.length<100)list.push({mesh,index:i,before:mesh.getVertexPosition(i,new Vector3()).clone()});
           samples.set(key,list);
@@ -156,57 +157,12 @@ describe.each(CHARACTER_MODELS)('$name selectable avatar', model => {
   });
 });
 
-describe('School uniform arm weighting regression', () => {
-  it('moves the whole arm surface together without stretching triangles back into the T pose', { timeout: 30_000 }, async () => {
-    const root = await loadTextureFree('arms_out_in_uniform_rigged.glb');
-    let armVertices = 0, minArmWeight = 1, maxStretch = 1;
-    const samples = skinnedMeshes(root).map(mesh => {
-      const position = mesh.geometry.getAttribute('position');
-      const joints = mesh.geometry.getAttribute('skinIndex');
-      const weights = mesh.geometry.getAttribute('skinWeight');
-      const before = Array.from({ length: position.count }, (_, i) => mesh.getVertexPosition(i, new Vector3()).clone());
-      const isArm = before.map((p, i) => {
-        if (Math.abs(p.x) / 1.7 < .15 || p.y / 1.7 < .64 || p.y / 1.7 > .74) return false;
-        const expected = p.x > 0 ? [4, 5, 6] : [10, 11, 12];
-        let influence = 0;
-        for (let slot = 0; slot < 4; slot++) if (expected.includes(joints.getComponent(i, slot))) influence += weights.getComponent(i, slot);
-        minArmWeight = Math.min(minArmWeight, influence);
-        armVertices++;
-        return true;
-      });
-      return { mesh, before, isArm };
-    });
-    expect(armVertices).toBeGreaterThan(1000);
-    expect(minArmWeight).toBeGreaterThan(.999);
-    const animator = createNickAnimation(root, 'uniform');
-    for (const speed of [0, 3.5]) {
-      if (!speed) animator.update(0, { speed, grounded: true });
-      else for (let i = 0; i < 30; i++) animator.update(1 / 60, { speed, grounded: true });
-      root.updateMatrixWorld(true);
-      for (const { mesh, before, isArm } of samples) {
-        const index = mesh.geometry.index;
-        const count = index?.count ?? before.length;
-        const a = new Vector3(), b = new Vector3();
-        for (let i = 0; i < count; i += 3) for (let edge = 0; edge < 3; edge++) {
-          const u = index ? index.getX(i + edge) : i + edge;
-          const v = index ? index.getX(i + (edge + 1) % 3) : i + (edge + 1) % 3;
-          if (!isArm[u] || !isArm[v]) continue;
-          const rest = before[u].distanceTo(before[v]);
-          if (rest < 1e-5) continue;
-          const current = mesh.getVertexPosition(u, a).distanceTo(mesh.getVertexPosition(v, b));
-          maxStretch = Math.max(maxStretch, current / rest);
-        }
-      }
-    }
-    expect(maxStretch).toBeLessThan(1.6);
-  });
-});
-
 describe.each([
   { label: 'kid boy', rig: 'kid-boy' as const, original: 'kid_boy.glb', generated: 'kid_boy_rigged.glb', meshCount: 22 },
   { label: 'little girl', rig: 'little-girl' as const, original: 'the_little_girl.glb', generated: 'the_little_girl_rigged.glb', meshCount: 1 },
-  { label: 'school uniform', rig: 'uniform' as const, original: 'arms_out_in_uniform.glb', generated: 'arms_out_in_uniform_rigged.glb', meshCount: 6 },
   { label: 'Messi', rig: 'messi' as const, original: 'lionel_messi_qatar_2022.glb', generated: 'lionel_messi_qatar_2022_rigged.glb', meshCount: 3 },
+  { label: 'lungi Raja', rig: 'fitted' as const, original: 'lungi_raja.glb', generated: 'lungi_raja_rigged.glb', meshCount: 1 },
+  { label: 'straw hat', rig: 'fitted' as const, original: 'monkey_d_luffy.glb', generated: 'monkey_d_luffy_rigged.glb', meshCount: 23 },
 ])('$label generated GLB rig', ({ rig, original, generated, meshCount }) => {
   it('contains the expected skinned meshes and valid four weight influences', { timeout: 30_000 }, async () => {
     const root = await loadTextureFree(generated);

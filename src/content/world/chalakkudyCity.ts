@@ -181,7 +181,7 @@ function createCity() {
     solid(pylon, [1.2, 8, .6], '#1d2a44'); collide(`${s.id}-pylon`, pylon, [1.2, 8, .6]);
     for (const [dz, yaw] of [[.32, 0], [-.32, Math.PI]] as const) signs.push({ id: `${s.id}-pylon-${yaw}`, label: 'MOTORS', position: [pylon[0], pylon[1] + 2.4, pylon[2] + dz], yaw, width: 1.05, height: 2.6, background: '#1d2a44', ink: '#ffffff' });
     const display: [CarModelId, string, number, number, number][] = [
-      ['mazda-rx7', '#b3121f', -9.5, -1, .6], ['fennec', '#1f4fa8', 0, -3, 0], ['bronco', '#eef0f2', 9.5, -1, -.6],
+      ['muscle', '#b3121f', -9.5, -1, .6], ['fennec', '#1f4fa8', 0, -3, 0], ['bronco', '#eef0f2', 9.5, -1, -.6],
     ];
     display.forEach(([modelId, color, dx, dz, yaw], i) => cars.push({ id: `${s.id}-car-${i}`, modelId, color, position: [s.x + dx, floor + .1, s.z + dz], yaw }));
     const outside: [CarModelId, string, number, number][] = [['muscle', '#e7b416', -8, .4], ['cyberpunk', '#16181c', 8, -.4]];
