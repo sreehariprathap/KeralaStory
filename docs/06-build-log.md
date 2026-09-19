@@ -622,3 +622,48 @@ Seven layout tests pass, including connectivity, grades, lengths, unique anchors
   - Inspected in the running game with a free camera: tea estate from above and at road level, dam and lake with hills, summit mountain, the trail bridge, Kodaly link, Kodakara junction, airport forecourt, Silver Storm, dam lay-by, and the atlas.
 - Known, not from this work: `Cannot set properties of undefined (setting '_cacheIndex')` appears in the console during inspect-mode teleports on the previous commit too.
 - NOT yet done: race-line tuning for specific race routes, and phone performance with the added scenery (about +1M triangles in hill views).
+
+## 2026-09-17 — Authored water park, lighter assets
+
+Asset audit of the built app: 29 models loaded before the player could press Play (19.1 MB, 1.6M vertices,
+about 344 MB of texture memory). Texture memory, not file size, is what limits phones: a 0.55 MB file with
+sixteen 1024² textures costs 89 MB on the GPU.
+
+- Silver Storm is now authored geometry (`src/content/world/waterPark.ts`, `src/game/world/WaterPark.tsx`)
+  instead of `park/amusement_park.glb` (4.9 MB, 494k vertices, 53 MB of texture memory, collision built from
+  its full mesh).
+  - Two slide towers whose flumes spiral down and run out into their splash pools, a wave pool on the
+    authored pool footprint, a lap pool, a kids' pool, a walk-through splash pad with jets, sun loungers and
+    umbrellas, palms, changing rooms, a café, a plant room, ticket booths, a perimeter fence and an entrance arch.
+  - Positions all derive from `V2_LAYOUT.park`, so the park follows the authored footprint. The wave pool keeps
+    its original collider ids.
+  - Colliders come from `waterParkBoxes()` via `v2DressingBoxes()`, so the multiplayer simulation gets them too;
+    a test asserts that. The pools stay closed off, as they are not part of the swimmable water system.
+  - It draws as merged geometry per colour with no textures at all.
+  - `/park-review.html?view=aerial|entrance|slides|pools` renders the park on its real terrain for review.
+- Texture sizes are now chosen per asset with a per-model budget (`scripts/optimize-assets.mjs`): a model with
+  26 textures gets smaller ones than a model with two. Characters up to 1024, vehicles and buildings 512,
+  scenery and props 256, and each model capped (characters 3 MP, vehicles 2.2 MP, buildings 2 MP, else 1 MP).
+- The 4.3 MB concept map only loads when the atlas is opened; it used to download on every cold start.
+- Removed from the build: `adventure/mini_stadium.glb` (23 MB), `characters/lionel_messi.glb`,
+  `kerala-story-map.png`, `soccer/soccer_field.glb`, `stunt/ramp_lowpoly.glb` and a stray generated PNG —
+  none were referenced. The two world reference images moved to `asset-sources/reference/` (manifest updated).
+- Measured results:
+  - Startup: 29 models, 19.1 MB, ~344 MB of texture memory → 28 models, 10.1 MB, ~21 MB.
+  - Every model loaded at once: ~880 MB of texture memory → ~106 MB.
+  - Models total 422 → 55 MB; `dist` 107 → 75 MB.
+- Checks run:
+  - `npm run typecheck`: PASS. `vite build`: PASS.
+  - `vitest` (excluding the intermittent `roomIntegration`): 600 of 600, including `tests/waterPark.test.ts`.
+  - `roomIntegration` failed in this session on both this tree and the untouched worktree copy, so it is the
+    known intermittent failure rather than a change here.
+  - Reviewed in the running game (fast travel to Silver Storm) and in the review page: pools hold water, the
+    flumes land in the splash pool, and the splash pad is walkable.
+- NOT verified: how the smaller textures look on characters and vehicles up close, and anything on a real phone.
+
+## 2026-09-18 — Merge feature/map-expansion (authored water park)
+
+- The new park fills its whole footprint behind a fence, but the Silver Storm access road still ran into it and ended at a turning circle inside the grounds (through the east fence and the café). The road now bends west outside the south edge and ends at a forecourt turning circle in front of the entrance gate (38, −626). The old forecourt slab and name board went with the imported park model.
+- Title-screen atlas and profile modal: kept this branch's shell flow, so the atlas image lazy-load change from map-expansion does not apply here.
+- Checks run: `npm run typecheck` PASS, `vite build` PASS, `vitest` 643 of 644 (only the known `tests/expansionLayout.test.ts` failure; `roomIntegration` excluded). `tests/roadNetwork.test.ts` and `tests/waterPark.test.ts` pass.
+- NOT yet done: looking at the new forecourt in the running game.

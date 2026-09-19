@@ -119,7 +119,7 @@ export function createV2Layout(input: {
     // Branches off the NH 544 loop east of Kodakara, falling with it through the fork, then on to the village.
     // Joins the village road north of Rajan's tea shop, clear of its steps and bench.
     { id: 'kodakara-road', label: 'Kodakara–village road', widthM: 5.5, points: [[-190, 31.62, -197.14], [-160, 28.8, -200], [-105, 30, -190], [-40, 25.6, -180], [-5, 24.4, -168], input.villageRoadJoin] },
-    { id: 'silver-storm-road', label: 'Silver Storm access', widthM: 5.5, points: [input.parkRoadJoin ?? [0, base + 4, -481], [0, base + 6, -515], [105, base + 5, -565], [110, base + 4, -630], [40, base + 4, -662]] },
+    { id: 'silver-storm-road', label: 'Silver Storm access', widthM: 5.5, points: [input.parkRoadJoin ?? [0, base + 4, -481], [0, base + 6, -515], [105, base + 5, -565], [102, base + 4, -612], [74, base + 4, -625], [38, base + 4, -626]] },
     // Tier A Chalakkudy: four-lane city roads on the levelled town pad.
     ...CHALAKKUDY_CITY_ROADS.map(road => ({ ...road, widthM: CITY_ROAD_WIDTH_M })),
     // Kodaly Road's last stretch narrows to two lanes and threads between the houses into the west
@@ -156,7 +156,8 @@ export function createV2Layout(input: {
   const roadCaps: WorldV2Layout['roadCaps'] = [
     cap('chalakkudy-mg-road-west-cap', 'chalakkudy-mg-road', -551, -60, 11),
     cap('chalakkudy-boulevard-north-cap', 'chalakkudy-boulevard', -430, -191, 11),
-    cap('silver-storm-forecourt-cap', 'silver-storm-road', 40, -658, 9),
+    // Silver Storm's forecourt sits outside the south gate; the park fills its whole footprint.
+    cap('silver-storm-forecourt-cap', 'silver-storm-road', 38, -626, 9),
     { id: 'summit-trailhead-cap', center: [-65, base + 2, -482.5], radius: 8 },
     // A lay-by beside the dam road where it tops out, looking over the lake to the dam.
     cap('peringalkuthu-viewpoint-cap', 'chalakudy-dam-road', -626, -781.6, 9),
