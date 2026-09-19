@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactElement } from 'react';
 import { ArrowUp, ArrowUpRight, Compass, FlagPennant, Mountains, Plus, Minus, HouseLine, Plant, Coffee, Storefront, Anchor, Waves, Boat, MapPin, Lighthouse, Bridge, Crosshair, Wind, SoccerBall, Motorcycle, SwimmingPool, Buildings, Lightning, AirplaneTilt, Umbrella, type Icon } from '@phosphor-icons/react';
-import { LANDMARKS, MAIN_PATH, WORLD_REGIONS, RIVER_CENTERLINE, getZoneAtPosition, getAreaAt, EXPANSION_LAYOUT, WORLD_DEFINITION, terrainHeight, walkableDeckHeight } from '../../content/world/kodassery';
+import { LANDMARKS, MAIN_PATH, WORLD_REGIONS, RIVER_CENTERLINE, getZoneAtPosition, getAreaAt, EXPANSION_LAYOUT, WORLD_DEFINITION, WALKING_DETOURS, terrainHeight, walkableDeckHeight } from '../../content/world/kodassery';
 import { V2_LAYOUT, V2_ROUTES } from '../../content/world/definition';
 import { CHALAKKUDY_BRIDGES } from '../../content/world/chalakkudyCityPlan';
 import { TEA_ESTATE, TEA_ESTATE_PLANTING } from '../../content/world/teaEstate';
@@ -53,7 +53,12 @@ const GEOMETRY=(()=>{
     ...CHALAKKUDY_BRIDGES.map(bridge=>({id:bridge.id,d:`M${xz(bridge.from[0],bridge.from[2]).join(' ')}L${xz(bridge.to[0],bridge.to[2]).join(' ')}`,width:bridge.width})),
     ...EXPANSION_LAYOUT.routes.filter(r=>r.allowedModes.length>1).map(route=>({id:route.id,d:smoothPath(simplify(route.points.map(p=>xz(p[0],p[2])),2),{tension:.9}),width:route.widthM})),
   ];
-  const trails=EXPANSION_LAYOUT.routes.filter(r=>r.allowedModes.length===1).map(route=>({id:route.id,d:smoothPath(simplify(route.points.map(p=>xz(p[0],p[2])),2),{tension:.9})}));
+  const trails=[
+    ...EXPANSION_LAYOUT.routes.filter(r=>r.allowedModes.length===1).map(route=>({id:route.id,d:smoothPath(simplify(route.points.map(p=>xz(p[0],p[2])),2),{tension:.9})})),
+    // Short pedestrian detours around landmarks (temple/tea-shop spurs, fishing bank paths, the
+    // jetty walk): real walkable routes used for pathing, but not part of the road/trail network above.
+    ...WALKING_DETOURS.map(detour=>({id:`detour-${detour.id}`,d:smoothPath(detour.path.map(([x,z])=>xz(x,z)),{tension:.9})})),
+  ];
   const areas=EXPANSION_LAYOUT.areas.map(area=>({id:area.id,d:smoothPath(area.footprint.map(([x,z])=>xz(x,z)),{closed:true,tension:.35}),label:xz(area.labelPosition[0],area.labelPosition[1])}));
   const streams=EXPANSION_LAYOUT.waterBodies.filter(w=>w.id==='chokkana-stream-water').map(w=>smoothPath(w.footprint.map(([x,z])=>xz(x,z)),{closed:true,tension:.3}));
   const cities=mapCities().map(city=>{
