@@ -17,7 +17,6 @@ import { createPoseInterpolator } from '../vehicle/poseInterpolator';
 import type { CameraTargetKind } from '../camera/ThirdPersonCamera';
 import { computeExplorerMovement, createExplorerMotor } from './characterMotor';
 import { BicycleVisual } from '../vehicle/BicycleVisual';
-import { createBicycleState, stepBicycle } from '../vehicle/bicycleMotor';
 import { createBikePhysics, type BikePhysics, type BikeMotion, type BikeIntent } from '../vehicle/bikePhysics';
 import { CarVisual } from '../vehicle/CarVisual';
 import { createCarMotion, createCarPhysics, type CarPhysics } from '../vehicle/carPhysics';
