@@ -30,14 +30,16 @@ function resampleRow(points: readonly (readonly [number, number, number])[], ste
 
 /**
  * All tea hedges as one mesh. Each row is a chain of clipped bushes: a rounded ribbon (seven points
- * across: foot, side, shoulder, crown, shoulder, side, foot) that swells over each bush and pinches
+ * across on high: foot, side, shoulder, crown, shoulder, side, foot; five below) that swells over each bush and pinches
  * in the gap to the next, dark at the foot and in the waists, bright with new leaf on top.
  */
 function createHedges(quality: Quality) {
   const positions: number[] = [], colors: number[] = [], indices: number[] = [];
   const foot = new Color('#2c4a22'), side = new Color('#4f7f30'), shoulder = new Color('#79aa3f'), crown = new Color('#a6cf55'), waist = new Color('#3d6427'), tmp = new Color();
   const { hedgeHeightM: H, hedgeWidthM: W } = TEA_ESTATE, half = W / 2;
-  const across = [[-half, 0, foot], [-half * .96, H * .6, side], [-half * .74, H * .94, shoulder], [0, H, crown], [half * .74, H * .94, shoulder], [half * .96, H * .6, side], [half, 0, foot]] as const;
+  const full = [[-half, 0, foot], [-half * .96, H * .6, side], [-half * .74, H * .94, shoulder], [0, H, crown], [half * .74, H * .94, shoulder], [half * .96, H * .6, side], [half, 0, foot]] as const;
+  // Medium and low drop the mid-side points: 40% fewer triangles across half a million.
+  const across = quality === 'high' ? full : [full[0], full[2], full[3], full[4], full[6]];
   const step = quality === 'low' ? 1 : .45;
   TEA_ESTATE_PLANTING.rows.forEach((row, r) => {
     const pts = resampleRow(row.points, step), base = positions.length / 3, total = pts.at(-1)!.s;
@@ -78,7 +80,7 @@ function ShadeTrees() {
     const o = new Object3D();
     trees.forEach((t, i) => {
       const [x, y, z] = t.position, girth = .16 + jitter(i, 3) * .1;
-      o.position.set(x, y + t.height * .5, z); o.rotation.set(0, t.yaw, 0); o.scale.set(girth, t.height, girth); o.updateMatrix();
+      o.position.set(x, y + t.height * .44, z); o.rotation.set(0, t.yaw, 0); o.scale.set(girth, t.height * .88, girth); o.updateMatrix();
       trunks.current!.setMatrixAt(i, o.matrix);
       TUFTS.forEach(([up, sideways], k) => {
         const size = 1.3 + jitter(i, k) * .6;
