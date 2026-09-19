@@ -13,6 +13,14 @@ export interface VehicleProfile {
   cameraDistance?: number;
   /** Tailpipe position in metres; defaults to the shared rear position. */
   exhaust?: { x: number; y: number; z: number };
+  /** Kerb mass in kilograms; defaults to CAR_MASS_KG. Principal inertia scales with it and length². */
+  massKg?: number;
+  /** Peak engine force in newtons before the top-of-range fade; defaults to 40000. */
+  driveForce?: number;
+  /** Steering lock in radians at parking speed; defaults to .55. */
+  steerLock?: number;
+  /** Whether nitrous is available at all; defaults to true. */
+  nitro?: boolean;
   /** Source nodes that are not part of the vehicle (e.g. an exported floor); removed before measuring. */
   hiddenNodes?: readonly string[];
   /** Source material names recoloured by the player's chosen paint. */
@@ -109,6 +117,7 @@ export const VEHICLE_PROFILES: Record<CarModelId, VehicleProfile> = {
   // 8.5 m, six wheels: a steering front pair and a dual rear axle. The slight x asymmetry on the
   // front wheels (.949 vs -.924) is in the source model and is preserved, not rounded.
   bus: { length: 8.5, chassis: { x: 1.25, y: 1.35, z: 3.9, offset: 1 }, topSpeed: 19,
+    massKg: 8500, driveForce: 78000, steerLock: .34, nitro: false,
     cameraDistance: 13, exhaust: { x: -1, y: .5, z: -4.1 },
     wheels: [
       wheel(.94934,.47051,2.7029,.47051,'left_front_wheel_Material011_0'),

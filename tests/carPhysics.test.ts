@@ -322,3 +322,47 @@ it('steers only the bus front axle and drives all four rear wheels', () => {
   expect(Math.abs(car.motion.wheelSteering[0])).toBeGreaterThan(.05);
   for (const rear of [2, 3, 4, 5]) expect(car.motion.wheelSteering[rear], `wheel ${rear}`).toBe(0);
 });
+
+describe('bus mass and engine', () => {
+  it('weighs what its profile says and keeps the default for every car', () => {
+    expect(VEHICLE_PROFILES.bus.massKg).toBe(8500);
+    expect(VEHICLE_PROFILES.admin.massKg).toBeUndefined();
+    const { car } = fixture('bus');
+    expect(car.body.mass()).toBeGreaterThan(8000);
+    expect(fixture('admin').car.body.mass()).toBeLessThan(1200);
+  });
+
+  it('pulls away far more slowly than a car', () => {
+    const reach = (model: CarModelId) => {
+      const { car, step } = fixture(model, { groundHalfSize: 300 });
+      for (let frame = 0; frame < 180; frame++) step(1);
+      return car.motion.speed;
+    };
+    expect(reach('bus')).toBeLessThan(reach('admin') * .6);
+  });
+
+  // 600 frames, like the cyberpunk top-speed case: the bus is at its cap by frame 300,
+  // and running longer just drives it off the edge of the synthetic ground plate.
+  it('tops out near its rated speed, well under a car', () => {
+    const { car, step } = fixture('bus', { groundHalfSize: 300 });
+    for (let frame = 0; frame < 600; frame++) step(1);
+    const rated = VEHICLE_PROFILES.bus.topSpeed! * surfaceAt(0, 0).topSpeedFactor;
+    expect(car.motion.speed).toBeGreaterThan(rated - 1.5);
+    expect(car.motion.speed).toBeLessThan(rated + 1);
+  });
+
+  it('ignores nitro', () => {
+    const { car } = fixture('bus', { groundHalfSize: 300 });
+    for (let frame = 0; frame < 120; frame++) { car.step({ forward: 1, steer: 0, brake: false, nitro: true }, DT, true); }
+    expect(car.motion.nitroActive).toBe(false);
+  });
+
+  it('turns in more lazily than a car at the same speed', () => {
+    const yawAfter = (model: CarModelId) => {
+      const { car, step } = fixture(model, { groundHalfSize: 300 });
+      for (let frame = 0; frame < 120; frame++) step(.5, 1);
+      return Math.abs(car.body.angvel().y);
+    };
+    expect(yawAfter('bus')).toBeLessThan(yawAfter('admin'));
+  });
+});

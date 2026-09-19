@@ -20,6 +20,8 @@ const GRIP_ASSIST = 5, DRIFT_ASSIST = .9, STRAIGHT_ASSIST = 14;
 /** Downforce per (m/s)² keeps a fast car planted over crests instead of skipping off them. */
 const DOWNFORCE = 9;
 const SPEED_LIMIT_FADE = 1.5;
+/** Tuned reference engine force and steering lock; a profile scales these rather than replacing them. */
+const DEFAULT_DRIVE_FORCE = 40000, DEFAULT_STEER_LOCK = .55;
 export interface CarMotion {
   speed: number; signedSpeed: number; throttle: number; grounded: boolean;
   nitroActive: boolean; nitroRemaining: number;
@@ -34,12 +36,24 @@ export function createCarMotion(wheelCount = 4): CarMotion {
 /** A persistent dynamic chassis. Rapier owns gravity, suspension, impacts and slope attitude. */
 export function createCarPhysics(world: World, feet: Vec3, heading: number, model: CarModelId) {
   const yaw = Math.PI-heading;
+  const profile = VEHICLE_PROFILES[model];
+  const massKg = profile.massKg ?? CAR_MASS_KG;
+  // The {1050,1650,850} inertia below was hand-tuned across the whole car fleet, whose lengths
+  // vary 3.2-4.5 m, so it is NOT a function of length for them: a car that does not declare its
+  // own mass keeps that tuning exactly. A vehicle that does declare one is outside that fleet and
+  // gets inertia scaled off the 3.8 m reference by the dimensional rule, mass x length^2.
+  const inertiaScale = profile.massKg === undefined ? 1 : (profile.massKg / CAR_MASS_KG) * (profile.length / 3.8) ** 2;
   const body = world.createRigidBody(RigidBodyDesc.dynamic().setTranslation(feet[0],feet[1]+FEET_TO_CENTER,feet[2])
     .setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)}).setCcdEnabled(true).setLinearDamping(.12).setAngularDamping(6)
-    .setAdditionalMassProperties(CAR_MASS_KG,{x:0,y:-.32,z:0},{x:1050,y:1650,z:850},{x:0,y:0,z:0,w:1}));
+    .setAdditionalMassProperties(massKg,{x:0,y:-.32,z:0},{x:1050*inertiaScale,y:1650*inertiaScale,z:850*inertiaScale},{x:0,y:0,z:0,w:1}));
   // Keep a compact collision belly above the tyres' working travel on uneven tracks.
-  const chassis = VEHICLE_PROFILES[model].chassis;
-  const topSpeed = VEHICLE_PROFILES[model].topSpeed ?? DEFAULT_TOP_SPEED;
+  const chassis = profile.chassis;
+  const topSpeed = profile.topSpeed ?? DEFAULT_TOP_SPEED;
+  // Expressed as multipliers on the tuned defaults rather than rewritten formulae: a vehicle that
+  // declares nothing divides the default by itself, giving exactly 1 and bit-identical handling.
+  const driveScale = (profile.driveForce ?? DEFAULT_DRIVE_FORCE) / DEFAULT_DRIVE_FORCE;
+  const lockScale = (profile.steerLock ?? DEFAULT_STEER_LOCK) / DEFAULT_STEER_LOCK;
+  const nitroAllowed = profile.nitro !== false;
   world.createCollider(ColliderDesc.cuboid(chassis.x,chassis.y,chassis.z).setTranslation(0,chassis.offset,0).setDensity(0).setFriction(.4).setRestitution(.03),body);
   // Vehicle suspension reads mass before the first world step.
   body.recomputeMassPropertiesFromColliders();
@@ -80,7 +94,7 @@ export function createCarPhysics(world: World, feet: Vec3, heading: number, mode
       sample();
       const surface=surfaceAt(body.translation().x,body.translation().z);
       const throttle=occupied?Math.max(-1,Math.min(1,intent.forward)):0;
-      stepNitro(nitro, occupied && throttle>0 && intent.nitro===true, dt);
+      stepNitro(nitro, nitroAllowed && occupied && throttle>0 && intent.nitro===true, dt);
       motion.nitroActive=nitro.active;
       motion.nitroRemaining=nitro.remaining;
       if(occupied&&(throttle!==0||intent.steer!==0))body.wakeUp();
@@ -93,18 +107,18 @@ export function createCarPhysics(world: World, feet: Vec3, heading: number, mode
       // Force still goes through tyre contact: no velocity/position overrides,
       // artificial uphill lift, or traction while airborne.
       // Punchy low gears that fade toward the top of the rev range: quick off the line, still pulling at speed.
-      const driveForce=40000-22000*Math.min(1,Math.abs(speed)/(topSpeed*1.1));
+      const driveForce=(40000-22000*Math.min(1,Math.abs(speed)/(topSpeed*1.1)))*driveScale;
       // A part-pressed (analog) throttle asks for a part of top speed, not just part of the engine's pull.
       const maxDriveSpeed = (nitro.active ? topSpeed + NITRO_EXTRA_SPEED : topSpeed) * surface.topSpeedFactor * Math.max(.2, Math.abs(throttle) || 1);
       // Fade force out over the last stretch below the cap. A hard on/off cutoff toggles full
       // torque every few steps at top speed, which rocks the chassis (visible as vibration).
       const limiter = Math.min(1, Math.max(0, (maxDriveSpeed - speed) / SPEED_LIMIT_FADE));
       if(throttle>0) {if(speed<-.3)brake=true;else force=driveForce*throttle*nitro.multiplier*limiter;reverseArmed=false;}
-      if(throttle<0) {if(speed>.25){brake=true;reverseArmed=false;}else if(reverseArmed&&speed>-7)force=30000*throttle;else brake=true;}
+      if(throttle<0) {if(speed>.25){brake=true;reverseArmed=false;}else if(reverseArmed&&speed>-7)force=30000*driveScale*throttle;else brake=true;}
       if(intent.brake){force=0;reverseArmed=false;}
       motion.throttle=occupied&&!brake?Math.abs(throttle):0;
       // Full lock at parking speeds, a fraction of it flat out, so the car darts round corners but stays calm on straights.
-      const lock=.55-.4*Math.min(1,Math.abs(speed)/(topSpeed+4));
+      const lock=(.55-.4*Math.min(1,Math.abs(speed)/(topSpeed+4)))*lockScale;
       const target=occupied?-Math.max(-1,Math.min(1,intent.steer))*(handbrake?Math.max(lock,.42):lock):0;
       steering+=(target-steering)*(1-Math.exp(-10*dt));
       for(let i=0;i<wheels.length;i++) {
@@ -114,8 +128,8 @@ export function createCarPhysics(world: World, feet: Vec3, heading: number, mode
         vehicle.setWheelEngineForce(i,brake?0:force*forceShare[i]);
         vehicle.setWheelFrictionSlip(i,3.6*surface.gripFactor);
         vehicle.setWheelSideFrictionStiffness(i,(handbrake&&rear?HANDBRAKE_REAR_GRIP:1)*surface.gripFactor);
-        const coast=throttle===0&&!handbrake?CAR_MASS_KG*1.1*dt/wheels.length:0;
-        vehicle.setWheelBrake(i,brake?CAR_MASS_KG*(occupied?60:100)*dt/wheels.length:handbrake&&rear?CAR_MASS_KG*14*dt/wheels.length:coast);
+        const coast=throttle===0&&!handbrake?massKg*1.1*dt/wheels.length:0;
+        vehicle.setWheelBrake(i,brake?massKg*(occupied?60:100)*dt/wheels.length:handbrake&&rear?massKg*14*dt/wheels.length:coast);
       }
       vehicle.updateVehicle(dt,QueryFilterFlags.EXCLUDE_SENSORS,undefined,candidate=>candidate.parent()?.handle!==body.handle);
       const q = body.rotation(), v = body.linvel();
