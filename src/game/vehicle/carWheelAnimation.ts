@@ -2,6 +2,7 @@ import { Box3, Group, Object3D, Vector3 } from 'three';
 import type { CarModelId } from '../../content/assets/models';
 import type { CarMotion } from './carPhysics';
 import { VEHICLE_PROFILES } from '../../content/assets/vehicleProfiles';
+import { isRearWheel } from './wheelLayout';
 
 
 export interface CarWheelAnimator { update(motion?: CarMotion): void }
@@ -9,7 +10,8 @@ export interface CarWheelAnimator { update(motion?: CarMotion): void }
 /** Reparents wheel meshes under steering/spin pivots without changing their world pose. */
 export function createCarWheelAnimation(root: Group, model: CarModelId): CarWheelAnimator {
   root.updateMatrixWorld(true);
-  const names = VEHICLE_PROFILES[model].wheels.map(wheel => wheel.nodes);
+  const profileWheels = VEHICLE_PROFILES[model].wheels;
+  const names = profileWheels.map(wheel => wheel.nodes);
   const wheels: ({ steering: Group; spin: Group; baseY: number; front: boolean } | null)[] = Array(names.length).fill(null);
   const scaleY = root.scale.y || 1;
   const sourceByName = new Map<string, Object3D>();
@@ -30,7 +32,7 @@ export function createCarWheelAnimation(root: Group, model: CarModelId): CarWhee
     steering.add(spin);
     parts.forEach(part => spin.attach(part));
     root.updateMatrixWorld(true);
-    wheels[index] = { steering, spin, baseY: centerWorld.y, front: index < 2 };
+    wheels[index] = { steering, spin, baseY: centerWorld.y, front: !isRearWheel(profileWheels[index]) };
   });
   // A missing/renamed wheel is intentionally left untouched; known wheels still animate.
   return {

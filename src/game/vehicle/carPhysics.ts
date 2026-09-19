@@ -6,6 +6,7 @@ import type { CarIntent } from './carMotor';
 import { createNitroState, stepNitro } from './carNitro';
 import { VEHICLE_PROFILES } from '../../content/assets/vehicleProfiles';
 import { surfaceAt } from '../../content/world/roadSurface';
+import { engineForceShare, isRearWheel } from './wheelLayout';
 
 export const CAR_MASS_KG = 1100;
 export const CAR_SUSPENSION_REST = .32;
@@ -25,8 +26,9 @@ export interface CarMotion {
   wheelRotation: number[]; wheelSteering: number[]; wheelOffset: number[];
 }
 export const CAR_WHEELS = Object.fromEntries(Object.entries(VEHICLE_PROFILES).map(([id, profile]) => [id, profile.wheels])) as Record<CarModelId, typeof VEHICLE_PROFILES.admin.wheels>;
-export function createCarMotion(): CarMotion {
-  return {speed:0,signedSpeed:0,throttle:0,grounded:false,nitroActive:false,nitroRemaining:0,wheelRotation:[0,0,0,0],wheelSteering:[0,0,0,0],wheelOffset:[0,0,0,0]};
+export function createCarMotion(wheelCount = 4): CarMotion {
+  const perWheel = () => Array.from({ length: wheelCount }, () => 0);
+  return {speed:0,signedSpeed:0,throttle:0,grounded:false,nitroActive:false,nitroRemaining:0,wheelRotation:perWheel(),wheelSteering:perWheel(),wheelOffset:perWheel()};
 }
 
 /** A persistent dynamic chassis. Rapier owns gravity, suspension, impacts and slope attitude. */
@@ -44,6 +46,7 @@ export function createCarPhysics(world: World, feet: Vec3, heading: number, mode
   const vehicle = world.createVehicleController(body);
   vehicle.indexUpAxis=1; vehicle.setIndexForwardAxis=2;
   const wheels=CAR_WHEELS[model];
+  const forceShare=engineForceShare(wheels);
   wheels.forEach((wheel,i)=>{
     // Compensate for static spring compression under the shared world gravity.
     const sag=Math.abs(world.gravity.y)/(4*150);
@@ -56,7 +59,7 @@ export function createCarPhysics(world: World, feet: Vec3, heading: number, mode
     vehicle.setWheelFrictionSlip(i,3.6);
     vehicle.setWheelSideFrictionStiffness(i,1);
   });
-  const motion=createCarMotion();
+  const motion=createCarMotion(wheels.length);
   let reverseArmed=true, steering=0;
   const nitro=createNitroState();
   const sample=()=>{
@@ -64,7 +67,7 @@ export function createCarPhysics(world: World, feet: Vec3, heading: number, mode
     const forward={x:2*(q.x*q.z+q.w*q.y),y:2*(q.y*q.z-q.w*q.x),z:1-2*(q.x*q.x+q.y*q.y)};
     motion.signedSpeed=v.x*forward.x+v.y*forward.y+v.z*forward.z;
     motion.speed=Math.hypot(v.x,v.z);
-    motion.grounded=[0,1,2,3].filter(i=>vehicle.wheelIsInContact(i)).length>=2;
+    motion.grounded=wheels.filter((_,i)=>vehicle.wheelIsInContact(i)).length>=2;
     wheels.forEach((wheel,i)=>{
       motion.wheelRotation[i]=vehicle.wheelRotation(i)??0;
       motion.wheelSteering[i]=vehicle.wheelSteering(i)??0;
@@ -104,15 +107,15 @@ export function createCarPhysics(world: World, feet: Vec3, heading: number, mode
       const lock=.55-.4*Math.min(1,Math.abs(speed)/(topSpeed+4));
       const target=occupied?-Math.max(-1,Math.min(1,intent.steer))*(handbrake?Math.max(lock,.42):lock):0;
       steering+=(target-steering)*(1-Math.exp(-10*dt));
-      for(let i=0;i<4;i++) {
-        const rear=i>=2;
+      for(let i=0;i<wheels.length;i++) {
+        const rear=isRearWheel(wheels[i]);
         vehicle.setWheelSteering(i,rear?0:steering);
         // Rear-biased drive, like the muscle cars it imitates: throttle can help swing the tail in a drift.
-        vehicle.setWheelEngineForce(i,brake?0:force*(rear?.3:.2));
+        vehicle.setWheelEngineForce(i,brake?0:force*forceShare[i]);
         vehicle.setWheelFrictionSlip(i,3.6*surface.gripFactor);
         vehicle.setWheelSideFrictionStiffness(i,(handbrake&&rear?HANDBRAKE_REAR_GRIP:1)*surface.gripFactor);
-        const coast=throttle===0&&!handbrake?CAR_MASS_KG*1.1*dt/4:0;
-        vehicle.setWheelBrake(i,brake?CAR_MASS_KG*(occupied?60:100)*dt/4:handbrake&&rear?CAR_MASS_KG*14*dt/4:coast);
+        const coast=throttle===0&&!handbrake?CAR_MASS_KG*1.1*dt/wheels.length:0;
+        vehicle.setWheelBrake(i,brake?CAR_MASS_KG*(occupied?60:100)*dt/wheels.length:handbrake&&rear?CAR_MASS_KG*14*dt/wheels.length:coast);
       }
       vehicle.updateVehicle(dt,QueryFilterFlags.EXCLUDE_SENSORS,undefined,candidate=>candidate.parent()?.handle!==body.handle);
       const q = body.rotation(), v = body.linvel();

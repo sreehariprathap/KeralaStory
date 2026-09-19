@@ -1,6 +1,6 @@
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
-import { createCarPhysics, CAR_MASS_KG, CAR_WHEELS, DEFAULT_TOP_SPEED } from '../src/game/vehicle/carPhysics';
+import { createCarMotion, createCarPhysics, CAR_MASS_KG, CAR_WHEELS, DEFAULT_TOP_SPEED } from '../src/game/vehicle/carPhysics';
 import { VEHICLE_PROFILES } from '../src/content/assets/vehicleProfiles';
 import type { CarModelId } from '../src/content/assets/models';
 import { MAIN_PATH, safeGroundPosition } from '../src/content/world/definition';
@@ -297,4 +297,13 @@ describe('surface-aware traction', () => {
     }
     expect(offroadLateral).toBeGreaterThan(pavedLateral);
   });
+});
+
+it('sizes the motion arrays to the profile wheel count', () => {
+  expect(createCarMotion().wheelRotation).toHaveLength(4);
+  expect(createCarMotion(6).wheelRotation).toHaveLength(6);
+  expect(createCarMotion(6).wheelSteering).toHaveLength(6);
+  expect(createCarMotion(6).wheelOffset).toHaveLength(6);
+  const { car } = fixture('admin');
+  expect(car.motion.wheelRotation).toHaveLength(CAR_WHEELS.admin.length);
 });
