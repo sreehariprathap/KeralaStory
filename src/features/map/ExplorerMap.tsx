@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactElement } from 'react';
 import { ArrowUp, ArrowUpRight, Compass, FlagPennant, Mountains, Plus, Minus, HouseLine, Plant, Coffee, Storefront, Anchor, Waves, Boat, MapPin, Lighthouse, Bridge, Crosshair, Wind, SoccerBall, Motorcycle, SwimmingPool, Buildings, Lightning, AirplaneTilt, Umbrella, type Icon } from '@phosphor-icons/react';
 import { LANDMARKS, MAIN_PATH, WORLD_REGIONS, RIVER_CENTERLINE, getZoneAtPosition, getAreaAt, EXPANSION_LAYOUT, WORLD_DEFINITION, terrainHeight, walkableDeckHeight } from '../../content/world/kodassery';
 import { V2_LAYOUT, V2_ROUTES } from '../../content/world/definition';
@@ -6,6 +6,8 @@ import { CHALAKKUDY_BRIDGES } from '../../content/world/chalakkudyCityPlan';
 import { TEA_ESTATE, TEA_ESTATE_PLANTING } from '../../content/world/teaEstate';
 import { STADIUM } from '../../content/world/stadiumLayout';
 import type { PlayerSnapshot, Vec3, ZoneId } from '../../contracts';
+import { NPC_DEFINITIONS, type NpcId } from '../../game/npc/npcDefinitions';
+import { npcPinIcon } from './npcPinIcon';
 import { createRiverMesh } from '../../game/world/riverGeometry';
 import { worldToMap } from './projection';
 import { bearingToWaypoint, distanceToWaypoint, mapToWorldViewport } from './mapGeometry';
@@ -15,7 +17,7 @@ import { layoutLabels, type LabelRequest } from './labelLayout';
 import { HIGHLIGHT_STYLE, airfieldSurfaces, buildingFootprints, mapCities, mapHighlights, type Highlight, type HighlightKind } from './mapFeatures';
 import { reliefImage, type ReliefImage } from './mapRelief';
 
-interface Props {player:PlayerSnapshot;visited:string[];waypoint:Vec3|null;onWaypoint:(position:Vec3|null)=>void;compact?:boolean}
+interface Props {player:PlayerSnapshot;visited:string[];waypoint:Vec3|null;onWaypoint:(position:Vec3|null)=>void;compact?:boolean;npcs?:{id:NpcId;position:Vec3}[]}
 const mapBounds=WORLD_DEFINITION.mapBounds;
 const H=650,W=H*(mapBounds.xMax-mapBounds.xMin)/(mapBounds.zMax-mapBounds.zMin);
 /** Map units per world metre. */
@@ -89,7 +91,8 @@ function useRelief(){
   return relief;
 }
 
-function Pin({x,y,r,color,fill,icon:IconComponent,iconColor,pulse}:{x:number;y:number;r:number;color:string;fill:string;icon:Icon;iconColor:string;pulse?:boolean}){
+type PinIcon=Icon|((props:{x:number;y:number;width:number;height:number;color:string;weight?:string})=>ReactElement);
+function Pin({x,y,r,color,fill,icon:IconComponent,iconColor,pulse}:{x:number;y:number;r:number;color:string;fill:string;icon:PinIcon;iconColor:string;pulse?:boolean}){
   return <g transform={`translate(${x} ${y})`}>
     {pulse&&<circle className="map-pin-halo" r={r*1.9} fill={color} opacity=".22"/>}
     <circle r={r} fill={fill} stroke={color} strokeWidth={r*.2}/>
@@ -97,7 +100,7 @@ function Pin({x,y,r,color,fill,icon:IconComponent,iconColor,pulse}:{x:number;y:n
   </g>;
 }
 
-export function ExplorerMap({player,visited,waypoint,onWaypoint,compact=false}:Props){
+export function ExplorerMap({player,visited,waypoint,onWaypoint,compact=false,npcs}:Props){
   const { locale } = useLocale();
   const relief=useRelief();
   const svgRef=useRef<SVGSVGElement>(null);
@@ -267,6 +270,7 @@ export function ExplorerMap({player,visited,waypoint,onWaypoint,compact=false}:P
         {/* Highlighted spots. */}
         {GEOMETRY.highlights.map(h=>{const [x,y]=point(h.position),style=HIGHLIGHT_STYLE[h.kind];return <Pin key={h.id} x={x} y={y} r={(compact?4.5:6.5)*k*(compact?2.2:1)} color={style.color} fill={style.color} icon={highlightIcons[h.kind]} iconColor="#fffaf0" pulse={!compact}/>;})}
         {LANDMARKS.map(l=>{const [x,y]=point(l.position),seen=visited.includes(l.id);return <Pin key={l.id} x={x} y={y} r={(compact?4:5.5)*k*(compact?2.2:1)} color="#2f5a3e" fill={seen?'#2f5a3e':'#fbf3d9'} icon={landmarkIcons[l.iconId]??MapPin} iconColor={seen?'#fbf3d9':'#2f5a3e'}/>;})}
+        {npcs?.map(n=>{const [x,y]=point(n.position),def=NPC_DEFINITIONS[n.id];return <Pin key={n.id} x={x} y={y} r={(compact?4:5.5)*k*(compact?2.2:1)} color={def.horn} fill={def.skin} icon={npcPinIcon(n.id)} iconColor={def.skin}/>;})}
         {/* City names, area names and pin labels. */}
         {compact&&GEOMETRY.cities.filter(c=>cityVisible(c.tier)).map(city=><text key={city.id} x={city.at[0]} y={city.at[1]} fontSize={13*k*2.2} fontWeight="700" textAnchor="middle" fill="#5b4526" stroke="#f6eed8" strokeWidth={2.5*k*2.2} paintOrder="stroke" letterSpacing={1.5*k}>{city.label.toUpperCase()}</text>)}
         {labels.map(label=>{
