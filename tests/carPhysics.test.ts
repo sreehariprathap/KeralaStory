@@ -5,6 +5,7 @@ import { VEHICLE_PROFILES } from '../src/content/assets/vehicleProfiles';
 import type { CarModelId } from '../src/content/assets/models';
 import { MAIN_PATH, safeGroundPosition } from '../src/content/world/definition';
 import { terrainMeshData } from '../src/game/world/traversalGeometry';
+import { surfaceAt } from '../src/content/world/roadSurface';
 
 const DT = 1 / 60;
 const models: CarModelId[] = ['admin', 'muscle', 'car-carton', 'fennec', 'bronco', 'cyberpunk'];
@@ -40,6 +41,21 @@ function terrainFixture(model: CarModelId, point: readonly [number, number]) {
   const feet = safeGroundPosition([point[0], 0, point[1]]);
   const car = createCarPhysics(world, feet, Math.PI, model);
   const step = (forward = 0) => { car.step({ forward, steer: 0, brake: false }, DT, false); world.step(); };
+  return { world, car, step };
+}
+
+/** Like terrainFixture, but keeps the car occupied and driveable (terrainFixture hardcodes
+ * occupied: false, which forces throttle to zero regardless of the forward value passed). */
+function surfaceFixture(model: CarModelId, point: readonly [number, number]) {
+  const world = new RAPIER.World({ x: 0, y: -20, z: 0 });
+  worlds.push(world);
+  for (const region of ['north', 'south'] as const) {
+    const mesh = terrainMeshData(region);
+    world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array(mesh.vertices), new Uint32Array(mesh.indices)));
+  }
+  const feet = safeGroundPosition([point[0], 0, point[1]]);
+  const car = createCarPhysics(world, feet, Math.PI, model);
+  const step = (forward = 0, steer = 0, brake = false) => { car.step({ forward, steer, brake }, DT, true); world.step(); };
   return { world, car, step };
 }
 
@@ -204,8 +220,11 @@ describe('real Rapier car physics', () => {
         previous = pitchRate;
       }
       expect(reversals).toBeLessThanOrEqual(1);
-      expect(car.motion.speed).toBeGreaterThan((VEHICLE_PROFILES[model].topSpeed ?? DEFAULT_TOP_SPEED) - .5);
-      expect(car.motion.speed).toBeLessThan((VEHICLE_PROFILES[model].topSpeed ?? DEFAULT_TOP_SPEED) + .5);
+      // The synthetic flat fixture spawns at real-world (0, 0), which the authored road network
+      // classifies as off-road, so the rated topSpeed is scaled by that surface's topSpeedFactor.
+      const rated = (VEHICLE_PROFILES[model].topSpeed ?? DEFAULT_TOP_SPEED) * surfaceAt(0, 0).topSpeedFactor;
+      expect(car.motion.speed).toBeGreaterThan(rated - .5);
+      expect(car.motion.speed).toBeLessThan(rated + .5);
     });
 
     it(`${model} disposal removes the chassis and vehicle controller`, () => {
@@ -240,4 +259,42 @@ it('swings the tail out under the handbrake for a drift', () => {
     return Math.abs(Math.atan2(Math.sin(car.sample() - before), Math.cos(car.sample() - before)));
   };
   expect(yaw(true)).toBeGreaterThan(yaw(false) * 1.2);
+});
+
+describe('surface-aware traction', () => {
+  const PAVED_POINT = MAIN_PATH[1] as readonly [number, number];
+  const OFFROAD_POINT = [-73, -399] as const;
+
+  it('classifies the two fixture points as paved and off-road respectively', () => {
+    expect(surfaceAt(PAVED_POINT[0], PAVED_POINT[1]).kind).toBe('paved');
+    expect(surfaceAt(OFFROAD_POINT[0], OFFROAD_POINT[1]).kind).toBe('offroad');
+  });
+
+  it('reaches a lower steady-state top speed off-road than on the paved network', () => {
+    const paved = surfaceFixture('admin', PAVED_POINT);
+    const offroad = surfaceFixture('admin', OFFROAD_POINT);
+    for (let frame = 0; frame < 600; frame++) { paved.step(1); offroad.step(1); }
+    expect(paved.car.motion.speed).toBeGreaterThan(offroad.car.motion.speed + 2);
+  });
+
+  it('slides more sideways off-road under a hard handbrake turn than on the paved network, at the same entry speed', () => {
+    const paved = surfaceFixture('admin', PAVED_POINT);
+    const offroad = surfaceFixture('admin', OFFROAD_POINT);
+    for (const rig of [paved, offroad]) for (let frame = 0; frame < 60; frame++) rig.step(1);
+    // Off-road's lower topSpeedFactor means it settles at a lower natural speed than paved after
+    // the same warm-up; normalize both to the same entry speed so only grip differs in the turn.
+    const ENTRY_SPEED = 12;
+    for (const rig of [paved, offroad]) {
+      const v = rig.car.body.linvel();
+      rig.car.body.setLinvel({ x: 0, y: v.y, z: ENTRY_SPEED }, true);
+    }
+    let pavedLateral = 0, offroadLateral = 0;
+    for (let frame = 0; frame < 60; frame++) {
+      paved.car.step({ forward: 1, steer: 1, brake: false, handbrake: true }, DT, true); paved.world.step();
+      offroad.car.step({ forward: 1, steer: 1, brake: false, handbrake: true }, DT, true); offroad.world.step();
+      pavedLateral = Math.max(pavedLateral, Math.abs(paved.car.body.angvel().y));
+      offroadLateral = Math.max(offroadLateral, Math.abs(offroad.car.body.angvel().y));
+    }
+    expect(offroadLateral).toBeGreaterThan(pavedLateral);
+  });
 });

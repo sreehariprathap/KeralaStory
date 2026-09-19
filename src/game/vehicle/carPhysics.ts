@@ -5,6 +5,7 @@ import { FEET_TO_CENTER } from '../player/controllerMath';
 import type { CarIntent } from './carMotor';
 import { createNitroState, stepNitro } from './carNitro';
 import { VEHICLE_PROFILES } from '../../content/assets/vehicleProfiles';
+import { surfaceAt } from '../../content/world/roadSurface';
 
 export const CAR_MASS_KG = 1100;
 export const CAR_SUSPENSION_REST = .32;
@@ -74,6 +75,7 @@ export function createCarPhysics(world: World, feet: Vec3, heading: number, mode
   return { body, vehicle, motion, sample,
     step(intent: CarIntent, dt: number, occupied: boolean) {
       sample();
+      const surface=surfaceAt(body.translation().x,body.translation().z);
       const throttle=occupied?Math.max(-1,Math.min(1,intent.forward)):0;
       stepNitro(nitro, occupied && throttle>0 && intent.nitro===true, dt);
       motion.nitroActive=nitro.active;
@@ -90,7 +92,7 @@ export function createCarPhysics(world: World, feet: Vec3, heading: number, mode
       // Punchy low gears that fade toward the top of the rev range: quick off the line, still pulling at speed.
       const driveForce=40000-22000*Math.min(1,Math.abs(speed)/(topSpeed*1.1));
       // A part-pressed (analog) throttle asks for a part of top speed, not just part of the engine's pull.
-      const maxDriveSpeed = (nitro.active ? topSpeed + NITRO_EXTRA_SPEED : topSpeed) * Math.max(.2, Math.abs(throttle) || 1);
+      const maxDriveSpeed = (nitro.active ? topSpeed + NITRO_EXTRA_SPEED : topSpeed) * surface.topSpeedFactor * Math.max(.2, Math.abs(throttle) || 1);
       // Fade force out over the last stretch below the cap. A hard on/off cutoff toggles full
       // torque every few steps at top speed, which rocks the chassis (visible as vibration).
       const limiter = Math.min(1, Math.max(0, (maxDriveSpeed - speed) / SPEED_LIMIT_FADE));
@@ -107,7 +109,8 @@ export function createCarPhysics(world: World, feet: Vec3, heading: number, mode
         vehicle.setWheelSteering(i,rear?0:steering);
         // Rear-biased drive, like the muscle cars it imitates: throttle can help swing the tail in a drift.
         vehicle.setWheelEngineForce(i,brake?0:force*(rear?.3:.2));
-        vehicle.setWheelSideFrictionStiffness(i,handbrake&&rear?HANDBRAKE_REAR_GRIP:1);
+        vehicle.setWheelFrictionSlip(i,3.6*surface.gripFactor);
+        vehicle.setWheelSideFrictionStiffness(i,(handbrake&&rear?HANDBRAKE_REAR_GRIP:1)*surface.gripFactor);
         const coast=throttle===0&&!handbrake?CAR_MASS_KG*1.1*dt/4:0;
         vehicle.setWheelBrake(i,brake?CAR_MASS_KG*(occupied?60:100)*dt/4:handbrake&&rear?CAR_MASS_KG*14*dt/4:coast);
       }
