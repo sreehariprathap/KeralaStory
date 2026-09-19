@@ -7,7 +7,7 @@ export function configureTravelCollider(collider: Collider, mode: TravelMode) {
   // Rapier. The occupied capsule follows inside the chassis, so it must also
   // be non-solid to avoid repeatedly pushing the car away from its passenger.
   // The plane flies by its own shape sweeps, so the pilot's capsule is switched off the same way.
-  const passenger = mode === 'car' || mode === 'plane';
+  const passenger = mode === 'car' || mode === 'plane' || mode === 'bicycle';
   collider.setSensor(passenger);
   collider.setCollisionGroups(passenger ? 0 : 0xffffffff);
   collider.setSolverGroups(passenger ? 0 : 0xffffffff);
