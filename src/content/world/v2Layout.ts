@@ -36,7 +36,9 @@ export function createV2Layout(input: {
     { id: 'chalakkudy', label: 'Chalakkudy', tier: 'A', regionId: 'kadambode', footprint: rectangle(-555, -195, -305, -45), center: [-430, 49, -120], existing: false, districts: CHALAKKUDY_DISTRICTS },
     { id: 'kodakara', label: 'Kodakara', tier: 'B', regionId: 'kadambode', footprint: rectangle(-295, -265, -125, -145), center: [-210, 32, -200], existing: false },
     { id: 'kodaly', label: 'Kodaly', tier: 'C', regionId: 'kodaly', footprint: rectangle(-10, -54, 77, 65), center: input.kodalyCenter, existing: true },
-    { id: 'malakkappara', label: 'Malakkappara', tier: 'C', regionId: 'kodassery', footprint: rectangle(-615, -755, -495, -625), center: [-555, base + 7, -680], existing: false },
+    { id: 'malakkappara', label: 'Malakkappara', tier: 'C', regionId: 'kodassery', footprint: rectangle(-615, -755, -495, -625), center: [-555, base + 7, -680], existing: false,
+      // The west bank across the river: homestays, the riverside resort and the botanical garden.
+      districts: [{ id: 'malakkappara-west-bank', label: 'Malakkappara West Bank', footprint: rectangle(-780, -706, -698, -632), y: 77 }] },
   ];
   // Peringalkuthu Dam: an arch dam in a gorge at the river's headwaters, in the hills at the
   // map's north-west corner. Its lake fills a highland basin behind the crest, with long arms
@@ -130,7 +132,10 @@ export function createV2Layout(input: {
     // avenue of the Banyan circle, so NH 544 runs on into Kodaly instead of stopping at its edge.
     { id: 'kodaly-avenue-link', label: 'Kodaly Road', widthM: 7, points: [[-46, 13, -48], [-22, 12.1, -26], [-9, 11.7, -18]] },
     // Malakkappara's Market Road: west off the level main street, shops both sides, towards the river.
-    { id: 'malakkappara-market-road', label: 'Malakkappara Market Road', widthM: 5.5, points: [[-554.35, base + 7, -668], [-606, base + 7, -668]] },
+    // Out of the bazaar on its own embankment over the gully, then up onto the river bridge.
+    { id: 'malakkappara-market-road', label: 'Malakkappara Market Road', widthM: 5.5, points: [[-554.35, base + 7, -668], [-620, base + 7, -668], [-650, 83.2, -668]] },
+    // Off the bridge and down the west bank to the homestays, the resort and the botanical garden.
+    { id: 'malakkappara-west-road', label: 'Malakkappara West Bank Road', widthM: 5.5, points: [[-692, 83.2, -668], [-730, 79.5, -670], [-762, 77, -668]] },
     // Malakkappara to the top of the dam: level out of town between the shops, a wide swing round the
     // valley head to the summit track junction, then back west along the lake's southern shoulder onto
     // the east end of the crest walkway, each leg at one even grade.
@@ -167,7 +172,7 @@ export function createV2Layout(input: {
     { id: 'summit-trailhead-cap', center: [-65, base + 2, -482.5], radius: 8 },
     // A lay-by beside the dam road where it tops out, looking over the lake to the dam.
     cap('peringalkuthu-viewpoint-cap', 'chalakudy-dam-road', -626, -781.6, 9),
-    cap('malakkappara-market-cap', 'malakkappara-market-road', -604, -668, 8),
+    cap('malakkappara-west-bank-cap', 'malakkappara-west-road', -762, -668, 9),
     cap('nedumbassery-forecourt-cap', 'nedumbassery-airport-road', NEDUMBASSERY_AIRPORT_PLAN.forecourt[0], NEDUMBASSERY_AIRPORT_PLAN.forecourt[1], 12),
   ];
   const airport: WorldV2Layout['airport'] = {

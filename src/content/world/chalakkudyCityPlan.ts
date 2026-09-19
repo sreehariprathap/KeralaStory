@@ -62,6 +62,8 @@ export const CHALAKKUDY_BRIDGES: readonly CityBridgePlan[] = [
   { id: 'kurumali-highway-bridge', label: `${NH_LABEL} · Kurumali Bridge`, from: [-100, 13.8, -58], to: [-100, 22.5, -146], width: 18 },
   // Airport Road over the Chalakkudy River, south from MG Road.
   { id: 'chalakkudy-airport-bridge', label: 'Airport Road Bridge', from: [-500, 48.8, -48], to: [-500, 40, 50], width: 18 },
+  // Malakkappara's Market Road over the Chalakkudy River onto the west bank.
+  { id: 'malakkappara-river-bridge', label: 'Malakkappara River Bridge', from: [-650, 83.2, -668], to: [-692, 83.2, -668], width: 9, style: 'beam' },
   // The Chokkana road on its embankment through the Athirappilly gorge floor, over the lower-view footpath.
   { id: 'athirappilly-trail-bridge', label: 'Athirappilly Trail Bridge', from: [-572.4, 74.5, -319.5], to: [-581.6, 74.5, -356.4], width: 9, style: 'beam', crosses: 'path' },
 ];

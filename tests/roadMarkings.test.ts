@@ -10,7 +10,7 @@ const dist = (x: number, z: number, pts: readonly (readonly number[])[]) => {
 describe('two-lane road markings', () => {
   const marked = V2_ROUTES.filter(r => MARKED_ROADS.has(r.id));
   it('marks the Malakkappara roads', () => {
-    expect(marked.map(r => r.id).sort()).toEqual(['chalakudy-dam-road', 'malakkappara-market-road', 'malakkappara-road']);
+    expect(marked.map(r => r.id).sort()).toEqual(['chalakudy-dam-road', 'malakkappara-market-road', 'malakkappara-road', 'malakkappara-west-road']);
     expect(ROAD_MARKINGS.length).toBeGreaterThan(500);
   });
   it('keeps every strip on its carriageway', () => {
