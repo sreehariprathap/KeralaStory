@@ -1,6 +1,7 @@
 import type { Vec3 } from '../../contracts';
 import { V2_LAYOUT, V2_ROUTES, hasGroundAt, isClearOfRoads, isWater, terrainHeight } from './definition';
 import { pointInPolygon } from './expansionLayout';
+import { isMalakkapparaBuilt } from './malakkapparaPlan';
 
 /**
  * Peringalkuthu Tea Estate: clipped tea hedges on the graded slopes either side of the Malakkappara–dam
@@ -65,7 +66,7 @@ function createEstate() {
   const plantable = (x: number, z: number, offset: number, near: number) => {
     if (!hasGroundAt(x, z) || isWater(x, z) || slopeAt(x, z) > TEA_ESTATE.maxSlope) return false;
     for (const [dx, dz] of [[2, 0], [-2, 0], [0, 2], [0, -2]]) if (isWater(x + dx, z + dz)) return false;
-    if (pointInPolygon(x, z, town.footprint)) return false;
+    if (pointInPolygon(x, z, town.footprint) || isMalakkapparaBuilt(x, z, 2)) return false;
     // Inside a bend the offset line folds back on the road: keep only points really at this row's distance.
     if (roadDistance(x, z, near) < offset - .6) return false;
     // Clear of every road, trail, bridge and turning circle (the estate road itself is well inside the first row).
@@ -139,9 +140,12 @@ function createEstate() {
 }
 
 export const TEA_ESTATE_PLANTING = createEstate();
+const MALAKKAPPARA_FOOTPRINT = V2_LAYOUT.towns.find(t => t.id === 'malakkappara')!.footprint;
 
 /** Within the estate's planted band: palms, flowers and stunt parks keep off it. */
 export function isTeaEstateGround(x: number, z: number): boolean {
+  // The bins are coarse: never let them spill onto the town pad or its hillside quarter.
+  if (pointInPolygon(x, z, MALAKKAPPARA_FOOTPRINT) || isMalakkapparaBuilt(x, z, 0)) return false;
   return TEA_ESTATE_BINS.get(`${Math.floor(x / 8)},${Math.floor(z / 8)}`) === true;
 }
 const TEA_ESTATE_BINS = new Map<string, boolean>();

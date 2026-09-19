@@ -48,16 +48,21 @@ function createTown() {
       for (let f = 1; f < lot.floors; f++) piece('solid', at(0, floor + f * STOREY + (H - lot.floors * STOREY), d / 2 + .06), [w + .1, .16, .14], FRAME, yaw);
     }
     const storeyBase = (f: number) => floor + f * STOREY + (H - lot.floors * STOREY);
-    // Windows on every upper storey (and the ground floor of homes), with white frames and a sill.
-    const windows = Math.max(1, Math.floor((w - 1) / 2.6));
+    // Windows on every storey of every face (not the shop fronts), with white frames and a sill.
+    const faces = [{ turn: 0, span: w, out: d / 2 }, { turn: Math.PI, span: w, out: d / 2 }, { turn: Math.PI / 2, span: d, out: w / 2 }, { turn: -Math.PI / 2, span: d, out: w / 2 }];
     for (let f = 0; f < lot.floors && !open; f++) {
-      const shopFront = f === 0 && (lot.kind === 'shop' || lot.kind === 'tea-stop' || lot.kind === 'hotel');
-      if (shopFront) continue;
-      for (let k = 0; k < windows; k++) {
-        const u = (k - (windows - 1) / 2) * (w - 1) / windows, y = storeyBase(f) + 1.55;
-        piece('solid', at(u, y, d / 2 + .03), [1.35, 1.45, .06], FRAME, yaw);
-        piece('glass', at(u, y, d / 2 + .07), [1.1, 1.2, .06], WINDOW, yaw);
-        piece('solid', at(u, y - .72, d / 2 + .12), [1.45, .1, .2], FRAME, yaw);
+      for (const [fi, face] of faces.entries()) {
+        if (fi === 0 && f === 0 && (lot.kind === 'shop' || lot.kind === 'tea-stop' || lot.kind === 'hotel')) continue;
+        // Terraced bazaar shops share party walls: no side windows.
+        if (fi > 1 && lot.kind === 'shop') continue;
+        const count = Math.max(1, Math.floor((face.span - 1) / 2.6)), faceYaw = yaw + face.turn, fAt = frame(lot.x, lot.z, faceYaw);
+        for (let k = 0; k < count; k++) {
+          const u = (k - (count - 1) / 2) * (face.span - 1) / count, y = storeyBase(f) + 1.55;
+          if (fi === 0 && f === 0 && k === count - 1 && count > 1) continue; // the front door stands here
+          piece('solid', fAt(u, y, face.out + .03), [1.35, 1.45, .06], FRAME, faceYaw);
+          piece('glass', fAt(u, y, face.out + .07), [1.1, 1.2, .06], WINDOW, faceYaw);
+          piece('solid', fAt(u, y - .72, face.out + .12), [1.45, .1, .2], FRAME, faceYaw);
+        }
       }
       // A door on the ground floor of a house.
       if (f === 0 && lot.kind !== 'resort-reception') piece('solid', at(w / 2 - 1.2, floor + 1.05, d / 2 + .05), [1, 2.1, .08], pickDoor(n), yaw);
@@ -152,12 +157,38 @@ function createTown() {
       const bottom = foot - .4, h = padY - bottom, block: V3 = [cx, bottom + h / 2, cz], size: V3 = [length / count + .02, h, T];
       const shade = .88 + hash(i, edge.id.length) * .24, c = Math.round(0x8f * shade), color = `rgb(${c},${Math.round(c * .95)},${Math.round(c * .86)})`;
       piece('solid', block, size, color, yaw); collide(`mk-wall-${edge.id}-${i}`, block, size, yaw);
+      // Dry-stone coursing: a darker joint every 0.8 m up the outer face, staggered block to block.
+      for (let y = bottom + .5 + (i % 2) * .4; y < padY - .3; y += .8) piece('solid', [cx + edge.out[0] * (T / 2 + .02), y, cz + edge.out[1] * (T / 2 + .02)], [size[0] + .01, .09, .06], '#6e685c', yaw);
       // Top course flush with the pad, and a low parapet along the outer face.
       piece('ground', [cx, padY - .02, cz], [size[0], .06, T], '#9a9385', yaw);
       const parapet: V3 = [ex + edge.out[0] * (T - .25), padY + .4, ez + edge.out[1] * (T - .25)];
       piece('solid', parapet, [size[0], .8, .5], '#a39c8e', yaw); collide(`mk-parapet-${edge.id}-${i}`, parapet, [size[0], .8, .5], yaw);
     }
   }
+
+  // Welcome arch over the main road at the pad's south edge.
+  {
+    const z = -627.5, x = -552.1, y = padY, span = 5.5 / 2 + 1.4;
+    for (const side of [-1, 1]) {
+      const post: V3 = [x + side * span, y + 3.1, z];
+      piece('solid', post, [.8, 6.2, .8], '#e8e1cf'); collide(`mk-arch-post-${side}`, post, [.8, 6.2, .8]);
+      piece('solid', [x + side * span, y + .3, z], [1.1, .6, 1.1], '#b3261e');
+    }
+    piece('solid', [x, y + 6.5, z], [span * 2 + 1.6, 1.3, .7], '#b3261e');
+    piece('solid', [x, y + 7.35, z], [span * 2 + .6, .4, .5], '#f2c230');
+    for (const [dir, yaw] of [[1, 0], [-1, Math.PI]] as const) signs.push({ id: `mk-arch-${dir}`, label: 'Welcome to Malakkappara · മലക്കപ്പാറ', position: [x, y + 6.5, z + dir * .37], yaw, width: span * 2 + .8, height: 1, background: '#b3261e', ink: '#fff6d8' });
+  }
+
+  // Street lamps along the bazaar footpaths: a pole, an arm over the kerb and a warm lamp.
+  const lamp = (id: string, x: number, z: number, towardRoad: readonly [number, number]) => {
+    const y = terrainHeight(x, z), pole: V3 = [x, y + 3, z];
+    piece('solid', pole, [.14, 6, .14], '#4a4f55'); collide(id, pole, [.3, 6, .3]);
+    piece('solid', [x + towardRoad[0] * .7, y + 5.9, z + towardRoad[1] * .7], [.1 + Math.abs(towardRoad[0]) * 1.3, .1, .1 + Math.abs(towardRoad[1]) * 1.3], '#4a4f55');
+    piece('glow', [x + towardRoad[0] * 1.3, y + 5.8, z + towardRoad[1] * 1.3], [.45, .14, .45], '#fff4d6');
+  };
+  for (const z of [-636, -654]) { lamp(`mk-lamp-mw-${z}`, -557.9 + (z + 625) * -3 / 55, z, [1, 0]); lamp(`mk-lamp-me-${z}`, -546.6 + (z + 625) * -3 / 55, z, [-1, 0]); }
+  for (const x of [-531, -513]) { lamp(`mk-lamp-dn-${x}`, x, -699.8, [0, 1]); lamp(`mk-lamp-ds-${x}`, x, -689.2, [0, -1]); }
+  for (const x of [-570, -588]) { lamp(`mk-lamp-kn-${x}`, x, -672.5, [0, 1]); lamp(`mk-lamp-ks-${x}`, x, -663.5, [0, -1]); }
 
   return { pieces, boxes, signs, paint };
 }

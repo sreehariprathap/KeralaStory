@@ -4,6 +4,7 @@ import { STUNT_SITES } from '../../game/world/stuntSites.data';
 import { LANDMARKS, PARKING_SPOTS, V2_LAYOUT, WORLD_BOUNDS, getAreaAt, hasGroundAt, isClearOfRoads, isWater, terrainHeight } from './definition';
 import { pointInPolygon } from './expansionLayout';
 import { isTeaEstateGround } from './teaEstate';
+import { isMalakkapparaBuilt } from './malakkapparaPlan';
 
 /**
  * Hill-country detail: boulders and scree on the steep and high ground, and clumps of shola forest in
@@ -34,7 +35,7 @@ function createDressing() {
   const open = (x: number, z: number, margin: number) => {
     if (!hasGroundAt(x, z) || isWater(x, z) || !isClearOfRoads(x, z, margin)) return false;
     for (const [dx, dz] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) if (isWater(x + dx, z + dz)) return false;
-    if (isTeaEstateGround(x, z) || sites.some(f => pointInPolygon(x, z, f))) return false;
+    if (isTeaEstateGround(x, z) || isMalakkapparaBuilt(x, z, 4) || sites.some(f => pointInPolygon(x, z, f))) return false;
     if (Math.hypot(x - crest[0], z - crest[2]) < 55) return false;
     if (keepClear.some(p => Math.hypot(p[0] - x, p[2] - z) < 14)) return false;
     return !STUNT_SITES.some(site => site.clear.some(c => Math.hypot(c.x - x, c.z - z) < c.radius + 4));

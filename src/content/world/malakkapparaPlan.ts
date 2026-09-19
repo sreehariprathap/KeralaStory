@@ -69,9 +69,10 @@ export const MALAKKAPPARA_LOTS: readonly TownLot[] = [
   house('mk-n-house-1', -536, -722, FACE_S, 12), house('mk-n-house-2', -523, -722, FACE_S, 13), house('mk-n-house-3', -510, -722, FACE_S, 14),
   house('mk-n-house-4', -536, -736, FACE_S, 15), house('mk-n-house-5', -521, -736, FACE_S, 16), house('mk-n-house-6', -506, -736, FACE_S, 17),
   // Hillside terraces climbing the north slope, fronts to the valley.
-  ...[-598, -588, -578, -568, -558, -548, -538, -528].map((x, i) => house(`mk-hill-a-${i + 1}`, x, -750, FACE_S, 20 + i, 8, 6)),
-  ...[-593, -583, -573, -563, -553, -543, -533].map((x, i) => house(`mk-hill-b-${i + 1}`, x, -759.5, FACE_S, 30 + i, 8, 6)),
-  ...[-548, -538, -528].map((x, i) => house(`mk-hill-c-${i + 1}`, x, -768.5, FACE_S, 40 + i, 8, 6)),
+  // Each terrace steps a little in and out, and the houses vary in width, so the slope never reads as a grid.
+  ...[-598, -588, -578, -568, -558, -548, -538, -528].map((x, i) => house(`mk-hill-a-${i + 1}`, x + [0, .6, -.4, .3, -.6, .5, 0, -.3][i], -750 + [0, -.8, .5, -.4, .7, -.6, .3, .6][i], FACE_S, 20 + i, [8, 7, 8.4, 7.2, 8, 7.6, 7, 8.2][i], 6)),
+  ...[-593, -583, -573, -563, -553, -543, -533].map((x, i) => house(`mk-hill-b-${i + 1}`, x + [.4, -.5, .2, -.3, .6, -.2, .3][i], -759.5 + [.6, -.5, .3, .8, -.4, .5, -.6][i], FACE_S, 30 + i, [7.4, 8.2, 7, 8, 7.6, 7.2, 8.4][i], 6)),
+  ...[-548, -538, -528].map((x, i) => house(`mk-hill-c-${i + 1}`, x + [.3, -.4, .5][i], -768.5 + [-.4, .5, 0][i], FACE_S, 40 + i, [7.6, 8, 7.2][i], 6)),
   // Misty Hills Resort on the hilltop beside the dam road: cottages over the town, reception by the road.
   ...[-598, -589, -580, -571].map((x, i): TownLot => ({ id: `mk-resort-cottage-${i + 1}`, kind: 'resort-cottage', x, z: -773.5, width: 6, depth: 5, yaw: FACE_S, floors: 1, wall: pick(['#f1e6c8', '#d9e7ef', '#f4d9a6'], i), roof: 'tile' })),
   { id: 'mk-resort-reception', kind: 'resort-reception', x: -560, z: -773.5, width: 8, depth: 5, yaw: FACE_N, floors: 1, wall: '#f1e6c8', roof: 'tile', label: 'Misty Hills Resort', accent: '#1f6f4a' },

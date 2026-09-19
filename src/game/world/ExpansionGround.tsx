@@ -97,8 +97,8 @@ export const ExpansionGround=memo(function ExpansionGround(){return <>
   {WORLD_ROUTES.map(route=><RouteRibbon key={route.id} route={route} routes={WORLD_ROUTES}/>)}
   {V2_LAYOUT.roadCaps.map(cap=><CapDisc key={cap.id} cap={cap}/>)}
   <RoadMarkings/>
-  {/* Chalakkudy has its own city gateway board. */}
-  {[...V2_LAYOUT.towns.filter(t=>!t.existing&&t.id!=='chalakkudy'),V2_LAYOUT.park].map(site=>{
+  {/* Chalakkudy and Malakkappara have their own gateway boards. */}
+  {[...V2_LAYOUT.towns.filter(t=>!t.existing&&t.id!=='chalakkudy'&&t.id!=='malakkappara'),V2_LAYOUT.park].map(site=>{
     // First spot beside the centre that is clear of every road (Kodakara's centre is on NH 544).
     const [dx,dz]=([[7,0],[0,14],[0,-14],[-14,0],[14,14]] as const).find(([dx,dz])=>isClearOfRoads(site.center[0]+dx,site.center[2]+dz,1))??[7,0];
     const x=site.center[0]+dx,z=site.center[2]+dz;

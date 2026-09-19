@@ -84,7 +84,7 @@ export function V2WorldDressing() {
     {TOWN_BUILDINGS.map(building => <House key={building.id} building={building} />)}
     <FuelStation />
     <SilverStorm />
-    {/* Chalakkudy's two street palms were removed: the mall car park and MG Road shops stand there now. */}
-    <PalmRow positions={[[ -548, 0, -649 ], [ -518, 0, -658 ], [ 72, 0, -645 ]]} />
+    {/* Chalakkudy's and Malakkappara's street palms were removed: shops and the bus stand stand there now. */}
+    <PalmRow positions={[[ 72, 0, -645 ]]} />
   </group>;
 }

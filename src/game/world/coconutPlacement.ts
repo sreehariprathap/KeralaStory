@@ -9,6 +9,7 @@ import { isKodalyCityGround } from '../../content/world/kodalyCircle';
 import { CHALAKKUDY_CITY } from '../../content/world/chalakkudyCity';
 import { NEDUMBASSERY_AIRPORT } from '../../content/world/airport';
 import { isTeaEstateGround } from '../../content/world/teaEstate';
+import { isMalakkapparaBuilt } from '../../content/world/malakkapparaPlan';
 import { SNEHA_THEERAM_DRESSING } from '../../content/world/snehaTheeramDressing';
 
 export interface CoconutCandidate { x: number; z: number; variant: number; height: number; yaw: number; lean: number }
@@ -74,7 +75,7 @@ export function isClearOfRoutes(x: number, z: number): boolean {
   if (segmentDistance(x, z, MAIN_PATH) < PATH_CLEARANCE || segmentDistance(x, z, BRIDGE_PATH) < PATH_CLEARANCE) return false;
   if (WALKING_DETOURS.some(detour => segmentDistance(x, z, detour.path) < 3)) return false;
   if (VILLAGE_LANES.some(lane => segmentDistance(x, z, lane) < 4.5)) return false;
-  if (KEEP_CLEAR_AREAS.some(area => containsPoint(area, x, z)) || isKodalyCityGround(x, z, 3) || isTeaEstateGround(x, z)) return false;
+  if (KEEP_CLEAR_AREAS.some(area => containsPoint(area, x, z)) || isKodalyCityGround(x, z, 3) || isTeaEstateGround(x, z) || isMalakkapparaBuilt(x, z, 3)) return false;
   return !KEEP_CLEAR_POINTS.some(p => Math.hypot(p[0] - x, p[2] - z) < POINT_CLEARANCE);
 }
 

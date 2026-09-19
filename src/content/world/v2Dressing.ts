@@ -9,19 +9,13 @@ export const TOWN_BUILDINGS: readonly Building[] = [
   { id: 'kodakara-bakery', x: -222, z: -184, width: 9, depth: 8, height: 3.2, wall: '#d9bd8a', roof: '#bd7049', label: 'Kodakara Bakery' },
   { id: 'kodakara-house-north', x: -270, z: -228, width: 10, depth: 9, height: 3.1, wall: '#f4e8cc', roof: '#aa573c' },
   { id: 'kodakara-house-south', x: -180, z: -230, width: 10, depth: 9, height: 3.1, wall: '#d5dfb6', roof: '#9d6145' },
-  { id: 'malakkappara-tea', x: -532, z: -642, width: 9, depth: 7, height: 3, wall: '#e7d7b2', roof: '#8d583f', label: 'Malakkappara Tea Stop' },
-  { id: 'malakkappara-house-west', x: -585, z: -690, width: 10, depth: 8, height: 3.2, wall: '#f4e8cc', roof: '#a8573d' },
-  { id: 'malakkappara-house-east', x: -520, z: -712, width: 10, depth: 8, height: 3.2, wall: '#d5dfb6', roof: '#9d6145' },
-  // Chalakkudy's placeholder frontage was replaced by the Tier A city (chalakkudyCity.ts).
+  // Chalakkudy's and Malakkappara's placeholder frontage was replaced by their towns (chalakkudyCity.ts, malakkapparaTown.ts).
   { id: 'kodakara-frontage-1', x: -280, z: -175, width: 9, depth: 7, height: 3.2, wall: '#e7d7b2', roof: '#a8573d', label: 'Provision Store' },
   { id: 'kodakara-frontage-2', x: -195, z: -170, width: 9, depth: 7, height: 3.2, wall: '#f4e8cc', roof: '#a8573d', label: 'Bakery' },
   { id: 'kodakara-frontage-3', x: -165, z: -170, width: 9, depth: 7, height: 3.2, wall: '#d5dfb6', roof: '#a8573d', label: 'Textiles' },
   { id: 'kodakara-frontage-4', x: -145, z: -215, width: 9, depth: 7, height: 3.2, wall: '#e7d7b2', roof: '#a8573d', label: 'Bus Shelter' },
   { id: 'kodakara-frontage-5', x: -220, z: -240, width: 9, depth: 7, height: 3.2, wall: '#f4e8cc', roof: '#a8573d', label: 'Stationery' },
   { id: 'kodakara-frontage-6', x: -250, z: -245, width: 9, depth: 7, height: 3.2, wall: '#d5dfb6', roof: '#a8573d', label: 'Tea Stop' },
-  { id: 'malakkappara-frontage-1', x: -590, z: -650, width: 9, depth: 7, height: 3.2, wall: '#e7d7b2', roof: '#a8573d', label: 'Provision Store' },
-  { id: 'malakkappara-frontage-2', x: -520, z: -680, width: 9, depth: 7, height: 3.2, wall: '#f4e8cc', roof: '#a8573d', label: 'Bakery' },
-  { id: 'malakkappara-frontage-3', x: -580, z: -720, width: 9, depth: 7, height: 3.2, wall: '#d5dfb6', roof: '#a8573d', label: 'Textiles' },
 ];
 
 /** Ground the full shell, including corners, rather than floating on its center sample. */
