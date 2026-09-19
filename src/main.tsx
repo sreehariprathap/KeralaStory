@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import '@fontsource/noto-sans/latin-400.css';
 import '@fontsource/noto-sans-malayalam/malayalam-600.css';
+import '@fontsource/noto-sans-malayalam/malayalam-900.css';
 import '@fontsource/noto-sans/latin-500.css';
 import '@fontsource/noto-sans/latin-600.css';
 import '@fontsource/noto-serif/latin-400.css';

@@ -7,7 +7,7 @@ import { MAIN_PATH, safeGroundPosition } from '../src/content/world/definition';
 import { terrainMeshData } from '../src/game/world/traversalGeometry';
 
 const DT = 1 / 60;
-const models: CarModelId[] = ['admin', 'muscle', 'car-carton', 'fennec', 'bronco', 'mazda-rx7', 'cyberpunk'];
+const models: CarModelId[] = ['admin', 'muscle', 'car-carton', 'fennec', 'bronco', 'cyberpunk'];
 const worlds: RAPIER.World[] = [];
 
 beforeAll(async () => { await RAPIER.init(); });
@@ -18,7 +18,7 @@ function fixture(model: CarModelId, options: { ground?: boolean; slope?: boolean
   worlds.push(world);
   const ground = options.ground ?? true;
   if (ground) {
-    const groundDesc = RAPIER.ColliderDesc.cuboid(options.groundHalfSize ?? 30, 0.2, options.groundHalfSize ?? 30).setTranslation(0, -0.2, 0);
+    const groundDesc = RAPIER.ColliderDesc.cuboid(options.groundHalfSize ?? 150, 0.2, options.groundHalfSize ?? 150).setTranslation(0, -0.2, 0);
     if (options.slope) groundDesc.setRotation({ x: Math.sin(Math.PI / 36), y: 0, z: 0, w: Math.cos(Math.PI / 36) });
     world.createCollider(groundDesc);
   }
@@ -50,7 +50,8 @@ describe('real Rapier car physics', () => {
         const world = new RAPIER.World({x:0,y:-20,z:0});
         worlds.push(world);
         const angle = -degrees * Math.PI / 180;
-        world.createCollider(RAPIER.ColliderDesc.cuboid(12,.2,80)
+        // Long enough that the fastest car is still on the ramp after four seconds of full throttle.
+        world.createCollider(RAPIER.ColliderDesc.cuboid(12,.2,260)
           .setTranslation(0,-.2,0).setRotation({x:Math.sin(angle/2),y:0,z:0,w:Math.cos(angle/2)}));
         const car = createCarPhysics(world,[0,2,0],Math.PI,model);
         const step = (forward:number, occupied=true) => {car.step({forward,steer:0,brake:false},DT,occupied);world.step();};
@@ -227,4 +228,16 @@ it('gives the cyberpunk car a higher top speed than the default cars', () => {
     return car.motion.speed;
   });
   expect(speeds[1]).toBeGreaterThan(speeds[0] + 4);
+});
+
+it('swings the tail out under the handbrake for a drift', () => {
+  const yaw = (handbrake: boolean) => {
+    const { car, world } = fixture('muscle', { groundHalfSize: 300 });
+    const step = (forward: number, steer: number) => { car.step({ forward, steer, brake: false, handbrake }, DT, true); world.step(); };
+    for (let frame = 0; frame < 240; frame++) step(1, 0);
+    const before = car.sample();
+    for (let frame = 0; frame < 40; frame++) step(0, 1);
+    return Math.abs(Math.atan2(Math.sin(car.sample() - before), Math.cos(car.sample() - before)));
+  };
+  expect(yaw(true)).toBeGreaterThan(yaw(false) * 1.2);
 });

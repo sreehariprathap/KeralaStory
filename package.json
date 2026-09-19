@@ -13,10 +13,12 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.sw.json && npm run typecheck --workspace=@kerala-story/protocol && npm run typecheck --workspace=@kerala-story/simulation && npm run typecheck --workspace=@kerala-story/server",
     "test": "vitest run",
     "server:dev": "npm run dev --workspace=@kerala-story/server",
+    "dev:all": "npm run server:dev & npm run dev",
     "preview": "vite preview --host 127.0.0.1",
     "generate:stunts": "tsx scripts/generate-stunt-sites.ts",
     "optimize:assets": "node scripts/optimize-assets.mjs",
-    "generate:icons": "node scripts/generate-icons.mjs"
+    "generate:icons": "node scripts/generate-icons.mjs",
+    "generate:menu-art": "node scripts/generate-menu-art.mjs"
   },
   "dependencies": {
     "@colyseus/sdk": "0.18.2",
@@ -24,6 +26,7 @@
     "@fontsource/noto-sans": "5.3.0",
     "@fontsource/noto-sans-malayalam": "5.3.0",
     "@fontsource/noto-serif": "5.3.0",
+    "@fontsource/oswald": "5.3.0",
     "@phosphor-icons/react": "2.1.10",
     "@react-three/fiber": "9.7.0",
     "@react-three/rapier": "2.2.0",

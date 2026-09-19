@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
-import { ArrowUp, ArrowUpRight, Compass, FlagPennant, Mountains, Plus, Minus, HouseLine, Plant, Coffee, Storefront, Anchor, Waves, Boat, MapPin, Lighthouse, Bridge, Crosshair, Wind, SoccerBall, Motorcycle, SwimmingPool, Buildings, Lightning, type Icon } from '@phosphor-icons/react';
+import { ArrowUp, ArrowUpRight, Compass, FlagPennant, Mountains, Plus, Minus, HouseLine, Plant, Coffee, Storefront, Anchor, Waves, Boat, MapPin, Lighthouse, Bridge, Crosshair, Wind, SoccerBall, Motorcycle, SwimmingPool, Buildings, Lightning, AirplaneTilt, Umbrella, type Icon } from '@phosphor-icons/react';
 import { LANDMARKS, MAIN_PATH, WORLD_REGIONS, RIVER_CENTERLINE, getZoneAtPosition, getAreaAt, EXPANSION_LAYOUT, WORLD_DEFINITION, terrainHeight, walkableDeckHeight } from '../../content/world/kodassery';
 import { V2_LAYOUT, V2_ROUTES } from '../../content/world/definition';
+import { CHALAKKUDY_BRIDGES } from '../../content/world/chalakkudyCityPlan';
+import { TEA_ESTATE, TEA_ESTATE_PLANTING } from '../../content/world/teaEstate';
 import { STADIUM } from '../../content/world/stadiumLayout';
 import type { PlayerSnapshot, Vec3, ZoneId } from '../../contracts';
 import { createRiverMesh } from '../../game/world/riverGeometry';
@@ -10,7 +12,7 @@ import { bearingToWaypoint, distanceToWaypoint, mapToWorldViewport } from './map
 import { localizedMapPlace, localizedPlace, localizedRegion, translate, useLocale, type TranslationKey } from '../i18n/translate';
 import { smoothPath, simplify, type Point2 } from './smoothPath';
 import { layoutLabels, type LabelRequest } from './labelLayout';
-import { HIGHLIGHT_STYLE, buildingFootprints, mapCities, mapHighlights, type Highlight, type HighlightKind } from './mapFeatures';
+import { HIGHLIGHT_STYLE, airfieldSurfaces, buildingFootprints, mapCities, mapHighlights, type Highlight, type HighlightKind } from './mapFeatures';
 import { reliefImage, type ReliefImage } from './mapRelief';
 
 interface Props {player:PlayerSnapshot;visited:string[];waypoint:Vec3|null;onWaypoint:(position:Vec3|null)=>void;compact?:boolean}
@@ -22,7 +24,7 @@ const MIN_ZOOM=1,MAX_ZOOM=8;
 const point=(v:Vec3):[number,number]=>{const p=worldToMap(v,mapBounds);return [p.u*W,p.v*H];};
 const xz=(x:number,z:number):Point2=>point([x,0,z]);
 
-const landmarkIcons:Record<string,Icon>={mountain:Mountains,house:HouseLine,waves:Waves,plant:Plant,temple:HouseLine,tea:Coffee,bridge:Bridge,boat:Boat,shop:Storefront,lighthouse:Lighthouse,anchor:Anchor};
+const landmarkIcons:Record<string,Icon>={mountain:Mountains,house:HouseLine,waves:Waves,plant:Plant,temple:HouseLine,tea:Coffee,bridge:Bridge,boat:Boat,shop:Storefront,lighthouse:Lighthouse,anchor:Anchor,plane:AirplaneTilt,beach:Umbrella};
 const highlightIcons:Record<HighlightKind,Icon>={paragliding:Wind,stadium:SoccerBall,'stunt-park':Motorcycle,'river-jump':Lightning,'water-park':SwimmingPool,waterfall:Waves};
 const elevation=(x:number,z:number)=>walkableDeckHeight(x,z) ?? terrainHeight(x,z);
 
@@ -44,6 +46,9 @@ const GEOMETRY=(()=>{
   const roads=[
     {id:'main',d:smoothPath(simplify(MAIN_PATH.map(([x,z])=>xz(x,z)),2),{tension:.9}),width:6},
     ...V2_ROUTES.map(route=>({id:route.id,d:smoothPath(simplify(route.points.map(p=>xz(p[0],p[2])),2),{tension:.9}),width:route.widthM})),
+    // Turning circles: a zero-length stroke with round caps draws a disc of the road's colour.
+    ...V2_LAYOUT.roadCaps.map(cap=>({id:cap.id,d:`M${xz(cap.center[0],cap.center[2]).join(' ')}h.01`,width:cap.radius*2})),
+    ...CHALAKKUDY_BRIDGES.map(bridge=>({id:bridge.id,d:`M${xz(bridge.from[0],bridge.from[2]).join(' ')}L${xz(bridge.to[0],bridge.to[2]).join(' ')}`,width:bridge.width})),
     ...EXPANSION_LAYOUT.routes.filter(r=>r.allowedModes.length>1).map(route=>({id:route.id,d:smoothPath(simplify(route.points.map(p=>xz(p[0],p[2])),2),{tension:.9}),width:route.widthM})),
   ];
   const trails=EXPANSION_LAYOUT.routes.filter(r=>r.allowedModes.length===1).map(route=>({id:route.id,d:smoothPath(simplify(route.points.map(p=>xz(p[0],p[2])),2),{tension:.9})}));
@@ -58,10 +63,15 @@ const GEOMETRY=(()=>{
   const bridge={a:xz(WORLD_DEFINITION.bridgeBounds.xMin+2,WORLD_DEFINITION.bridgeBounds.zMin),b:xz(WORLD_DEFINITION.bridgeBounds.xMin+2,WORLD_DEFINITION.bridgeBounds.zMax)};
   const pitch=(()=>{const c=xz(STADIUM.center.x,STADIUM.center.z);return {x:c[0],y:c[1],deg:-STADIUM.yaw*180/Math.PI,w:STADIUM.pitch.halfWidth*2*UNIT,h:STADIUM.pitch.halfLength*2*UNIT,padW:STADIUM.pad.halfWidth*2*UNIT,padH:STADIUM.pad.halfLength*2*UNIT};})();
   const shore=xz(-78,V2_LAYOUT.riverNodes.find(n=>n.id==='main-outlet')?.position[2]??220);
+  const airfield=airfieldSurfaces().map(s=>{const [x0,y0]=xz(s.xMin,s.zMin),[x1,y1]=xz(s.xMax,s.zMax);return {...s,x:x0,y:y0,width:x1-x0,height:y1-y0};});
+  const runway=airfield.find(s=>s.id==='runway')!;
+  // Tea rows as fine green contour lines, labelled at the estate's middle.
+  const tea=TEA_ESTATE_PLANTING.rows.map(row=>smoothPath(simplify(row.points.map(p=>xz(p[0],p[2])),1.5),{tension:.8}));
+  const teaPoints=TEA_ESTATE_PLANTING.rows.flatMap(row=>row.points),teaCentre=teaPoints.length?xz(teaPoints.reduce((a,p)=>a+p[0],0)/teaPoints.length,teaPoints.reduce((a,p)=>a+p[2],0)/teaPoints.length):null;
     // A highlight standing on a landmark (Silver Storm) is drawn once, as the highlight.
   const highlights=mapHighlights();
   const doubled=new Set(LANDMARKS.filter(l=>highlights.some(h=>Math.hypot(h.position[0]-l.position[0],h.position[2]-l.position[2])<30)).map(l=>l.id));
-  return {rivers,riverNames,roads,trails,areas,streams,cities,buildings,bridge,pitch,shore,highlights,doubled};
+  return {rivers,riverNames,roads,trails,areas,streams,cities,buildings,bridge,pitch,shore,airfield,runway,tea,teaCentre,highlights,doubled};
 })();
 
 interface View {cx:number;cy:number;zoom:number}
@@ -187,8 +197,10 @@ export function ExplorerMap({player,visited,waypoint,onWaypoint,compact=false}:P
   const labels=useMemo(()=>{
     if(compact)return [];
     const requests:LabelRequest[]=[];
-    for(const city of GEOMETRY.cities)requests.push({id:`city-${city.id}`,text:city.label.toUpperCase(),x:city.at[0],y:city.at[1],fontSize:(city.tier==='A'?15:city.tier==='B'?13:12)*k,offset:0,priority:100,centered:true});
+    // Districts (Chalakkudy East, Riverfront) are smaller and give way to town names.
+    for(const city of GEOMETRY.cities)requests.push({id:`city-${city.id}`,text:city.label.toUpperCase(),x:city.at[0],y:city.at[1],fontSize:(city.district?10:city.tier==='A'?15:city.tier==='B'?13:12)*k,offset:0,priority:city.district?85:100,centered:true});
     for(const area of GEOMETRY.areas)requests.push({id:`area-${area.id}`,text:translate(`area.${area.id}` as TranslationKey,locale),x:area.label[0],y:area.label[1],fontSize:12*k,offset:0,priority:90,centered:true});
+    if(GEOMETRY.teaCentre)requests.push({id:'area-tea-estate',text:TEA_ESTATE.label,x:GEOMETRY.teaCentre[0],y:GEOMETRY.teaCentre[1],fontSize:11*k,offset:0,priority:88,centered:true});
     for(const h of GEOMETRY.highlights){const [x,y]=point(h.position);requests.push({id:`hl-${h.id}`,text:h.label,x,y,fontSize:9.5*k,offset:7*k,priority:h.kind==='stadium'||h.kind==='paragliding'?80:70});}
     for(const l of LANDMARKS){if(GEOMETRY.doubled.has(l.id))continue;const [x,y]=point(l.position);requests.push({id:`lm-${l.id}`,text:localizedMapPlace(l.id,locale),x,y,fontSize:9*k,offset:6*k,priority:visited.includes(l.id)?60:55});}
     const pin=(owner:string,[x,y]:[number,number])=>({owner,pin:true,x0:x-7*k,y0:y-7*k,x1:x+7*k,y1:y+7*k});
@@ -233,6 +245,11 @@ export function ExplorerMap({player,visited,waypoint,onWaypoint,compact=false}:P
           <path d={`M${-GEOMETRY.pitch.w/2} 0H${GEOMETRY.pitch.w/2}`} stroke="#f7f7f0" strokeWidth=".4"/>
           <circle r={GEOMETRY.pitch.w*.14} fill="none" stroke="#f7f7f0" strokeWidth=".4"/>
         </g>
+        {/* Peringalkuthu Tea Estate. */}
+        {GEOMETRY.tea.map((d,i)=><path key={`tea${i}`} d={d} fill="none" stroke="#5d8f3c" strokeWidth={Math.max(1.4*UNIT,.6*k)} strokeLinecap="round" opacity=".85"/>)}
+        {/* Nedumbassery's runway, apron and taxiways, with the runway centreline. */}
+        {GEOMETRY.airfield.map(s=><rect key={s.id} x={s.x} y={s.y} width={s.width} height={s.height} fill={s.color} stroke="#6f6a5c" strokeWidth={.5*k}/>)}
+        <path d={`M${GEOMETRY.runway.x+4*k} ${GEOMETRY.runway.y+GEOMETRY.runway.height/2}H${GEOMETRY.runway.x+GEOMETRY.runway.width-4*k}`} stroke="#f4f3ee" strokeWidth={.8*k} strokeDasharray={`${4*k} ${4*k}`}/>
         {/* Rivers. */}
         {GEOMETRY.streams.map((d,i)=><path key={`s${i}`} d={d} fill="#7cb8c4" stroke="#4f8f98" strokeWidth={.8*k}/>)}
         {GEOMETRY.rivers.map((d,i)=><path key={i} d={d} fill="#7cb8c4" stroke="#4f8f98" strokeWidth={1*k} strokeLinejoin="round"/>)}

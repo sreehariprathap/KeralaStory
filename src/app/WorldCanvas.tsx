@@ -1,7 +1,7 @@
 import { Suspense, memo, useEffect, useRef, useMemo, useState, type RefObject } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { Physics } from '@react-three/rapier';
-import { PCFShadowMap, Object3D, DirectionalLight } from 'three';
+import { PCFShadowMap, Object3D, DirectionalLight, DefaultLoadingManager } from 'three';
 import type { ExplorerControllerProps, ExplorerProfile, GameSettings, Locale, PlayerSnapshot } from '../contracts';
 import { Collectables } from '../game/collectables/Collectables';
 import type { CollectItem } from '../game/collectables/types';
@@ -12,6 +12,11 @@ import { SummitVisibility } from '../game/camera/SummitVisibility';
 import { ExplorerAvatar } from '../game/player/ExplorerAvatar';
 import { SoccerMatch, type KickControl, type SoccerEvent } from '../game/soccer/SoccerMatch';
 import { createDprGovernor, frameloopFor, renderProfile, type RenderProfile } from '../game/render/renderBudget';
+import { MultiplayerRoomScene, type MultiplayerSceneProps } from '../features/multiplayer/MultiplayerRoomScene';
+import { reportLoadProgress } from '../game/render/loadProgress';
+
+// Set at module load, before any scene renders, so the first GLB request is counted.
+DefaultLoadingManager.onProgress = (_url, loaded, total) => reportLoadProgress(loaded, total);
 
 export interface SoccerSceneProps { active: boolean; kick: KickControl; onEvent: (event: SoccerEvent) => void; chargeBar: { current: HTMLElement | null } }
 
@@ -48,7 +53,7 @@ function RenderMeter(){
   useFrame(({gl},delta)=>{if(!import.meta.env.DEV)return;times.current.push(delta*1000);if(times.current.length>180)times.current.shift();elapsed.current+=delta;if(elapsed.current<2)return;elapsed.current=0;const sorted=[...times.current].sort((a,b)=>a-b);const node=document.querySelector<HTMLElement>('[data-render-metrics]');if(node){node.dataset.median=String(sorted[Math.floor(sorted.length*.5)]?.toFixed(1));node.dataset.p95=String(sorted[Math.floor(sorted.length*.95)]?.toFixed(1));node.textContent=`Frame ${node.dataset.median}ms / p95 ${node.dataset.p95}ms · dpr ${gl.getPixelRatio().toFixed(2)} · ${gl.info.render.calls} calls · ${gl.info.render.triangles.toLocaleString()} tris`;}});
   return null;
 }
-function SceneCanvas({active,settings,controller,onReady,onError,locale='en',playerRef,collectedIds,onCollect,soccer}:{soccer?:SoccerSceneProps;locale?:Locale;active:boolean;settings:GameSettings;controller:ExplorerControllerProps;onReady:()=>void;onError:(error:string)=>void;playerRef:RefObject<PlayerSnapshot>;collectedIds:readonly string[];onCollect:(item:CollectItem)=>void}){
+function SceneCanvas({active,settings,controller,onReady,onError,locale='en',playerRef,collectedIds,onCollect,soccer,multiplayer}:{soccer?:SoccerSceneProps;multiplayer?:MultiplayerSceneProps;locale?:Locale;active:boolean;settings:GameSettings;controller:ExplorerControllerProps;onReady:()=>void;onError:(error:string)=>void;playerRef:RefObject<PlayerSnapshot>;collectedIds:readonly string[];onCollect:(item:CollectItem)=>void}){
   const mobile=useMemo(()=>matchMedia('(pointer: coarse)').matches,[]);
   const profile=useMemo(()=>renderProfile(settings.quality,mobile,window.devicePixelRatio||1),[settings.quality,mobile]);
   // Antialiasing is fixed when the WebGL context is created; later quality changes apply it on the next load.
@@ -59,9 +64,13 @@ function SceneCanvas({active,settings,controller,onReady,onError,locale='en',pla
     <ContextRecovery onError={onError}/><SummitVisibility reducedMotion={settings.reducedMotion}/>
     <Suspense fallback={null}><Physics timeStep={PHYSICS_STEP_SECONDS}paused={active&&controller.mode!=='playing'&&controller.mode!=='loading'} gravity={[0,-20,0]} colliders={false}>
       <KeralaWorld locale={locale} quality={settings.quality} animated={!settings.reducedMotion&&(!active||controller.mode==='playing')}/>
-      {active?<ExplorerController {...controller}/>:<EstablishingCamera/>}<Ready onReady={onReady}/>
-      {active&&soccer?.active&&<SoccerMatch active playing={controller.mode==='playing'} kick={soccer.kick} onEvent={soccer.onEvent} chargeBar={soccer.chargeBar}/>}
-      {active&&<Suspense fallback={null}><Collectables playerRef={playerRef} settings={settings} collectedIds={collectedIds} onCollect={onCollect}/></Suspense>}
+      {active
+        ? multiplayer
+          ? <MultiplayerRoomScene {...multiplayer} controller={controller}/>
+          : <ExplorerController {...controller}/>
+        : <EstablishingCamera/>}<Ready onReady={onReady}/>
+      {active&&!multiplayer&&soccer?.active&&<SoccerMatch active playing={controller.mode==='playing'} kick={soccer.kick} onEvent={soccer.onEvent} chargeBar={soccer.chargeBar}/>}
+      {active&&!multiplayer&&<Suspense fallback={null}><Collectables playerRef={playerRef} settings={settings} collectedIds={collectedIds} onCollect={onCollect}/></Suspense>}
     </Physics></Suspense>
   </Canvas>;
 }

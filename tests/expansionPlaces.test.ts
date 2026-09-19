@@ -12,7 +12,7 @@ const ids = layout.anchors.map((anchor) => anchor.id);
 describe('expansion places', () => {
   it('maps every frozen anchor exactly once without duplicating coordinates', () => {
     expect(places.map((place) => place.id)).toEqual(ids);
-    expect(new Set(places.map((place) => place.id)).size).toBe(9);
+    expect(new Set(places.map((place) => place.id)).size).toBe(10);
     for (const place of places) {
       const anchor = layout.anchors.find((candidate) => candidate.id === place.id)!;
       expect(place.zoneId).toBe('kodassery');

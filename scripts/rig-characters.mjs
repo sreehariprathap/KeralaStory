@@ -10,13 +10,12 @@ const sources = new URL('../asset-sources/characters/', import.meta.url);
 const assets = new URL('../public/assets/characters/', import.meta.url);
 const profiles = [
   { source: 'anime-style_teenage_boy.glb', output: 'anime-style_teenage_boy_rigged.glb', shoulder: [.12,.73,0], elbow: [.155,.56,0], wrist: [.16,.40,0], hip: [.075,.44,0], knee: [.075,.235,0], ankle: [.08,.055,0], relaxed: true, center: [0,0], armRadius: .065 },
-  { source: 'friendly_anime_boy.glb', output: 'friendly_anime_boy_rigged.glb', shoulder: [.09,.735,0], elbow: [.115,.57,0], wrist: [.12,.435,0], hip: [.055,.46,0], knee: [.055,.255,0], ankle: [.06,.055,0], relaxed: true, armRadius: .044 },
-  { source: 'young_tom_-_childhood_memory.glb', output: 'young_tom_rigged.glb', shoulder: [.095,.70,0], elbow: [.12,.55,0], wrist: [.125,.43,0], hip: [.055,.44,0], knee: [.055,.24,0], ankle: [.055,.05,0], relaxed: true, armRadius: .05 },
   { source: 'cartoon_kid.glb', output: 'cartoon_kid_rigged.glb', shoulder: [.10,.685,0], elbow: [.255,.685,0], wrist: [.39,.685,0], hip: [.055,.415,0], knee: [.055,.225,0], ankle: [.055,.05,0], skirt: false },
-  { source: 'arms_out_in_uniform.glb', output: 'arms_out_in_uniform_rigged.glb', shoulder: [.095,.698,.043], elbow: [.20,.697,.043], wrist: [.305,.694,.043], hip: [.062,.44,.06], knee: [.067,.21,.065], ankle: [.075,.06,.06], skirt: true, armDepth: .08, armUpperFade: .045 },
   { source: 'kid_boy.glb', output: 'kid_boy_rigged.glb', shoulder: [.105,.655,.012], elbow: [.23,.545,.012], wrist: [.325,.455,.012], hip: [.045,.385,.015], knee: [.045,.205,.015], ankle: [.045,.05,.015], skirt: false },
   // T-pose, realistic eight-head proportions; the arms sit slightly behind the torso centre.
   { source: 'lionel_messi_qatar_2022.glb', output: 'lionel_messi_qatar_2022_rigged.glb', shoulder: [.11,.793,-.03], elbow: [.265,.795,-.03], wrist: [.40,.795,-.022], hip: [.065,.46,-.01], knee: [.064,.27,-.02], ankle: [.068,.055,-.02], skirt: false },
+  // Straw-hat boy: a wide T pose with the arms level at four-fifths height.
+  { source: 'monkey_d_luffy.glb', output: 'monkey_d_luffy_rigged.glb', shoulder: [.10,.80,0], elbow: [.28,.80,0], wrist: [.45,.80,0], hip: [.05,.45,0], knee: [.055,.24,0], ankle: [.055,.05,0], skirt: false },
   { source: 'the_little_girl.glb', output: 'the_little_girl_rigged.glb', shoulder: [.083,.663,0], elbow: [.24,.655,0], wrist: [.38,.65,0], hip: [.043,.43,0], knee: [.043,.205,0], ankle: [.043,.05,0], skirt: true },
 ];
 const smooth = (lo, hi, value) => { const t = Math.max(0, Math.min(1, (value-lo)/(hi-lo))); return t*t*(3-2*t); };

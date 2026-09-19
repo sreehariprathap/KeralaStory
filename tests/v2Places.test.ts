@@ -15,16 +15,20 @@ const input: V2PlaceAnchors = {
   fuelStation: anchor('chalakkudy-fuel', 'kadambode', [-372, 48, -132]),
   coffeeShop: anchor('chalakkudy-coffee', 'kadambode', [-414, 49, -120]),
   malakkapparaTeaStop: anchor('malakkappara-tea', 'kodassery', [-532, 80, -642]),
+  chalakudyDam: anchor('chalakudy-dam', 'kodassery', [-690, 130, -796]),
+  airport: anchor('nedumbassery-airport', 'kadambode', [-600, 24, 90]),
+  beach: anchor('sneha-theeram', 'kadambode', [-168, 10, 168]),
 };
 
 describe('V2 place catalogue', () => {
   it('preserves legacy records and adds grounded town and stop records', () => {
     const places = createV2Places(input);
-    expect(places).toHaveLength(8);
+    expect(places).toHaveLength(11);
     expect(places[0]).toEqual(legacy[0]);
     expect(places.map(place => place.id)).toEqual([
       'harbor', 'chalakkudy', 'kodakara', 'malakkappara', 'silver-storm',
-      'chalakkudy-fuel', 'chalakkudy-coffee', 'malakkappara-tea',
+      'chalakkudy-fuel', 'chalakkudy-coffee', 'malakkappara-tea', 'chalakudy-dam',
+      'nedumbassery-airport', 'sneha-theeram',
     ]);
     expect(places.find(place => place.id === 'malakkappara-tea')?.position).toEqual([-532, 80, -642]);
   });

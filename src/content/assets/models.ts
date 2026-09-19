@@ -1,14 +1,14 @@
 export const CHARACTER_MODELS = [
-  { id: 'uniform', name: 'Maya', url: '/assets/characters/arms_out_in_uniform_rigged.glb', rig: 'uniform', rotationY: 0 },
   { id: 'nick', name: 'Niko', url: '/assets/characters/nick_unused_model.glb', rig: 'nick', rotationY: 0 },
   { id: 'little-girl', name: 'Mimi', url: '/assets/characters/the_little_girl_rigged.glb', rig: 'little-girl', rotationY: 0 },
-  { id: 'young-tom', name: 'Tommy', url: '/assets/characters/young_tom_rigged.glb', rig: 'relaxed', rotationY: 0 },
   { id: 'kid-boy', name: 'Kannan', url: '/assets/characters/kid_boy_rigged.glb', rig: 'kid-boy', rotationY: 0 },
   { id: 'cartoon-kid', name: 'Kuttu', url: '/assets/characters/cartoon_kid_rigged.glb', rig: 'fitted', rotationY: 0 },
   { id: 'teenage-boy', name: 'Achu', url: '/assets/characters/anime-style_teenage_boy_rigged.glb', rig: 'relaxed', rotationY: 0 },
-  { id: 'anime-boy', name: 'Appu', url: '/assets/characters/anime_boy_for_blender..glb', rig: 'appu', rotationY: Math.PI },
-  { id: 'friendly-anime-boy', name: 'Kichu', url: '/assets/characters/friendly_anime_boy_rigged.glb', rig: 'relaxed', rotationY: 0 },
   { id: 'messi', name: 'Messi', url: '/assets/characters/lionel_messi_qatar_2022_rigged.glb', rig: 'messi', rotationY: 0 },
+  // Supplied with its own Mixamo skeleton; the limb bones drive the same walk cycle.
+  { id: 'mask-player', name: 'Player 07', url: '/assets/characters/squid_game_player_rig_version.glb', rig: 'mixamo', rotationY: 0 },
+  // Rigged here from a static source (scripts/rig-characters.mjs).
+  { id: 'straw-hat', name: 'Luffy', url: '/assets/characters/monkey_d_luffy_rigged.glb', rig: 'fitted', rotationY: 0 },
 ] as const;
 export const CAR_MODELS = [
   { id: 'admin', name: 'Admin car', url: '/assets/cars/admin-car.glb', rotationY: -Math.PI / 2 },
@@ -17,8 +17,12 @@ export const CAR_MODELS = [
   { id: 'fennec', name: 'Fennec', url: '/assets/cars/fennec_-_rocket_league_car.glb', rotationY: -Math.PI / 2 },
   // Body and tyres are one fused mesh: these two drive normally but their wheels do not visually spin.
   { id: 'bronco', name: 'Bronco', url: '/assets/cars/bronco.glb', rotationY: Math.PI / 2 },
-  { id: 'mazda-rx7', name: 'Mazda RX-7', url: '/assets/cars/mazda_rx7_stylised.glb', rotationY: Math.PI / 2 },
   { id: 'cyberpunk', name: 'Cyberpunk car', url: '/assets/cars/cyberpunk-car.glb', rotationY: 0 },
+  { id: 'golf-gti', name: 'Golf GTI', url: '/assets/cars/1992_volkswagen_golf_gti_mk2.glb', rotationY: 0 },
+  { id: 'sports-coupe', name: 'Sports coupe', url: '/assets/cars/cartoon_sports_car.glb', rotationY: 0 },
+  { id: 'supercar', name: 'Supercar', url: '/assets/cars/modern_cartoon_sports_car.glb', rotationY: 0 },
+  // Authored rotated 45 degrees in its file; its wheels are fused into the body, like the Bronco.
+  { id: 'toy-car', name: 'Toy car', url: '/assets/cars/cartoony_car.glb', rotationY: Math.PI * 5 / 4 },
 ] as const;
 /** Source assets remain visible to review tooling but cannot spawn before calibration. */
 export const PENDING_CAR_MODELS = [

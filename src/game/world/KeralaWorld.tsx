@@ -2,14 +2,20 @@ import { ExpansionGround } from './ExpansionGround';
 import { staticArchitectureBoxes } from '../../content/world/staticArchitecture';
 import { RiverNetwork } from './RiverNetwork';
 import { TownWorld } from './TownWorld';
+import { ChalakkudyCity } from './ChalakkudyCity';
 import { V2WorldDressing } from './V2WorldDressing';
 import { MountainExpansion } from './MountainExpansion';
 import { ChokkanaWorld } from './ChokkanaWorld';
 import { AthirappillyWorld } from './AthirappillyWorld';
+import { ChalakudyDam } from './ChalakudyDam';
 import type { Locale } from '../../contracts';
 import { translate, MALAYALAM_CATALOG, type TranslationKey } from '../../features/i18n/translate';
 import { RegionalDetails } from './RegionalDetails';
 import { CoconutGroves } from './CoconutGroves';
+import { NedumbasseryAirport } from './NedumbasseryAirport';
+import { SnehaTheeram } from './SnehaTheeram';
+import { TeaEstate } from './TeaEstate';
+import { MountainDressing } from './MountainDressing';
 import { FlowerBeds } from './FlowerBeds';
 import { Wildlife } from './Wildlife';
 import { StuntParks } from './StuntParks';
@@ -24,6 +30,7 @@ import { CuboidCollider, RigidBody } from '@react-three/rapier';
 import { BoxGeometry, BufferGeometry, CanvasTexture, Color, CylinderGeometry, DoubleSide, Float32BufferAttribute, Group, InstancedMesh, Object3D, PlaneGeometry, Quaternion, SRGBColorSpace, Vector3 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { BRIDGE_DECK_Y, BRIDGE_NORTH_Z, BRIDGE_SOUTH_Z, BRIDGE_X, CITY_PATH, VILLAGE_PATH, WATER_LEVEL, isWater, riverCenter, terrainHeight } from '../../content/world/kodassery';
+import { isClearOfRoads } from '../../content/world/definition';
 import { terrainMeshData, traversalBoxes } from './traversalGeometry';
 import { createTerrainSurface, planFoundation, planFoundationSteps, type FoundationPlan } from './buildingFoundation';
 import { GrassAssetMesh, KodasseryWorld, type Instance as GrassInstance } from './KodasseryWorld';
@@ -306,7 +313,7 @@ function leafGeometry(banana=false) {
   for(let i=0;i<n;i++){const a=i*3;indices.push(a,a+3,a+1,a+1,a+3,a+4,a+1,a+4,a+2,a+2,a+4,a+5);}
   const g=new BufferGeometry();g.setAttribute('position',new Float32BufferAttribute(p,3));g.setIndex(indices);g.computeVertexNormals();return g;
 }
-function generatePlants() {
+export function generatePlants() {
   let seed=9471;const r=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
   const trunks:Instance[]=[],fronds:Instance[]=[],bananaTrunks:Instance[]=[],bananaLeaves:Instance[]=[],shrubs:Instance[]=[];
   const path=[...VILLAGE_PATH,...CITY_PATH];
@@ -315,7 +322,7 @@ function generatePlants() {
     const x=-70+r()*145,z=-331+r()*420;
     if(isWater(x,z)||z>-64&&x>72||x<-10&&x>-51&&z>-320&&z<-260||isStuntGround(x,z,3)||isKodalyCityGround(x,z,3))continue;
     let roadDistance=Infinity;for(let j=1;j<path.length;j++){const a=path[j-1],c=path[j],dx=c[0]-a[0],dz=c[1]-a[1],f=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz)));roadDistance=Math.min(roadDistance,Math.hypot(x-a[0]-f*dx,z-a[1]-f*dz));}
-    if(roadDistance<7||landmarks.some(([[lx,lz],radius])=>Math.hypot(x-lx,z-lz)<radius))continue;
+    if(roadDistance<7||!isClearOfRoads(x,z,5)||landmarks.some(([[lx,lz],radius])=>Math.hypot(x-lx,z-lz)<radius))continue;
     const y=terrainHeight(x,z),h=7+r()*5,lean=(r()-.5)*.25,yaw=r()*Math.PI*2;
     if(i%4!==0) {
       // Segmented leaning trunks and curved, radial fronds give coconut palms their silhouette.
@@ -363,10 +370,10 @@ function KeralaGeometry({quality='medium',animated=true,locale='en'}:{quality?:'
   const roads=useMemo(()=>({village:ribbon(VILLAGE_PATH,3.8),tar:ribbon(VILLAGE_PATH.filter(([,z])=>z>=-260),3,.082),...Object.fromEntries(outsideKodalyCircle(CITY_PATH).flatMap((run,i)=>[[`city${i}`,ribbon(run,4.1)],[`cityTar${i}`,ribbon(run,3.1,.082)]])),temple:ribbon([[-6,-238],[12,-238],[22,-231]],2.4),tea:ribbon([[7,-190],[-10,-190]],2.1)}),[]);
   const frond=useMemo(()=>leafGeometry(),[]),banana=useMemo(()=>leafGeometry(true),[]),trunk=useMemo(()=>new CylinderGeometry(.75,1,1,7),[]),shrub=useMemo(()=>new CylinderGeometry(.4,1,1,7),[]);
   return <>
-    <ExpansionGround/><MountainExpansion locale={locale}/><ChokkanaWorld quality={quality} locale={locale}/><AthirappillyWorld quality={quality} animated={animated} locale={locale}/><KodasseryWorld quality={quality} animated={animated}/><RegionalDetails quality={quality} animated={animated}/>
+    <ExpansionGround/><MountainExpansion locale={locale}/><ChokkanaWorld quality={quality} locale={locale}/><AthirappillyWorld quality={quality} animated={animated} locale={locale}/><ChalakudyDam quality={quality} animated={animated} locale={locale}/><KodasseryWorld quality={quality} animated={animated}/><RegionalDetails quality={quality} animated={animated}/>
     <RigidBody type="fixed" colliders="trimesh"><mesh geometry={ground} receiveShadow><meshStandardMaterial vertexColors roughness={1}/></mesh></RigidBody>
     {Object.entries(roads).map(([key,geometry])=><mesh key={key} geometry={geometry} receiveShadow><meshStandardMaterial color={key==='tar'||key.startsWith('cityTar')?PALETTE.tar:PALETTE.sand} roughness={1} side={DoubleSide}/></mesh>)}
-    <Water animated={animated}/><RiverNetwork animated={animated} quality={quality}/><TownWorld/><V2WorldDressing/><CoconutGroves quality={quality}/><FlowerBeds quality={quality}/><Wildlife quality={quality}/><StuntParks/><GliderSites animated={animated}/><Stadium animated={animated}/><KodalyCircle quality={quality}/>
+    <Water animated={animated}/><RiverNetwork animated={animated} quality={quality}/><TownWorld/><ChalakkudyCity/><V2WorldDressing/><CoconutGroves quality={quality}/><FlowerBeds quality={quality}/><Wildlife quality={quality}/><StuntParks/><NedumbasseryAirport/><SnehaTheeram animated={animated}/><TeaEstate quality={quality}/><MountainDressing quality={quality}/><GliderSites animated={animated}/><Stadium animated={animated}/><KodalyCircle quality={quality}/>
     {architecture.meshes.map(({color,geometry})=><mesh key={color} geometry={geometry} castShadow receiveShadow><meshStandardMaterial color={color} roughness={.92} side={DoubleSide}/></mesh>)}
     <RigidBody type="fixed" colliders={false}>{collision.map(c=><CuboidCollider key={c.id} args={[c.size[0]/2,c.size[1]/2,c.size[2]/2]} position={c.position} rotation={c.rotation}/>)}</RigidBody>
     {architecture.signs.map(sign=><PaintedSign key={sign.english} sign={sign} locale={locale}/>)}

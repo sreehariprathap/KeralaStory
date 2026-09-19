@@ -8,7 +8,7 @@ const guest = 'guest_maya1234';
 const secondGuest = 'guest_arjun5678';
 const appearance = {
   avatarPresetId: 'canopy' as const,
-  characterModelId: 'uniform' as const,
+  characterModelId: 'nick' as const,
   colors: { skin: '#dba77e' as const, hair: '#292a25' as const, clothing: '#285943' as const },
 };
 

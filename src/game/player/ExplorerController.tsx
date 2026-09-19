@@ -31,6 +31,13 @@ import { explorerPose } from './explorerPose';
 import { soccerMotion } from '../soccer/soccerMotion';
 import { isInStadiumJoin } from '../../content/world/stadiumLayout';
 import { buoyantVerticalSpeed, isSunk, isSwimming, swimVelocity } from './swimming';
+import { BOAT_DOCKS } from '../../content/world/boatDocks';
+import { BOAT, boatMoveAllowed, createBoatState, groundedPoints, stepBoat, type BoatState } from '../vehicle/boatMotor';
+import { BoatVisual } from '../vehicle/BoatVisual';
+import { PLANE, createPlaneState, stepPlane, touchdown, type PlaneState } from '../vehicle/planeMotor';
+import { PlaneVisual, type PlaneMotion } from '../vehicle/PlaneVisual';
+import { PLANE_SPAWN, checkpointsByDistance } from '../../content/world/planeSites';
+import { Explosion } from '../world/Explosion';
 
 const BIKE_HOP_SPEED=7.5;
 const BIKE_AIR_GRAVITY=-17;
@@ -43,6 +50,13 @@ const BIKE_TRICK_PIVOT=.7;
 const GLIDER_STUCK_SECONDS=2;
 /** Swimming pose: torso pitched forward and raised so the head rides above the surface. */
 const SWIM_PITCH=1.1,SWIM_TREAD_PITCH=.2,SWIM_LIFT=.55;
+/** Walking distance at which F climbs into the parked plane. */
+const PLANE_MOUNT_DISTANCE=8;
+/** Seconds between a crash and the pilot walking away from the nearest checkpoint. */
+const CRASH_RESPAWN_SECONDS=3;
+/** Fuselage sweep for collisions: a ball this far above the wheels, so a gentle touchdown never grazes it. */
+const PLANE_HULL_RADIUS=1,PLANE_HULL_LIFT=2.2;
+const newPlane=()=>createPlaneState(PLANE_SPAWN.x,PLANE_SPAWN.y+PLANE.gearHeight,PLANE_SPAWN.z,PLANE_SPAWN.headingRad);
 
 export function ExplorerController(props: ExplorerControllerProps) {
   const { mode, profile, spawn, initialHeading = Math.PI, resetToken, sensitivity, reducedMotion, cameraControl } = props;
@@ -65,6 +79,13 @@ export function ExplorerController(props: ExplorerControllerProps) {
   const [riderHip,setRiderHip]=useState(.77);
   // Thigh pivot sits a little above the seat surface (thigh thickness), centred over the seat.
   const riderOffset:[number,number]=[seat.height+.07-riderHip,seat.z];
+  // Moored boats keep wherever they were left; only one is ever crewed, by index.
+  const boats=useRef<BoatState[]>(BOAT_DOCKS.map(d=>createBoatState(d.x,d.z,d.headingRad,d.level))),activeBoat=useRef<number|null>(null),boatVisuals=useRef<(Group|null)[]>([]);
+  const crewedBoat=()=>activeBoat.current===null?null:boats.current[activeBoat.current];
+  const nearestBoat=(x:number,z:number)=>{let index=-1,distance=Infinity;boats.current.forEach((b,i)=>{if(i===activeBoat.current)return;const d=Math.hypot(b.x-x,b.z-z);if(d<distance){distance=d;index=i;}});return {index,distance};};
+  // One biplane, parked at the airport until flown; a crash destroys it and a fresh one waits on the runway.
+  const plane=useRef<PlaneState>(newPlane()),planeMotion=useRef<PlaneMotion>({throttle:0}),planeVisual=useRef<Group>(null),planeTilt=useRef<Group>(null);
+  const crash=useRef<{elapsed:number}|null>(null),[explosion,setExplosion]=useState<{id:number;position:Vec3;water:boolean}|null>(null);
   const car=useRef<CarPhysics|null>(null),carMotion=useRef(createCarMotion()),cameraCar=useRef<RapierRigidBody|null>(null);
   const carPose=useRef(createPoseInterpolator(PHYSICS_STEP_SECONDS));
   const removeCar=()=>{car.current?.dispose();car.current=null;cameraCar.current=null;carParked.current=null;carMotion.current=createCarMotion();carPose.current.reset();};
@@ -82,8 +103,11 @@ export function ExplorerController(props: ExplorerControllerProps) {
     verticalSpeed.current=0;motion.current.speed=0;
   };
   const setTravel=(next:TravelMode)=>{
+    // Leaving a plane anywhere but parked on the ground (a reset mid-flight) returns it to the airport.
+    if(next!=='plane'&&vehicle.current==='plane'&&(!plane.current.grounded||plane.current.speed>1))plane.current=newPlane();
     const ride=next!=='foot'; riding.current=ride;vehicle.current=next;motion.current.riding=ride;setShowRider(ride);bike.current.speed=0;stunt.current=createStuntState();
     if(next!=='glider'){glider.current=null;gliderPose.current.bank=0;}
+    if(next!=='boat'&&activeBoat.current!==null){boats.current[activeBoat.current].speed=0;activeBoat.current=null;}
     setGliding(next==='glider');
     if(collider.current)configureTravelCollider(collider.current,next);
     cameraCar.current=next==='car'?(car.current?.body??null):null;
@@ -115,9 +139,41 @@ export function ExplorerController(props: ExplorerControllerProps) {
     if(vehicle.current==='car')setTravel('foot');
     removeCar();report('vehicle.carSank');
   };
+  /** Nearest dry, clear footing within a few metres of a boat: a bank, a stair or the dam's crest walkway. */
+  const boatLanding=(x:number,z:number,level:number):Vec3|null=>{
+    const capsule=new rapier.Capsule(CAPSULE_HALF_HEIGHT,CAPSULE_RADIUS),upright={x:0,y:0,z:0,w:1},top=level+8;
+    // Within each ring the lowest footing wins, so a crest walkway beats the top of its parapet rail.
+    for(let radius=1.5;radius<=9;radius+=1.5){let best:Vec3|null=null;for(let i=0;i<16;i++){
+      const angle=i/16*Math.PI*2,px=x+Math.cos(angle)*radius,pz=z+Math.sin(angle)*radius;
+      const hit=world.castRayAndGetNormal(new rapier.Ray({x:px,y:top,z:pz},{x:0,y:-1,z:0}),16,true,rapier.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,body.current??undefined);
+      if(!hit||hit.normal.y<.75||hit.collider.parent()?.isDynamic())continue;
+      const groundY=top-hit.timeOfImpact,surface=waterLevelAt(px,pz);
+      if(groundY<level+.2||(surface!==null&&surface>groundY-.3))continue;
+      if(world.intersectionWithShape({x:px,y:groundY+.06+FEET_TO_CENTER,z:pz},upright,capsule,rapier.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,body.current??undefined))continue;
+      if(!best||groundY+.06<best[1])best=[px,groundY+.06,pz];
+    }if(best)return best;}
+    return null;
+  };
   /** F always gets the rider off, whatever the vehicle is doing; a stuck vehicle falls back to looser exits. */
   const exitVehicle=(position:{x:number;y:number;z:number},feet:Vec3)=>{
     const rigidBody=body.current,from=vehicle.current;if(!rigidBody||from==='foot')return;
+    if(from==='plane'){
+      // No bailing out: the plane has to be down and nearly stopped. Step off beside the cockpit.
+      const pl=plane.current;
+      if(!pl.grounded||pl.speed>2){report('plane.landFirst');return;}
+      pl.speed=0;pl.throttle=0;
+      const side=(r:number):Vec3|null=>{const x=pl.x+Math.cos(pl.headingRad)*r,z=pl.z+Math.sin(pl.headingRad)*r;return clearFeet(x,z,pl.y,false);};
+      const target=side(-3.5)??side(3.5)??nearestDryFeet(pl.x,pl.z,20)??safePosition.current;
+      setTravel('foot');teleport(target);motion.current.grounded=true;report('');
+      return;
+    }
+    if(from==='boat'){
+      // The boat stays moored where it floats; the rider steps ashore, or stays aboard in open water.
+      const boat=activeBoat.current===null?null:boats.current[activeBoat.current],landing=boat?boatLanding(position.x,position.z,boat.level):null;
+      if(boat&&!landing){report('boat.noShore');return;}
+      setTravel('foot');teleport(landing??safePosition.current);motion.current.grounded=true;report('');
+      return;
+    }
     if(from==='glider'){
       // Bailing out drops the rider; the wing is lost.
       const sink=glider.current?.verticalSpeed??0;
@@ -162,7 +218,7 @@ export function ExplorerController(props: ExplorerControllerProps) {
   useEffect(()=>{
     if(!body.current)return;
     setTravel('foot');teleport(latest.current.spawn);safePosition.current=[...latest.current.spawn];ready.current=false;tick.current=0;validationPending.current=true;carParked.current=null;
-    removeCar();swimming.current=false;bikeLost.current=false;heading.current=latest.current.initialHeading??Math.PI;azimuth.current=-heading.current;bike.current=createBicycleState(heading.current);
+    removeCar();swimming.current=false;bikeLost.current=false;crash.current=null;setExplosion(null);heading.current=latest.current.initialHeading??Math.PI;azimuth.current=-heading.current;bike.current=createBicycleState(heading.current);
     const saved=latest.current.bicycleSpawn;
     parked.current=saved?{position:safeGroundPosition(saved.position),headingRad:saved.headingRad}:{position:[...PARKING_SPOTS[0].position],headingRad:Math.PI};
     if(!isTravelAllowed('bicycle',parked.current.position[0],parked.current.position[2])){const slot=nearestParking(spawn);parked.current={position:[...slot.position],headingRad:slot.headingRad};}
@@ -229,7 +285,7 @@ export function ExplorerController(props: ExplorerControllerProps) {
       blockedDrive=!isVehicleTerrainAllowed(nx,nz);
       if(blockedDrive)report('bicycle.walkOnly');
     }
-    car.current?.step({forward:playing&&!blockedDrive?input.current.move.forward:0,steer:playing?input.current.move.x:0,brake:input.current.brake||!playing||blockedDrive,nitro:playing&&!blockedDrive&&vehicle.current==='car'&&(input.current.nitro||input.current.keys.has('ShiftLeft')||input.current.keys.has('ShiftRight'))},Math.min(world.timestep,1/30),vehicle.current==='car');
+    car.current?.step({forward:playing&&!blockedDrive?input.current.move.forward:0,steer:playing?input.current.move.x:0,brake:input.current.brake||!playing||blockedDrive,nitro:playing&&!blockedDrive&&vehicle.current==='car'&&(input.current.nitro||input.current.keys.has('ShiftLeft')||input.current.keys.has('ShiftRight')),handbrake:playing&&vehicle.current==='car'&&input.current.keys.has('Space')},Math.min(world.timestep,1/30),vehicle.current==='car');
     if(needsSafeReset(position)){
       setTravel('foot');teleport(safePosition.current);validationPending.current=true;const slot=nearestParking(safePosition.current);parked.current={position:[...slot.position],headingRad:slot.headingRad};removeCar();return;
     }
@@ -254,6 +310,19 @@ export function ExplorerController(props: ExplorerControllerProps) {
     if(playing&&input.current.interactQueued){
       input.current.interactQueued=false;
       if(vehicle.current!=='foot'){exitVehicle(position,feet);return;}
+      // F takes whichever vehicle is nearest: the plane, a boat, the car or the bike.
+      const pl=plane.current,boatNear=nearestBoat(position.x,position.z);
+      const planeDistance=!crash.current&&pl.grounded&&pl.speed<1&&motion.current.grounded?Math.hypot(position.x-pl.x,position.z-pl.z):Infinity;
+      const landDistance=Math.min(bikeLost.current?Infinity:Math.hypot(position.x-parked.current.position[0],position.z-parked.current.position[2]),carParked.current?Math.hypot(position.x-carParked.current[0],position.z-carParked.current[2]):Infinity);
+      if(planeDistance<=PLANE_MOUNT_DISTANCE&&planeDistance<=Math.min(boatNear.distance,landDistance)){
+        heading.current=pl.headingRad;setTravel('plane');teleport([pl.x,pl.y,pl.z]);azimuth.current=-heading.current;report('');return;
+      }
+      // Boats are boarded from the bank or straight out of the water.
+      if(boatNear.index>=0&&boatNear.distance<=BOAT.mountDistance&&boatNear.distance<=landDistance){
+        const boat=boats.current[boatNear.index];
+        heading.current=boat.headingRad;activeBoat.current=boatNear.index;swimming.current=false;motion.current.swimming=false;
+        setTravel('boat');teleport([boat.x,boat.level,boat.z]);azimuth.current=-heading.current;report('');return;
+      }
       const bicycleDistance=bikeLost.current?Infinity:Math.hypot(position.x-parked.current.position[0],position.z-parked.current.position[2]);
       const carDistance=carParked.current?Math.hypot(position.x-carParked.current[0],position.z-carParked.current[2]):Infinity;
       const nearby=carDistance<bicycleDistance?'car':'bicycle';
@@ -270,6 +339,86 @@ export function ExplorerController(props: ExplorerControllerProps) {
     // Mouse mode moves camera-relative every frame (GTA-style); auto mode lets the camera catch up to a held direction.
     const dt=Math.min(world.timestep,1/30),intent=latest.current.cameraControl==='mouse'?readMovement(input.current,azimuth.current):readFollowMovement(input.current,azimuth.current);
     if(vehicle.current==='car'){input.current.sprintLocked=false;input.current.jumpQueued=false;return;}
+    if(crash.current){
+      // The wreck burns while the camera lingers, then the pilot walks away from the nearest checkpoint.
+      crash.current.elapsed+=dt;rigidBody.setNextKinematicTranslation(position);
+      if(crash.current.elapsed>=CRASH_RESPAWN_SECONDS){
+        crash.current=null;plane.current=newPlane();setTravel('foot');
+        let spot:Vec3|null=null;
+        for(const c of checkpointsByDistance(position.x,position.z).slice(0,12)){spot=clearFeet(c[0],c[2],c[1],false)??nearestDryFeet(c[0],c[2],9);if(spot)break;}
+        teleport(spot??safePosition.current);motion.current.grounded=false;verticalSpeed.current=0;report('plane.respawned');
+      }
+      return;
+    }
+    if(vehicle.current==='plane'){
+      const pl=plane.current;input.current.sprintLocked=false;input.current.jumpQueued=false;
+      const keys=input.current.keys;
+      const was={x:pl.x,y:pl.y,z:pl.z};
+      const wreck=(water:boolean)=>{
+        crash.current={elapsed:0};planeMotion.current.throttle=0;
+        setExplosion({id:Date.now(),position:[pl.x,water?(waterLevelAt(pl.x,pl.z)??pl.y):pl.y,pl.z],water});
+        report('');
+        rigidBody.setNextKinematicTranslation({x:pl.x,y:pl.y+FEET_TO_CENTER,z:pl.z});
+      };
+      const move=stepPlane(pl,{forward:playing?input.current.move.forward:0,steer:playing?input.current.move.x:0,
+        boost:playing&&(input.current.nitro||keys.has('ShiftLeft')||keys.has('ShiftRight')),slow:playing&&(input.current.brake||keys.has('Space'))},dt);
+      // Near the map edge the plane banks round toward the middle of the world.
+      if(!pl.grounded){
+        const ahead=90;
+        if(!hasGroundAt(pl.x+Math.sin(pl.headingRad)*ahead,pl.z-Math.cos(pl.headingRad)*ahead)){
+          pl.headingRad=turnToward(pl.headingRad,headingToward(pl.x,pl.z,GLIDER_TURN_BACK.x,GLIDER_TURN_BACK.z),.9*dt);report('plane.edge');
+        }
+      }
+      let nx=was.x+move.x,ny=was.y+move.y,nz=was.z+move.z;
+      if(!hasGroundAt(nx,nz)){nx=was.x;nz=was.z;}
+      // Anything solid in the fuselage's path (buildings, trees with colliders, hillsides, the dam) is a crash.
+      const sweep=world.castShape({x:was.x,y:was.y+PLANE_HULL_LIFT,z:was.z},{x:0,y:0,z:0,w:1},{x:nx-was.x,y:ny-was.y,z:nz-was.z},new rapier.Ball(PLANE_HULL_RADIUS),.02,1,true,rapier.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,rigidBody);
+      if(sweep&&(!pl.grounded||pl.speed>6)){wreck(false);return;}
+      if(sweep){pl.speed=0;nx=was.x;nz=was.z;}
+      const deck=walkableDeckHeight(nx,nz),ground=Math.max(terrainHeight(nx,nz),deck??-Infinity),water=deck===null?waterLevelAt(nx,nz):null;
+      if(pl.grounded){
+        // Rolling into water, or into a bank too steep to roll over at speed, wrecks the plane.
+        if(water!==null&&water>ground){wreck(true);return;}
+        if(ground+PLANE.gearHeight-was.y>1.2&&pl.speed>8){wreck(false);return;}
+        ny=ground+PLANE.gearHeight;pl.roll=0;
+      }else{
+        if(water!==null&&ny<=water+.3&&water>ground){wreck(true);return;}
+        // Just after lift-off the wheels may still skim the runway: that is the take-off, not a landing.
+        if(ny<=ground+PLANE.gearHeight&&pl.airTime<.8)ny=ground+PLANE.gearHeight;
+        else if(ny<=ground+PLANE.gearHeight){
+          if(touchdown(pl)==='crash'){pl.y=ground;wreck(false);return;}
+          pl.grounded=true;pl.verticalSpeed=0;pl.pitch=0;pl.roll=0;ny=ground+PLANE.gearHeight;report('plane.landed');
+        }
+      }
+      pl.x=nx;pl.y=ny;pl.z=nz;planeMotion.current.throttle=pl.throttle;
+      heading.current=pl.headingRad;rigidBody.setRotation(rotation(heading.current),true);
+      verticalSpeed.current=0;motion.current.grounded=pl.grounded;
+      rigidBody.setNextKinematicTranslation({x:nx,y:ny+FEET_TO_CENTER,z:nz});
+      return;
+    }
+    if(vehicle.current==='boat'&&activeBoat.current!==null){
+      const boat=boats.current[activeBoat.current];
+      input.current.sprintLocked=false;input.current.jumpQueued=false;
+      const oldHeading=boat.headingRad;
+      const nitroHeld=playing&&(input.current.nitro||input.current.keys.has('ShiftLeft')||input.current.keys.has('ShiftRight'));
+      const step=stepBoat(boat,{forward:playing?input.current.move.forward:0,steer:playing?input.current.move.x:0,brake:input.current.brake||!playing,nitro:nitroHeld},dt);
+      // Rivers carry the hull downstream; lakes and ponds are still.
+      const flow=waterFlowAt(position.x,position.z);step.x+=flow.x*BOAT.drift*dt;step.z+=flow.z*BOAT.drift*dt;
+      // A bank, shallows or a waterfall's lip stops the hull dead; so does a turn that would swing the bow onto one.
+      // A hull already touching bottom may still turn or back off, as long as that doesn't ground it further.
+      const aground=(x:number,z:number,h:number)=>groundedPoints(x,z,h,waterLevelAt,terrainHeight);
+      if(!boatMoveAllowed(aground(position.x,position.z,oldHeading),aground(position.x,position.z,boat.headingRad)))boat.headingRad=oldHeading;
+      if(!boatMoveAllowed(aground(position.x,position.z,boat.headingRad),aground(position.x+step.x,position.z+step.z,boat.headingRad))){if(Math.abs(boat.speed)>2)report('boat.aground');boat.speed=0;step.x=0;step.z=0;}
+      heading.current=boat.headingRad;rigidBody.setRotation(rotation(heading.current),true);
+      // The dam wall, bridge piers and anything else solid are handled by the character controller.
+      const corrected=computeExplorerMovement(character,shape,{grounded:false,verticalSpeed:0},{xVelocity:step.x/dt,zVelocity:step.z/dt,jump:false,gravity:0,snap:false},dt);
+      if(Math.hypot(corrected.x,corrected.z)<Math.hypot(step.x,step.z)*.3)boat.speed*=.5;
+      boat.x=position.x+corrected.x;boat.z=position.z+corrected.z;
+      boat.level=waterLevelAt(boat.x,boat.z)??boat.level;
+      verticalSpeed.current=0;motion.current.grounded=true;
+      rigidBody.setNextKinematicTranslation({x:boat.x,y:boat.level+FEET_TO_CENTER,z:boat.z});
+      return;
+    }
     if(vehicle.current==='glider'&&glider.current){
       const g=glider.current;
       input.current.sprintLocked=false;input.current.jumpQueued=false;
@@ -393,13 +542,32 @@ export function ExplorerController(props: ExplorerControllerProps) {
       const bicycleDistance=bikeLost.current?Infinity:Math.hypot(p.x-bx,p.z-bz);
       const carDistance=carParked.current?Math.hypot(p.x-carParked.current[0],p.z-carParked.current[2]):Infinity;
       const reason=interactionReason(vehicle.current,motion.current.grounded,Math.min(bicycleDistance,carDistance),3.5);
+      const boatOffer=vehicle.current==='foot'&&nearestBoat(p.x,p.z).distance<=BOAT.mountDistance;
+      const pl=plane.current,planeDistance=Math.hypot(p.x-pl.x,p.z-pl.z),flying=vehicle.current==='plane';
+      const planeOffer=vehicle.current==='foot'&&!crash.current&&pl.grounded&&pl.speed<1&&planeDistance<=PLANE_MOUNT_DISTANCE&&planeDistance<=Math.min(bicycleDistance,carDistance);
       const gliderFlying=vehicle.current==='glider',below=gliderFlying?Math.max(hasGroundAt(p.x,p.z)?terrainHeight(p.x,p.z):-Infinity,waterLevelAt(p.x,p.z)??-Infinity):-Infinity;
-      latest.current.onSnapshot({position:feet,gliderAvailable:vehicle.current==='foot'&&motion.current.grounded&&isInGliderLaunch(p.x,p.z),soccerAvailable:vehicle.current==='foot'&&motion.current.grounded&&isInStadiumJoin(p.x,p.z),altitude:gliderFlying&&Number.isFinite(below)?Math.max(0,feet[1]-below):undefined,climbing:gliderFlying&&(glider.current?.verticalSpeed??0)>.2,headingRad:heading.current,speed:motion.current.speed,grounded:motion.current.grounded,travelMode:vehicle.current,sprintLocked:input.current.sprintLocked,canInteract:reason==='mount'||reason==='dismount',bicycle:vehicle.current==='bicycle'?{position:feet,headingRad:heading.current}:parked.current,nitroActive:vehicle.current==='car'?carMotion.current.nitroActive:vehicle.current==='bicycle'&&bike.current.nitro.active,nitroRemaining:vehicle.current==='car'?carMotion.current.nitroRemaining:vehicle.current==='bicycle'?bike.current.nitro.remaining:0,nitroAvailable:vehicle.current==='car'||(vehicle.current==='bicycle'&&!!bikeModel(bikeModelRef.current).tuning.nitro),interactionMessage:tick.current<messageUntil.current&&message.current?message.current:vehicle.current==='foot'&&carDistance<bicycleDistance&&reason==='mount'?'Press F to enter car.':''});
+      latest.current.onSnapshot({position:feet,gliderAvailable:vehicle.current==='foot'&&motion.current.grounded&&isInGliderLaunch(p.x,p.z),soccerAvailable:vehicle.current==='foot'&&motion.current.grounded&&isInStadiumJoin(p.x,p.z),altitude:flying?Math.max(0,pl.y-Math.max(terrainHeight(pl.x,pl.z),waterLevelAt(pl.x,pl.z)??-Infinity)):gliderFlying&&Number.isFinite(below)?Math.max(0,feet[1]-below):undefined,airspeed:flying?pl.speed:undefined,wasted:crash.current!==null,climbing:flying?pl.verticalSpeed>.5:gliderFlying&&(glider.current?.verticalSpeed??0)>.2,headingRad:heading.current,speed:motion.current.speed,grounded:motion.current.grounded,travelMode:vehicle.current,sprintLocked:input.current.sprintLocked,canInteract:!crash.current&&!(flying&&(!pl.grounded||pl.speed>2))&&(reason==='mount'||reason==='dismount'||boatOffer||planeOffer),bicycle:vehicle.current==='bicycle'?{position:feet,headingRad:heading.current}:parked.current,nitroActive:vehicle.current==='car'?carMotion.current.nitroActive:vehicle.current==='boat'?crewedBoat()?.nitro.active??false:vehicle.current==='bicycle'&&bike.current.nitro.active,nitroRemaining:vehicle.current==='car'?carMotion.current.nitroRemaining:vehicle.current==='boat'?crewedBoat()?.nitro.remaining??0:vehicle.current==='bicycle'?bike.current.nitro.remaining:0,nitroAvailable:vehicle.current==='car'||vehicle.current==='boat'||(vehicle.current==='bicycle'&&!!bikeModel(bikeModelRef.current).tuning.nitro),interactionMessage:tick.current<messageUntil.current&&message.current?message.current:planeOffer?'plane.board':boatOffer&&nearestBoat(p.x,p.z).distance<=Math.min(bicycleDistance,carDistance)?'boat.board':vehicle.current==='foot'&&carDistance<bicycleDistance&&reason==='mount'?'Press F to enter car.':''});
     }
   });
   useFrame((_,delta)=>{
     const onBike=vehicle.current==='bicycle',pose=bikeModel(bikeModelRef.current).rider;
-    motion.current.lean=onBike?pose?.lean??0:0;motion.current.pedaling=vehicle.current!=='glider'&&(!onBike||pose?.pedals!==false);
+    motion.current.lean=onBike?pose?.lean??0:0;motion.current.pedaling=vehicle.current!=='glider'&&vehicle.current!=='boat'&&(!onBike||pose?.pedals!==false);
+    // The plane: the flown one follows the rendered pilot; pitch and bank tilt the airframe about its middle.
+    if(planeVisual.current){
+      const pl=plane.current,g=planeVisual.current;g.visible=!crash.current;
+      if(vehicle.current==='plane'&&visual.current){visual.current.getWorldPosition(g.position);}else g.position.set(pl.x,pl.y,pl.z);
+      g.rotation.set(0,Math.PI-pl.headingRad,0);
+      if(planeTilt.current){planeTilt.current.rotation.set(-pl.pitch,0,pl.roll,'YXZ');}
+    }
+    // Moored boats bob in place; the crewed one follows the rendered rider so the two never drift apart.
+    const now=performance.now()/1000;
+    boats.current.forEach((b,i)=>{
+      const g=boatVisuals.current[i];if(!g)return;
+      const bob=reducedMotion?0:Math.sin(now*1.6+i*2.1)*.04;
+      if(i===activeBoat.current&&visual.current){visual.current.getWorldPosition(g.position);g.position.y=b.level+bob;}
+      else g.position.set(b.x,b.level+bob,b.z);
+      g.rotation.set(reducedMotion?0:Math.sin(now*1.1+i)*.02,Math.PI-b.headingRad,reducedMotion?0:Math.sin(now*1.3+i*1.7)*.025);
+    });
     if(visual.current)visual.current.rotation.y=riding.current?0:dampAngle(visual.current.rotation.y,Math.PI-heading.current,1-Math.exp(-15*Math.min(delta,.06)));
     if(parkedVisual.current){parkedVisual.current.visible=vehicle.current!=='bicycle'&&!bikeLost.current;parkedVisual.current.position.set(...parked.current.position);parkedVisual.current.rotation.y=Math.PI-parked.current.headingRad;}
     // Lay the bike (and its rider) along the ground under both tyres; the collider itself only yaws.
@@ -433,10 +601,13 @@ export function ExplorerController(props: ExplorerControllerProps) {
     if(vehicle.current==='car'&&car.current&&carPose.current.ready){carPose.current.sample(performance.now(),outFeet);outFeet.y-=FEET_TO_CENTER;return 'car';}
     if(!visual.current)return null;
     visual.current.getWorldPosition(outFeet);
-    return vehicle.current==='glider'?'glider':'foot';
+    return vehicle.current==='glider'?'glider':vehicle.current==='boat'?'boat':vehicle.current==='plane'?'plane':'foot';
   },[]);
   return <>
     <group ref={parkedVisual}><group ref={parkedTilt}><BicycleVisual modelId={bikeModelId}/></group></group>
+    <group ref={planeVisual} position={[PLANE_SPAWN.x,PLANE_SPAWN.y,PLANE_SPAWN.z]}><group position={[0,1.4,0]}><group ref={planeTilt}><group position={[0,-1.4,0]}><PlaneVisual motion={planeMotion}/></group></group></group></group>
+    {explosion&&<Explosion key={explosion.id} position={explosion.position} water={explosion.water}/>}
+    {BOAT_DOCKS.map((dock,i)=><group key={dock.id} ref={g=>{boatVisuals.current[i]=g;}} position={[dock.x,dock.level,dock.z]} rotation={[0,Math.PI-dock.headingRad,0]}><BoatVisual/></group>)}
     <group ref={carParkedVisual} visible={false}><group position={[0,-FEET_TO_CENTER,0]}>{spawnedCarModel&&<CarVisual modelId={spawnedCarModel} color={props.carColor} motion={carMotion} active={showRider&&vehicle.current==='car'&&mode==='playing'} reducedMotion={reducedMotion}/>}</group></group>
     <RigidBody ref={body} type="kinematicPosition" colliders={false} position={[spawn[0],spawn[1]+FEET_TO_CENTER,spawn[2]]} enabledRotations={[false,false,false]} name="explorer-body">
       <CapsuleCollider ref={collider} args={[CAPSULE_HALF_HEIGHT,CAPSULE_RADIUS]} friction={0}/>
@@ -444,7 +615,7 @@ export function ExplorerController(props: ExplorerControllerProps) {
         <group ref={rideTilt} position={[0,BIKE_TRICK_PIVOT,0]} rotation={[0,0,0,'YXZ']}><group position={[0,-BIKE_TRICK_PIVOT,0]}>
         {showRider&&vehicle.current==='bicycle'&&<BicycleVisual modelId={bikeModelId} motion={motion}/>}
         {/* Pivot the lean around the rider's hips so they stay planted on the seat. */}
-        <group visible={!(showRider&&vehicle.current==='car')} position={[0,showRider&&vehicle.current==='bicycle'?riderOffset[0]+riderHip:riderHip,showRider&&vehicle.current==='bicycle'?riderOffset[1]:0]} rotation={[showRider&&vehicle.current==='bicycle'?riderPose?.lean??0:0,0,0]}><group position={[0,-riderHip,0]}><ExplorerAvatar profile={profile} reducedMotion={reducedMotion} motion={motion} onHipHeight={setRiderHip}/></group></group>
+        <group visible={!(showRider&&(vehicle.current==='car'||vehicle.current==='boat'||vehicle.current==='plane'))} position={[0,showRider&&vehicle.current==='bicycle'?riderOffset[0]+riderHip:riderHip,showRider&&vehicle.current==='bicycle'?riderOffset[1]:0]} rotation={[showRider&&vehicle.current==='bicycle'?riderPose?.lean??0:0,0,0]}><group position={[0,-riderHip,0]}><ExplorerAvatar profile={profile} reducedMotion={reducedMotion} motion={motion} onHipHeight={setRiderHip}/></group></group>
         </group></group>
         {gliding&&<GliderVisual pose={gliderPose} backHeight={riderHip+.42} reducedMotion={reducedMotion}/>}
       </group>

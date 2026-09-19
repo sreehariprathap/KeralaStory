@@ -3,11 +3,12 @@ import { createV2Layout } from './v2Layout';
 import { createChalakkudyStreet } from './townLayout';
 import { createExpansionPlaces } from './expansionPlaces';
 import { createV2Places } from './v2Places';
+import { SNEHA_THEERAM, isSnehaSea } from './snehaTheeram';
 import type { ExpansionLayout } from '../../contracts/worldExpansion';
 import { createExpansionLayout, areaAt, pointInPolygon } from './expansionLayout';
 import type { Landmark, MapBounds, TravelMode, Vec3, ZoneId } from '../../contracts';
 
-export const WORLD_VERSION = 'kodassery-diaries-v2-dressing-2';
+export const WORLD_VERSION = 'kodassery-diaries-v2-chalakkudy-city-1';
 export const ORIGINAL_WORLD_BOUNDS: MapBounds = { xMin: -78, xMax: 88, zMin: -484, zMax: 92 };
 const PRE_V2_BOUNDS: MapBounds = { xMin: -680, xMax: 96.5, zMin: -740, zMax: 92 };
 let activeGround: ReturnType<typeof createExpansionGround> | undefined;
@@ -26,10 +27,12 @@ export function waterLevelAt(x:number,z:number):number|null {
   if(surface!=null)return surface;
   const water=EXPANSION_LAYOUT.waterBodies.find(w=>w.id==='chokkana-stream-water'&&pointInPolygon(x,z,w.footprint));
   if(water)return water.surfaceY;
-  if(x< -78 && x>=WORLD_BOUNDS.xMin && z>= (EXPANSION_GROUND.v2?.southShoreZ ?? Infinity) && z<=WORLD_BOUNDS.zMax)return WATER_LEVEL;
+  if(isSeaAt(x,z))return WATER_LEVEL;
   return isRiver(x,z)||(x>=-78 && z>=-499 && (z>90||x>83)) ? WATER_LEVEL : null;
 }
 export function isWater(x:number,z:number){return waterLevelAt(x,z)!==null;}
+/** Open sea west of the original world: Sneha Theeram's bay and the coast on toward the river mouth. */
+export function isSeaAt(x:number,z:number){return x>=WORLD_BOUNDS.xMin && z<=WORLD_BOUNDS.zMax && isSnehaSea(x,z);}
 /** Water surface a body at `feetY` is in, or null. A bridge or pier only keeps you dry while you stand on it, not beneath it. */
 export function openWaterSurfaceAt(x:number,z:number,feetY:number):number|null{
   const deck=walkableDeckHeight(x,z);
@@ -41,14 +44,36 @@ export function waterFlowAt(x:number,z:number):{x:number;z:number}{
   return EXPANSION_GROUND.v2?.river.flowAt(x,z) ?? {x:0,z:0};
 }
 export function originalTerrainHeight(x:number,z:number):number{
+  // Where the upland meets the village slope at z = -334 the grade steepens abruptly; a 24 m vertical
+  // curve eases one into the other so the village road has no crest to launch a car.
+  const z0=-334,d=12;
+  if(Math.abs(z-z0)<d){
+    const h0=rawOriginalTerrainHeight(x,z0),k1=(h0-rawOriginalTerrainHeight(x,z0-.5))/.5,k2=(rawOriginalTerrainHeight(x,z0+.5)-h0)/.5;
+    return h0+k1*(z-z0)+(k2-k1)*(z-z0+d)**2/(4*d);
+  }
+  return rawOriginalTerrainHeight(x,z);
+}
+function rawOriginalTerrainHeight(x:number,z:number):number{
   if(z<=-334)return 76-(z+458)*.105+Math.sin(x*.065)*1.3+Math.sin((z+458)*.045)*.65;
   const hill=(z+334)/204;
   if(z<-130){const a=76-124*.105+Math.sin(x*.065)*1.3+Math.sin(124*.045)*.65;return a+(16-a)*hill+Math.sin(hill*Math.PI)*Math.sin(x*.04)*1.5;}
   const d=Math.abs(z-riverCenter(x));
   if(d<21)return 3.5;
-  if(z<-64)return 3.5+Math.min(1,(d-21)/8)*12.5;
+  if(z<-64){
+    const bank=3.5+Math.min(1,(d-21)/8)*12.5;
+    // The south bank is notched under the wooden bridge so its deck runs clear onto the south ramp.
+    const notch=(1-Math.max(0,Math.min(1,(Math.abs(x-BRIDGE_X)-3)/3)))*(z>-80?1:0);
+    return notch>0?Math.min(bank,bank*(1-notch)+(BRIDGE_DECK_Y-.25)*notch):bank;
+  }
   const city=Math.max(0,Math.min(1,(z+64)/156));
-  return 14-city*8+Math.sin(x*.03)*.3;
+  const natural=14-city*8+Math.sin(x*.03)*.3;
+  // South approach embankment: the road off the wooden bridge falls at 7% from deck level to the town.
+  if(z<-40){
+    const target=BRIDGE_DECK_Y-.1-(z+64)*.07, side=Math.abs(x-BRIDGE_X-Math.max(0,(z+55)/7)*4);
+    const w=(1-Math.max(0,Math.min(1,(side-5)/6)))*Math.max(0,Math.min(1,(-40-z)/4));
+    if(w>0&&target>natural)return natural+(target-natural)*w*w*(3-2*w);
+  }
+  return natural;
 }
 export function getZoneAt(z:number):ZoneId{return z<-334?'kodassery':z<-139?'kadambode':z<-62?'kurumali':'kodaly';}
 export function terrainHeight(x:number,z:number):number { return (x>=-15&&z>=-481) ? originalTerrainHeight(x,z) : activeGround?.heightAt(x,z) ?? originalTerrainHeight(x,z); }
@@ -62,14 +87,16 @@ export const V2_LAYOUT = createV2Layout({
   existingBounds: PRE_V2_BOUNDS,
   legacyRiver: RIVER_CENTERLINE.map(([x,z])=>[x,WATER_LEVEL,z]),
   kodalyCenter,
-  villageRoadJoin:[10,originalTerrainHeight(10,-184),-184],
+  // On the village road between the tea shop and the Kurumali bridge approach.
+  villageRoadJoin:[11.41,originalTerrainHeight(11.41,-165),-165],
   parkRoadJoin:[0,originalTerrainHeight(0,-481),-481],
 });
 export const WORLD_BOUNDS:MapBounds={...V2_LAYOUT.bounds};
 export const SLICE_BOUNDS=WORLD_BOUNDS;
 export const EXPANSION_GROUND=createExpansionGround(authoredLayout,originalTerrainHeight,V2_LAYOUT);
 activeGround=EXPANSION_GROUND;
-const grounded = (p:Vec3):Vec3 => [p[0],EXPANSION_GROUND.deckHeightAt(p[0],p[2]) ?? terrainHeight(p[0],p[2]),p[2]];
+/** Onto a deck only when the authored height is at deck level: paths and viewpoints passing under a span keep the ground. */
+const grounded = (p:Vec3):Vec3 => { const deck=EXPANSION_GROUND.deckHeightAt(p[0],p[2]); return [p[0],deck!==null&&Math.abs(deck-p[1])<3?deck:terrainHeight(p[0],p[2]),p[2]]; };
 /** Coordinates are sampled from the same triangle arrays used by Rapier and rendering. */
 export const EXPANSION_LAYOUT:ExpansionLayout = {
   ...authoredLayout,
@@ -87,7 +114,7 @@ export function hasGroundAt(x:number,z:number):boolean {
 }
 export function getAreaAt(x: number, z: number) { return areaAt(EXPANSION_LAYOUT, x, z); }
 export function getZoneAtPosition(x: number, z: number): ZoneId {
-  const town=V2_LAYOUT.towns.find(t=>pointInPolygon(x,z,t.footprint));
+  const town=V2_LAYOUT.towns.find(t=>pointInPolygon(x,z,t.footprint)||t.districts?.some(d=>pointInPolygon(x,z,d.footprint)));
   return town?.regionId ?? (getAreaAt(x,z) ? 'kodassery' : getZoneAt(z));
 }
 export const SPAWN:Vec3=[0,terrainHeight(0,-460)+.05,-460];
@@ -124,6 +151,11 @@ export const LANDMARKS: Landmark[] = createV2Places({
   fuelStation: v2Grounded('chalakkudy-fuel', 'kadambode', -372, -132),
   coffeeShop: v2Grounded('chalakkudy-coffee', 'kadambode', -414, -120),
   malakkapparaTeaStop: v2Grounded('malakkappara-tea', 'kodassery', -532, -642),
+  // Set back from the wall's downstream face and buttress, on clear ground with a full view of the dam.
+  chalakudyDam: v2Grounded('chalakudy-dam', 'kodassery', -645, -778),
+  // Beside the terminal's forecourt, where the airport road ends.
+  airport: v2Grounded('nedumbassery-airport', 'kodaly', -612, 93),
+  beach: v2Grounded('sneha-theeram', 'kodaly', SNEHA_THEERAM.landmark[0], SNEHA_THEERAM.landmark[1]),
 });
 export const WORLD_REGIONS=[
   {id:'kodassery',name:'Kodassery Peaks',subtitle:'Misty canopy trails',number:'01',available:true},
@@ -143,10 +175,24 @@ export const JETTY_RAMP = { landX: 70, deckX: 77.5, landY: Math.max(terrainHeigh
 // The terrain envelope stays unchanged; maps include the authored pier extension.
 export const MAP_BOUNDS: MapBounds = { ...WORLD_BOUNDS, xMax: Math.max(WORLD_BOUNDS.xMax,JETTY_BOUNDS.xMax) };
 export const COASTLINE: [number, number][] = [[83, ORIGINAL_WORLD_BOUNDS.zMin], [83, 90], [ORIGINAL_WORLD_BOUNDS.xMin, 90]];
+/**
+ * The wooden bridge's approach ramps. Each starts flat on the deck (`deckZ`) and eases into the bank's own
+ * grade at `landZ` along a cubic vertical curve, so neither end has a kink for a fast car to bounce over.
+ */
 export const BRIDGE_RAMPS = [
-  { deckZ: BRIDGE_NORTH_Z + 12, landZ: BRIDGE_NORTH_Z - 12 },
+  { deckZ: BRIDGE_NORTH_Z + 26, landZ: BRIDGE_NORTH_Z - 12 },
   { deckZ: BRIDGE_SOUTH_Z, landZ: BRIDGE_SOUTH_Z + 9 },
-].map(ramp => ({ ...ramp, landY: terrainHeight(BRIDGE_X, ramp.landZ) + 0.07 }));
+].map(ramp => {
+  const landY = terrainHeight(BRIDGE_X, ramp.landZ) + 0.07, rise = landY - BRIDGE_DECK_Y, length = Math.abs(ramp.landZ - ramp.deckZ);
+  const away = Math.sign(ramp.landZ - ramp.deckZ), bankGrade = (terrainHeight(BRIDGE_X, ramp.landZ + away * 2) - terrainHeight(BRIDGE_X, ramp.landZ)) / 2;
+  // f(t) = a t² + b t³: flat at the deck, meeting the bank at its own slope.
+  const endSlope = Math.max(.3, Math.min(2.5, bankGrade * length / (rise || 1)));
+  return { ...ramp, landY, curve: { a: 3 - endSlope, b: endSlope - 2 } };
+});
+export function bridgeRampHeight(ramp: typeof BRIDGE_RAMPS[number], t: number): number {
+  const u = Math.max(0, Math.min(1, t));
+  return BRIDGE_DECK_Y + (ramp.landY - BRIDGE_DECK_Y) * (ramp.curve.a * u * u + ramp.curve.b * u * u * u);
+}
 
 export function containsPoint(bounds: MapBounds, x: number, z: number): boolean {
   return Number.isFinite(x) && Number.isFinite(z) && x >= bounds.xMin && x <= bounds.xMax && z >= bounds.zMin && z <= bounds.zMax;
@@ -169,7 +215,7 @@ export function walkableDeckHeight(x: number, z: number): number | null {
     for (const ramp of BRIDGE_RAMPS) {
       const t = (z - ramp.deckZ) / (ramp.landZ - ramp.deckZ);
       if (t >= 0 && t <= 1) {
-        const rampY = BRIDGE_DECK_Y + (ramp.landY - BRIDGE_DECK_Y) * t;
+        const rampY = bridgeRampHeight(ramp, t);
         height = Math.max(height ?? -Infinity, rampY);
       }
     }
@@ -243,6 +289,30 @@ export function isCycleAllowed(x: number, z: number): boolean {
 
 /** Cars may leave the road ribbons and climb any authored dry terrain. Only
  * unsupported gaps, water and near-vertical terrain are rejected. */
+/**
+ * True when (x, z) is at least `margin` metres beyond the paved edge (incl. shoulder) of every authored
+ * road and trail, and off every bridge deck. Scenery (trees, palms, shrubs, grass) must pass this.
+ */
+export function isClearOfRoads(x: number, z: number, margin: number): boolean {
+  for (const field of [EXPANSION_GROUND.field, EXPANSION_GROUND.v2?.field]) {
+    const road = field?.(x, z);
+    if (road && road.distance <= road.width + margin) return false;
+  }
+  for (const [dx, dz] of [[0, 0], [margin, 0], [-margin, 0], [0, margin], [0, -margin]]) if (EXPANSION_GROUND.v2?.bridgeDeckAt(x + dx, z + dz) != null) return false;
+  return true;
+}
+/**
+ * The nearest dry spot at least `from` metres from (x, z) that keeps `margin` metres off every road,
+ * trail and bridge: where a board, stall or hut beside a landmark should stand. Searches outward in
+ * rings; falls back to (x + from, z) if nothing within 30 m is clear.
+ */
+export function roadsideSpot(x: number, z: number, from = 5, margin = 1.5): Vec3 {
+  for (let r = from; r <= 30; r += 1) for (let k = 0; k < 16; k++) {
+    const a = k / 16 * Math.PI * 2 + r * .37, px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r;
+    if (hasGroundAt(px, pz) && !isWater(px, pz) && isClearOfRoads(px, pz, margin)) return [px, terrainHeight(px, pz), pz];
+  }
+  return [x + from, terrainHeight(x + from, z), z];
+}
 export function isCarTerrainAllowed(x: number, z: number): boolean {
   return carTerrain(x, z, false);
 }

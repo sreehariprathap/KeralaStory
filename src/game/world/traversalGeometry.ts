@@ -1,4 +1,5 @@
-import { EXPANSION_GROUND, BRIDGE_DECK_Y, BRIDGE_NORTH_Z, BRIDGE_RAMPS, BRIDGE_SOUTH_Z, BRIDGE_X, JETTY_DECK_Y, JETTY_RAMP, QUAY_SOUTH_RAMP, WATER_LEVEL, riverCenter, terrainHeight } from '../../content/world/definition';
+import { EXPANSION_GROUND, BRIDGE_DECK_Y, BRIDGE_NORTH_Z, BRIDGE_RAMPS, bridgeRampHeight, BRIDGE_SOUTH_Z, BRIDGE_X, JETTY_DECK_Y, JETTY_RAMP, QUAY_SOUTH_RAMP, WATER_LEVEL, riverCenter, terrainHeight } from '../../content/world/definition';
+import { yawPitchToXyz } from '../../content/world/rotation';
 import type { Vec3 } from '../../contracts';
 
 export interface TraversalBox { id: string; position: Vec3; size: Vec3; rotation: Vec3 }
@@ -7,11 +8,14 @@ export function traversalBoxes(): TraversalBox[] {
   const length = BRIDGE_SOUTH_Z - BRIDGE_NORTH_Z;
   const boxes = [box('bridge-deck', [BRIDGE_X,BRIDGE_DECK_Y-.25,(BRIDGE_NORTH_Z+BRIDGE_SOUTH_Z)/2], [4,.5,length])];
   for (const side of [-1,1]) boxes.push(box(`bridge-rail-${side}`, [BRIDGE_X+side*2.12,BRIDGE_DECK_Y+.6,(BRIDGE_NORTH_Z+BRIDGE_SOUTH_Z)/2], [.2,1.4,length]));
-  for (const [i,ramp] of BRIDGE_RAMPS.entries()) {
-    const dz = ramp.landZ-ramp.deckZ, dy = ramp.landY-BRIDGE_DECK_Y;
-    const angle = -Math.atan(dy/dz), thickness = .3;
-    // Offset along the surface normal, so authored endpoints describe the top.
-    boxes.push(box(`bridge-ramp-${i}`, [BRIDGE_X,(ramp.landY+BRIDGE_DECK_Y)/2-Math.cos(angle)*thickness/2,(ramp.landZ+ramp.deckZ)/2-Math.sin(angle)*thickness/2], [4,thickness,Math.hypot(dz,dy)], [angle,0,0]));
+  // Each ramp's vertical curve as short straight planks whose tops meet end to end.
+  const planks = 10;
+  for (const [i,ramp] of BRIDGE_RAMPS.entries()) for (let k = 0; k < planks; k++) {
+    const z0 = ramp.deckZ + (ramp.landZ - ramp.deckZ) * k / planks, z1 = ramp.deckZ + (ramp.landZ - ramp.deckZ) * (k + 1) / planks;
+    const y0 = bridgeRampHeight(ramp, k / planks), y1 = bridgeRampHeight(ramp, (k + 1) / planks);
+    const dz = z1 - z0, dy = y1 - y0, angle = -Math.atan(dy / dz), thickness = .3;
+    // Offset along the surface normal, so the plank's ends describe the top.
+    boxes.push(box(`bridge-ramp-${i}-${k}`, [BRIDGE_X,(y0+y1)/2-Math.cos(angle)*thickness/2,(z0+z1)/2-Math.sin(angle)*thickness/2], [4,thickness,Math.hypot(dz,dy)+.02], [angle,0,0]));
   }
   const quayY=terrainHeight(48,77);
   const quayAngle=-Math.atan((QUAY_SOUTH_RAMP.landY-quayY)/(QUAY_SOUTH_RAMP.landZ-QUAY_SOUTH_RAMP.deckZ));
@@ -25,7 +29,7 @@ export function traversalBoxes(): TraversalBox[] {
   const angle=Math.atan2(dy,dx), thickness=.3;
   boxes.push(box('jetty-ramp',[(JETTY_RAMP.landX+JETTY_RAMP.deckX)/2+Math.sin(angle)*thickness/2,(JETTY_RAMP.landY+JETTY_DECK_Y)/2-Math.cos(angle)*thickness/2,76],[Math.hypot(dx,dy),thickness,3.5],[0,0,angle]));
   const bridge=EXPANSION_GROUND.streamBridge;
-  boxes.push(box('chokkana-stream-deck',[bridge.position[0],bridge.position[1]-.3,bridge.position[2]],[bridge.widthM,.6,bridge.lengthM],[0,bridge.yawRad,0]));
+  boxes.push(box('chokkana-stream-deck',[bridge.position[0],bridge.position[1]-.3,bridge.position[2]],[bridge.widthM,.6,bridge.lengthM/Math.cos(bridge.pitchRad)],yawPitchToXyz(bridge.yawRad,bridge.pitchRad)));
   return boxes;
 }
 

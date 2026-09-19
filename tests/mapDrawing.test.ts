@@ -51,7 +51,8 @@ describe('map features', () => {
     const kinds = new Set(mapHighlights().map(h => h.kind));
     for (const kind of ['paragliding', 'stadium', 'stunt-park', 'water-park'] as const) expect(kinds.has(kind), kind).toBe(true);
     expect(mapHighlights().every(h => h.position.every(Number.isFinite))).toBe(true);
-    expect(mapCities().map(c => c.id).sort()).toEqual(V2_LAYOUT.towns.map(t => t.id).sort());
+    // Towns plus their extra districts (Chalakkudy spans both banks of the Kurumalippuzha).
+    expect(mapCities().map(c => c.id).sort()).toEqual(V2_LAYOUT.towns.flatMap(t => [t.id, ...(t.districts ?? []).map(d => d.id)]).sort());
     expect(buildingFootprints().length).toBeGreaterThan(40);
   });
 });

@@ -17,7 +17,7 @@ export const ProfileSchema = z.object({
   id: z.string().min(1).max(80),
   displayName: z.string().trim().refine(s => Array.from(s).length >= 1 && Array.from(s).length <= 24, 'Use 1–24 characters').refine(s => !/[<>\u0000-\u001f]/.test(s), 'Use a plain-text name'),
   avatarPresetId: z.enum(['canopy', 'clay', 'river']),
-  characterModelId: z.enum(['uniform', 'nick', 'little-girl', 'young-tom', 'kid-boy', 'cartoon-kid', 'teenage-boy', 'anime-boy', 'friendly-anime-boy', 'messi']).optional(),
+  characterModelId: z.enum(['nick', 'little-girl', 'kid-boy', 'cartoon-kid', 'teenage-boy', 'messi', 'mask-player', 'straw-hat']).optional(),
   colors: z.object({ skin: z.enum(SKIN_COLORS), hair: z.enum(HAIR_COLORS), clothing: z.enum(CLOTHING_COLORS) }),
 });
 export type ExplorerProfile = z.infer<typeof ProfileSchema>;
@@ -38,7 +38,7 @@ export const SaveSchema = z.object({
   visitedLandmarkIds: z.array(z.string()).max(500), settings: SettingsSchema, updatedAt: z.string().datetime(),
 });
 export type SaveV1 = z.infer<typeof SaveSchema>;
-export interface PlayerSnapshot { position: Vec3; headingRad: number; speed: number; grounded: boolean; travelMode?: TravelMode; sprintLocked?: boolean; canInteract?: boolean; bicycle?: BicycleSave; interactionMessage?: string; nitroActive?: boolean; nitroRemaining?: number; nitroAvailable?: boolean; gliderAvailable?: boolean; soccerAvailable?: boolean; altitude?: number; climbing?: boolean }
+export interface PlayerSnapshot { position: Vec3; headingRad: number; speed: number; grounded: boolean; travelMode?: TravelMode; sprintLocked?: boolean; canInteract?: boolean; bicycle?: BicycleSave; interactionMessage?: string; nitroActive?: boolean; nitroRemaining?: number; nitroAvailable?: boolean; gliderAvailable?: boolean; soccerAvailable?: boolean; altitude?: number; climbing?: boolean; airspeed?: number; wasted?: boolean }
 export interface Landmark { id: string; zoneId: ZoneId; label: string; position: Vec3; discoveryRadiusM: number; iconId: string; description: string }
 export interface MapBounds { xMin: number; xMax: number; zMin: number; zMax: number }
 export interface ExplorerControllerProps {
@@ -63,9 +63,18 @@ export const LocaleSchema = z.enum(['en', 'ml']);
 export type Locale = z.infer<typeof LocaleSchema>;
 export const ControlsPreferenceSchema = z.enum(['auto', 'touch', 'desktop']);
 export type ControlsPreference = z.infer<typeof ControlsPreferenceSchema>;
-export const PreferencesSchema = z.object({ locale: LocaleSchema.default('en'), controls: ControlsPreferenceSchema.default('auto'), haptics: z.boolean().default(true) });
+export const DEFAULT_EQUIPPED = { carId: 'admin', carColor: '#b3121f', bikeId: 'roadster', characterId: 'procedural' } as const;
+// Ids are validated against the catalogues by resolveEquipped, so removed models never break parsing.
+export const EquippedSchema = z.object({
+  carId: z.string().min(1).max(64).default(DEFAULT_EQUIPPED.carId),
+  carColor: z.string().min(1).max(32).default(DEFAULT_EQUIPPED.carColor),
+  bikeId: z.string().min(1).max(64).default(DEFAULT_EQUIPPED.bikeId),
+  characterId: z.string().min(1).max(64).default(DEFAULT_EQUIPPED.characterId),
+});
+export type Equipped = z.infer<typeof EquippedSchema>;
+export const PreferencesSchema = z.object({ locale: LocaleSchema.default('en'), controls: ControlsPreferenceSchema.default('auto'), haptics: z.boolean().default(true), equipped: EquippedSchema.default({ ...DEFAULT_EQUIPPED }) });
 export type Preferences = z.infer<typeof PreferencesSchema>;
-export type TravelMode = 'foot' | 'bicycle' | 'car' | 'glider';
+export type TravelMode = 'foot' | 'bicycle' | 'car' | 'glider' | 'boat' | 'plane';
 export const BicycleSaveSchema = z.object({ position: Vec3Schema, headingRad: z.number().finite() });
 export type BicycleSave = z.infer<typeof BicycleSaveSchema>;
 export const SaveV2Schema = SaveSchema.extend({ version: z.literal(2), locale: LocaleSchema, bicycle: BicycleSaveSchema.nullable() });

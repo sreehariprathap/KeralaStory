@@ -12,18 +12,7 @@ export const TOWN_BUILDINGS: readonly Building[] = [
   { id: 'malakkappara-tea', x: -532, z: -642, width: 9, depth: 7, height: 3, wall: '#e7d7b2', roof: '#8d583f', label: 'Malakkappara Tea Stop' },
   { id: 'malakkappara-house-west', x: -585, z: -690, width: 10, depth: 8, height: 3.2, wall: '#f4e8cc', roof: '#a8573d' },
   { id: 'malakkappara-house-east', x: -520, z: -712, width: 10, depth: 8, height: 3.2, wall: '#d5dfb6', roof: '#9d6145' },
-  { id: 'chalakkudy-frontage-1', x: -535, z: -65, width: 9, depth: 7, height: 3.2, wall: '#e7d7b2', roof: '#a8573d', label: 'Provision Store' },
-  { id: 'chalakkudy-frontage-2', x: -513, z: -65, width: 9, depth: 7, height: 3.2, wall: '#f4e8cc', roof: '#a8573d', label: 'Bakery' },
-  { id: 'chalakkudy-frontage-3', x: -491, z: -65, width: 9, depth: 7, height: 3.2, wall: '#d5dfb6', roof: '#a8573d', label: 'Textiles' },
-  { id: 'chalakkudy-frontage-4', x: -469, z: -65, width: 9, depth: 7, height: 3.2, wall: '#e7d7b2', roof: '#a8573d', label: 'Bus Shelter' },
-  { id: 'chalakkudy-frontage-5', x: -447, z: -65, width: 9, depth: 7, height: 3.2, wall: '#f4e8cc', roof: '#a8573d', label: 'Stationery' },
-  { id: 'chalakkudy-frontage-6', x: -425, z: -65, width: 9, depth: 7, height: 3.2, wall: '#d5dfb6', roof: '#a8573d', label: 'Tea Stop' },
-  { id: 'chalakkudy-frontage-7', x: -400, z: -65, width: 9, depth: 7, height: 3.2, wall: '#e7d7b2', roof: '#a8573d', label: 'Provision Store' },
-  { id: 'chalakkudy-frontage-8', x: -377, z: -65, width: 9, depth: 7, height: 3.2, wall: '#f4e8cc', roof: '#a8573d', label: 'Bakery' },
-  { id: 'chalakkudy-frontage-9', x: -355, z: -65, width: 9, depth: 7, height: 3.2, wall: '#d5dfb6', roof: '#a8573d', label: 'Textiles' },
-  { id: 'chalakkudy-frontage-10', x: -350, z: -95, width: 9, depth: 7, height: 3.2, wall: '#e7d7b2', roof: '#a8573d', label: 'Bus Shelter' },
-  { id: 'chalakkudy-frontage-11', x: -350, z: -120, width: 9, depth: 7, height: 3.2, wall: '#f4e8cc', roof: '#a8573d', label: 'Stationery' },
-  { id: 'chalakkudy-frontage-12', x: -350, z: -145, width: 9, depth: 7, height: 3.2, wall: '#d5dfb6', roof: '#a8573d', label: 'Tea Stop' },
+  // Chalakkudy's placeholder frontage was replaced by the Tier A city (chalakkudyCity.ts).
   { id: 'kodakara-frontage-1', x: -280, z: -175, width: 9, depth: 7, height: 3.2, wall: '#e7d7b2', roof: '#a8573d', label: 'Provision Store' },
   { id: 'kodakara-frontage-2', x: -195, z: -170, width: 9, depth: 7, height: 3.2, wall: '#f4e8cc', roof: '#a8573d', label: 'Bakery' },
   { id: 'kodakara-frontage-3', x: -165, z: -170, width: 9, depth: 7, height: 3.2, wall: '#d5dfb6', roof: '#a8573d', label: 'Textiles' },
@@ -58,7 +47,8 @@ export function v2DressingBoxes(): TraversalBox[] {
   boxes.push({ id: 'park-pool-basin', position: [pool.x, pool.y + 1.4, pool.z], size: [pool.width, 2.8, pool.depth], rotation: [0, 0, 0] });
   boxes.push(...waterParkBoxes());
   const [x, , z] = V2_LAYOUT.park.center;
-  boxes.push({ id: 'park-forecourt', position: [x, terrainHeight(x, z) + .22, z + 31], size: [48, .12, 10], rotation: [0, 0, 0] });
+  // Flush with the access road that crosses it: a kerb here would stop cars dead.
+  boxes.push({ id: 'park-forecourt', position: [x, terrainHeight(x, z) - .04, z + 31], size: [48, .12, 10], rotation: [0, 0, 0] });
   return boxes;
 }
 

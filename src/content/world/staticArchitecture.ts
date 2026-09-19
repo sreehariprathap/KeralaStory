@@ -73,7 +73,9 @@ export function mountainArchitectureBoxes(): TraversalBox[] {
     { id: 'summit-north-rail', position: [summit[0], summit[1] + .75, summit[2] - 6], size: [16, 1.5, .18], rotation: [0, 0, 0] },
     { id: 'summit-east-rail', position: [summit[0] + 8, summit[1] + .75, summit[2]], size: [.18, 1.5, 12], rotation: [0, 0, 0] },
   ];
-  const a = trail.points[0], b = trail.points[2], dx = b[0] - a[0], dz = b[2] - a[2], length = Math.hypot(dx, dz);
+  // The gate stands a few metres down the footpath, clear of the access road's turning circle.
+  const a0 = trail.points[0], b = trail.points[6], dx = b[0] - a0[0], dz = b[2] - a0[2], length = Math.hypot(dx, dz);
+  const a = [a0[0] + dx / length * 6, 0, a0[2] + dz / length * 6];
   for (const side of [-1, 1]) {
     const x = a[0] - dz / length * side * 1.1, z = a[2] + dx / length * side * 1.1;
     boxes.push({ id: `summit-gate-${side}`, position: [x, terrainHeight(x, z) + .55, z], size: [.56, 1.1, .56], rotation: [0, 0, 0] });
