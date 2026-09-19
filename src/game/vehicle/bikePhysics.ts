@@ -6,15 +6,18 @@ import { surfaceAt } from '../../content/world/roadSurface';
 import { bikeModel, type BikeModelId } from '../../content/assets/bikeProfiles';
 
 export const BIKE_MASS_KG = 220;
-const BIKE_SUSPENSION_REST = .18;
+const BIKE_SUSPENSION_REST = .3;
 const NITRO_EXTRA_SPEED_FALLBACK = 6;
 const HANDBRAKE_REAR_GRIP = .55;
 const GRIP_ASSIST = 6, DRIFT_ASSIST = 1.1, STRAIGHT_ASSIST = 16;
 const SPEED_LIMIT_FADE = 1.2;
 /** Direct steering-to-yaw gain (rad/s per rad of steering per m/s of speed), gripping and under the handbrake. */
-const STEER_YAW_GAIN = .012, STEER_YAW_HANDBRAKE = .02;
-/** Sane ceiling on the manufactured yaw rate (rad/s) so tuning error can never produce a runaway spin. */
-const MAX_YAW_RATE = 1.2;
+const STEER_YAW_GAIN = .012, STEER_YAW_HANDBRAKE = .05;
+/** Sane ceiling on the manufactured yaw rate (rad/s) so tuning error can never produce a runaway spin.
+ * The handbrake gets a higher ceiling — a real drift spins faster than gripped cornering ever should. */
+const MAX_YAW_RATE = 1.2, MAX_YAW_RATE_HANDBRAKE = 2.2;
+/** Sane ceiling on pitch rate (rad/s) while grounded, so acceleration alone can't flip the chassis into a wheelie. */
+const MAX_PITCH_RATE = .8;
 const HOP_IMPULSE_KG_MPS = BIKE_MASS_KG * 6.5;
 
 export interface BikeIntent { forward: number; steer: number; brake: boolean; nitro?: boolean; handbrake?: boolean }
@@ -34,7 +37,7 @@ export function createBikePhysics(world: World, feet: Vec3, heading: number, mod
   const tuning = bikeModel(model);
   const yaw = Math.PI - heading;
   const body = world.createRigidBody(RigidBodyDesc.dynamic().setTranslation(feet[0], feet[1] + FEET_TO_CENTER, feet[2])
-    .setRotation({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) }).setCcdEnabled(true).setLinearDamping(.15).setAngularDamping(5)
+    .setRotation({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) }).setCcdEnabled(true).setLinearDamping(.15).setAngularDamping(14)
     .setAdditionalMassProperties(BIKE_MASS_KG, { x: 0, y: -.2, z: 0 }, { x: 60, y: 40, z: 90 }, { x: 0, y: 0, z: 0, w: 1 }));
   world.createCollider(ColliderDesc.cuboid(.22, .35, tuning.length / 2).setTranslation(0, .35, 0).setDensity(0).setFriction(.4).setRestitution(.03), body);
   body.recomputeMassPropertiesFromColliders();
@@ -47,7 +50,7 @@ export function createBikePhysics(world: World, feet: Vec3, heading: number, mod
     vehicle.setWheelSuspensionStiffness(i, 260);
     vehicle.setWheelSuspensionCompression(i, 6);
     vehicle.setWheelSuspensionRelaxation(i, 10);
-    vehicle.setWheelMaxSuspensionTravel(i, .45);
+    vehicle.setWheelMaxSuspensionTravel(i, .6);
     vehicle.setWheelMaxSuspensionForce(i, 20000);
     vehicle.setWheelFrictionSlip(i, 3.2);
     vehicle.setWheelSideFrictionStiffness(i, 1);
@@ -125,7 +128,16 @@ export function createBikePhysics(world: World, feet: Vec3, heading: number, mod
         // narrow single-track body losing rear grip under the handbrake is a much less stable
         // configuration than a car's wide 4-wheel loss of rear grip, and can make Rapier's own wheel
         // solver spike the chassis into a runaway spin. This ceiling applies regardless of the source.
-        body.setAngvel({ x: angular.x, y: Math.max(-MAX_YAW_RATE, Math.min(MAX_YAW_RATE, blendedY)), z: angular.z }, true);
+        // Pitch (nose up/down, a "wheelie") has nothing resisting it at all on a real 2-wheel body —
+        // no left/right track width, no rider balance model — so it gets the same kind of clamp,
+        // otherwise acceleration alone can flip the chassis until the wheels point away from the
+        // ground and contact is lost for good.
+        const yawCeiling = handbrake ? MAX_YAW_RATE_HANDBRAKE : MAX_YAW_RATE;
+        body.setAngvel({
+          x: Math.max(-MAX_PITCH_RATE, Math.min(MAX_PITCH_RATE, angular.x)),
+          y: Math.max(-yawCeiling, Math.min(yawCeiling, blendedY)),
+          z: angular.z,
+        }, true);
       }
       if ((!occupied && throttle === 0) || (Math.abs(speed) < .5 && (intent.brake || (throttle === 0 && Math.abs(intent.steer) < .05)))) {
         const parkedVelocity = body.linvel();
