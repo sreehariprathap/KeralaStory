@@ -11,6 +11,8 @@ export interface VehicleProfile {
   topSpeed?: number;
   /** Chase-camera distance in metres; defaults to the shared 7.6 m car framing. */
   cameraDistance?: number;
+  /** Tailpipe position in metres; defaults to the shared rear position. */
+  exhaust?: { x: number; y: number; z: number };
   /** Source nodes that are not part of the vehicle (e.g. an exported floor); removed before measuring. */
   hiddenNodes?: readonly string[];
   /** Source material names recoloured by the player's chosen paint. */
@@ -29,7 +31,7 @@ export const CAR_PAINT_COLORS = [
 const wheel = (x: number, y: number, z: number, radius: number, ...nodes: string[]): VehicleWheel => ({ x, y, z, radius, nodes });
 /** Measured from transformed GLB mesh bounds. +Z forward, front-right/front-left first. */
 export const VEHICLE_PROFILES: Record<CarModelId, VehicleProfile> = {
-  admin: { length: 3.8, legacyBoundsCap: true, chassis: { x: .65, y: .52, z: 1.35, offset: .26 }, wheels: [
+  admin: { length: 3.8, legacyBoundsCap: true, exhaust: { x: .5, y: .32, z: -1.5 }, chassis: { x: .65, y: .52, z: 1.35, offset: .26 }, wheels: [
     wheel(.771,.274,1.022,.274,'Front_wheel_Black_0','Front_wheel_Light_black_0'),
     wheel(-.771,.274,1.022,.274,'Front_wheel001_Black_0','Front_wheel001_Light_black_0'),
     wheel(.771,.302,-.534,.302,'Rear_wheel_Black_0','Rear_wheel_Light_black_0'),
