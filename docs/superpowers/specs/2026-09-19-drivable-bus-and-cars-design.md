@@ -195,11 +195,18 @@ buggy (8) set it.
 `resolveClearFeet` in `clearance.ts` probes a fixed `Cuboid(.9, FEET_TO_CENTER, 1.9)`
 for every car, with a matching five-point support pattern. A bus cleared
 against a car-sized box would spawn intersecting shopfronts. The function
-takes the half-extents from the caller (derived from the profile chassis)
-instead of hard-coding them; the bicycle and foot cases are untouched. The
-dismount side/along offsets in `ExplorerController` (`side = 1.55`,
-`along = 3`) likewise derive from the chassis so the player steps out beside
-the bus rather than inside it.
+takes the half-extents from the caller instead of hard-coding them; the
+bicycle and foot cases are untouched.
+
+Those half-extents are the vehicle's **plan** size, not its collision belly.
+The chassis box is deliberately compact — `admin` is .65 x 1.35 against a
+3.8 m car — so probing with it directly would make spawning *more*
+permissive than today and let existing cars clip walls they are currently
+rejected from. The rule is `halfZ = length / 2`, `halfX = max(chassis.x, .9)`,
+which at the 3.8 m reference length returns exactly the .9 / 1.9 the literals
+held. The dismount side/along offsets in `ExplorerController` (`side = 1.55`,
+`along = 3`) derive from the same footprint, and likewise come out unchanged
+for the reference car.
 
 ### Preview and picker
 
