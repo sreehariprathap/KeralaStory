@@ -22,6 +22,10 @@ network-dependent part: it calls a new server endpoint that holds the LLM
 keys, with an in-character canned fallback line when the network or both LLM
 providers are unavailable.
 
+Each NPC also shows a small live head icon on the world map (`ExplorerMap`),
+at its current wander position, so players can see roughly where Luttappi and
+Mayavi are without having encountered them yet.
+
 There is no mission system in the codebase yet. This spec adds a minimal
 mission-stub data set (name, zone, one-line description) purely so the NPCs'
 system prompts have real content to hint at or misdirect about. Building an
@@ -39,6 +43,7 @@ actual quest/objective system is out of scope.
 | Mission tie-in | Stubbed: a small static list of placeholder missions gives the LLM something concrete to reference, confuse, or hint at. |
 | LLM provider | Gemini Flash primary, OpenRouter fallback on error/timeout. Keys live only in `apps/server`. |
 | Coin authority | Client-side, mirroring the existing collectables system (`collectState.ts`). No server validation, consistent with how coin pickups already work. |
+| Map presence | Both NPCs show a small live head icon on `ExplorerMap` at their current wander position, always visible (not gated on discovery like landmarks). |
 
 ## Architecture
 
@@ -52,6 +57,9 @@ src/game/npc/
 src/features/npc/
   NpcChatPanel.tsx       proximity prompt + open chat panel (text input, reply display)
   npc-chat.css
+
+src/features/map/
+  ExplorerMap.tsx (edit)  adds a live NPC head pin per NPC, alongside the existing landmark/highlight pins
 
 src/content/world/
   missionStubs.ts        static placeholder missions: { id, zoneId, title, hint }
@@ -138,6 +146,18 @@ target (touch), matching `interactionMessage`/`canInteract` conventions
 already in `ExplorerControllerProps`. Opening it shows a simple text input
 and the running exchange (not persisted across sessions — this is flavor
 chat, not a saved log). Closes on Escape/back button or moving out of range.
+
+**`ExplorerMap.tsx` (edit)**
+
+Takes a new `npcs?: { id: NpcId; position: Vec3 }[]` prop (App.tsx supplies
+current `npcState` positions each frame, same as it already supplies
+`player`). Renders one `Pin` per NPC using the existing `Pin` component, but
+with a small custom round face icon instead of a phosphor `Icon` — a
+Luttappi head (orange fill, two dark horn triangles) and a Mayavi head (tan
+fill, lighter horns), sized like the existing landmark pins. Unlike
+`LANDMARKS`, these pins are not discovery-gated and their position updates
+live as the NPC wanders, matching how the player's own marker already moves
+on the map.
 
 **`missionStubs.ts`**
 
