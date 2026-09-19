@@ -53,8 +53,10 @@ colourful Indian hill-town houses; heavier), and extending `TOWN_BUILDINGS` (too
   roofs; rolling shutters, awnings, bilingual signboards (Tea & Spices, Homemade Chocolates,
   Bakery, Textiles, Pharmacy, Lodge, STD Booth, Hotel).
 - **KSRTC bus stand**: bay beside the main road, shelter, benches, timetable board, parked bus.
-- **Hillside homes**: terraces stepping up the slopes behind the bazaar, served by one or two
-  steep tarred side streets with tea on both sides.
+- **Hillside homes**: terraces stepping up the slopes behind the bazaar. Built change: they are
+  reached by three stone stairways, not tarred side streets — the slope climbs 30 m in 45 m, so a
+  street would need a 60 % grade against the layout's 10 % limit. The tarred, tea-lined climb is
+  the dam road above them.
 - **Hotels**: Hotel High Range, Tea County Inn (3 storeys). **Resort**: Misty Hills Resort,
   cottages on the hill facing the river and dam.
 - The existing tea-stop, house and frontage entries in `TOWN_BUILDINGS` for Malakkappara are
@@ -80,8 +82,9 @@ colourful Indian hill-town houses; heavier), and extending `TOWN_BUILDINGS` (too
 
 ## Performance
 
-Town geometry merged per material; signs are small canvases. Low tier: hedge sampling halves
-(as now), fewer hillside houses, no parked bus.
+Town geometry merged per material; signs are small canvases. Low tier: hedge sampling halves and
+the hedge profile drops from seven points to five. The town itself is drawn at every tier: it costs
+five draw calls, so thinning it would not buy anything.
 
 ## Verification
 

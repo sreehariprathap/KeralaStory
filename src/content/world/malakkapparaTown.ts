@@ -230,6 +230,18 @@ function createTown() {
     }
   }
 
+  // Stepped stone stairways up the hillside terraces. A street here would need a 60% grade
+  // (the slope climbs 30 m in 45 m), so the terraces are reached on foot, as in any hill town.
+  for (const [sx, fromZ, toZ] of [[-592, -745, -772], [-563, -745, -772], [-534, -745, -765]] as const) {
+    const steps = Math.round((fromZ - toZ) / .9);
+    for (let i = 0; i < steps; i++) {
+      const z = fromZ - i * .9, top = terrainHeight(sx, z - .45) + .1, below = terrainHeight(sx, z + .9);
+      const h = Math.max(.3, top - below + .5);
+      piece('solid', [sx, top - h / 2, z], [2.6, h, 1], '#a39c8e');
+      if (i % 6 === 0) for (const side of [-1, 1]) piece('solid', [sx + side * 1.45, top + .45, z], [.3, .9, .3], '#8f887a');
+    }
+  }
+
   // Welcome arch over the main road at the pad's south edge.
   {
     const z = -627.5, x = -552.1, y = padY, span = 5.5 / 2 + 1.4;
