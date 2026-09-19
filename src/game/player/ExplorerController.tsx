@@ -20,6 +20,7 @@ import { BicycleVisual } from '../vehicle/BicycleVisual';
 import { createBikePhysics, type BikePhysics, type BikeMotion, type BikeIntent } from '../vehicle/bikePhysics';
 import { CarVisual } from '../vehicle/CarVisual';
 import { createCarMotion, createCarPhysics, type CarPhysics } from '../vehicle/carPhysics';
+import { VEHICLE_PROFILES } from '../../content/assets/vehicleProfiles';
 import { resolveClearFeet } from '../vehicle/clearance';
 import { interactionReason } from '../vehicle/mountState';
 import { configureTravelCollider } from './travelCollider';
@@ -613,6 +614,6 @@ export function ExplorerController(props: ExplorerControllerProps) {
         {gliding&&<GliderVisual pose={gliderPose} backHeight={riderHip+.42} reducedMotion={reducedMotion}/>}
       </group>
     </RigidBody>
-    <ThirdPersonCamera body={body} vehicleBody={cameraCar} input={input} azimuth={azimuth} heading={heading} motion={motion} mode={mode} sensitivity={sensitivity} reducedMotion={reducedMotion} resetToken={resetToken} cameraControl={cameraControl} target={cameraTarget}/>
+    <ThirdPersonCamera body={body} vehicleBody={cameraCar} carDistance={spawnedCarModel?VEHICLE_PROFILES[spawnedCarModel].cameraDistance:undefined} input={input} azimuth={azimuth} heading={heading} motion={motion} mode={mode} sensitivity={sensitivity} reducedMotion={reducedMotion} resetToken={resetToken} cameraControl={cameraControl} target={cameraTarget}/>
   </>;
 }

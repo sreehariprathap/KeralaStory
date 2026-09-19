@@ -12,6 +12,8 @@ import { followHeading } from './followHeading';
 interface Props {
   body: RefObject<RapierRigidBody | null>;
   vehicleBody?: RefObject<RapierRigidBody | null>;
+  /** Overrides the shared car chase distance for a long or tall vehicle. */
+  carDistance?: number;
   input: RefObject<ExplorerInput>;
   azimuth: RefObject<number>;
   heading: RefObject<number>;
@@ -36,8 +38,13 @@ const FRAMING: Record<CameraTargetKind, { distance: number; extraHeight: number;
   plane: { distance: 16, extraHeight: 2.2, extraPitch: -.1 },
 };
 
+/** The chase distance for a car, honouring a profile override. */
+export function carFramingDistance(cameraDistance?: number): number {
+  return cameraDistance ?? FRAMING.car.distance;
+}
+
 /** Environmental sphere sweep excludes the player and sensor-only discoveries. */
-export function ThirdPersonCamera({ body, vehicleBody, input, azimuth, heading, motion, mode, sensitivity, reducedMotion, resetToken, cameraControl, target }: Props) {
+export function ThirdPersonCamera({ body, vehicleBody, carDistance, input, azimuth, heading, motion, mode, sensitivity, reducedMotion, resetToken, cameraControl, target }: Props) {
   const { world, rapier } = useRapier();
   const pitch = useRef(0.26);
   const distance = useRef(4.5);
@@ -78,7 +85,9 @@ export function ThirdPersonCamera({ body, vehicleBody, input, azimuth, heading, 
       vectors.target.set(position.x, position.y - FEET_TO_CENTER, position.z);
       kind = 'foot';
     }
-    const goal = FRAMING[kind], frame = framing.current, blend = !initialized.current || reducedMotion ? 1 : 1 - Math.exp(-3 * dt);
+    const table = FRAMING[kind];
+    const goal = kind === 'car' ? { ...table, distance: carFramingDistance(carDistance) } : table;
+    const frame = framing.current, blend = !initialized.current || reducedMotion ? 1 : 1 - Math.exp(-3 * dt);
     // Driving fast, the chase camera drops back a little so the road ahead opens up.
     const speedPullBack = kind === 'car' || kind === 'boat' ? Math.min(3.2, Math.max(0, motion.current.speed - 8) * .12) : 0;
     frame.distance += (goal.distance + speedPullBack - frame.distance) * blend;

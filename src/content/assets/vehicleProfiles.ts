@@ -9,6 +9,8 @@ export interface VehicleProfile {
   wheels: readonly VehicleWheel[];
   /** Metres per second before nitro; defaults to DEFAULT_TOP_SPEED. */
   topSpeed?: number;
+  /** Chase-camera distance in metres; defaults to the shared 7.6 m car framing. */
+  cameraDistance?: number;
   /** Source nodes that are not part of the vehicle (e.g. an exported floor); removed before measuring. */
   hiddenNodes?: readonly string[];
   /** Source material names recoloured by the player's chosen paint. */
@@ -96,7 +98,7 @@ export const VEHICLE_PROFILES: Record<CarModelId, VehicleProfile> = {
     wheel(-.8713,.41515,-1.24832,.41515,'CarWheelRubberHW_Car_Wheel_Rubber_HW004_0','CarWheelHubHWCelero_Steel_Car_Wheel_Hub_HWCelero_Steel004_0','CarWheelBrakeBrake004_Car_Wheel_Brake_Brake004_0'),
   ] },
   // Tall off-roader: the belly sits .74 m clear, well above the .4 m floor the clearance test enforces.
-  'willys-buggy': { length: 4, chassis: { x: 1.05, y: .6, z: 1.7, offset: .5 }, wheels: [
+  'willys-buggy': { length: 4, chassis: { x: 1.05, y: .6, z: 1.7, offset: .5 }, cameraDistance: 8, wheels: [
     wheel(1.01681,.58824,1.41221,.58824,'front_left_wheel_wheels_0','front_left_wheel_suspension_part_1_0'),
     wheel(-1.0168,.58824,1.41221,.58824,'front_right_wheel_wheels_0','front_right_wheel_suspension_part_1_0'),
     wheel(1.01681,.58824,-1.41221,.58824,'rear_left_wheel_wheels_0','rear_left_wheel_suspension_part_2_0'),
