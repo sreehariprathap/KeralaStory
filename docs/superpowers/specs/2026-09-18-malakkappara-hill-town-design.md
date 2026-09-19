@@ -1,6 +1,6 @@
 # Malakkappara hill town and tea estate — design
 
-Date: 2026-09-18 · Branch: `feature/map-expansion` · Status: approved in chat
+Date: 2026-09-18 · Branch: `feature/map-expansion` · Status: all three phases built (2026-09-19)
 
 ## Goal
 
