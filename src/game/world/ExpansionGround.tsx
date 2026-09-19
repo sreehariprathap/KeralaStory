@@ -12,7 +12,7 @@ import { yawPitchToXyz } from '../../content/world/rotation';
 
 const WORLD_ROUTES = [...EXPANSION_LAYOUT.routes, ...V2_ROUTES];
 
-const GRASS=new Color('#7d9361'),TEA_SOIL=new Color('#6c7443'),SAND=new Color('#e3cf9c'),WET_SAND=new Color('#bfa877');
+const GRASS=new Color('#7d9361'),TEA_SOIL=new Color('#4d4a2d'),SAND=new Color('#e3cf9c'),WET_SAND=new Color('#bfa877');
 const HIGHLAND=new Color('#8e9a5a'),DRY_TOPS=new Color('#a7a672'),STONY=new Color('#8b8870'),FOLD=new Color('#66804f');
 const smoothstep=(t:number)=>{const u=Math.max(0,Math.min(1,t));return u*u*(3-2*u);};
 /**

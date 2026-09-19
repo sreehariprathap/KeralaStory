@@ -20,7 +20,7 @@ export const TEA_ESTATE = {
   hedgeHeightM: 1,
   hedgeWidthM: 1.65,
   /** No planting on ground steeper than this (rise over run): the terraces climb the road-cut banks. */
-  maxSlope: .85,
+  maxSlope: 1.15,
   /** Picker's paths wind across the rows at about this spacing along the road (metres). */
   pathEveryM: 34,
 } as const;
@@ -74,7 +74,11 @@ function createEstate() {
   // Pickers' paths first: one point a metre, climbing from the road through every row. Hedges then
   // keep a metre clear of them on the ground, which holds on the inside of bends where rows bunch up.
   const paths: Vec3[][] = [], lastRow = TEA_ESTATE.firstRowM + (TEA_ESTATE.rows - 1) * TEA_ESTATE.rowSpacingM;
-  const lineAt = (at: number) => line[Math.max(0, Math.min(line.length - 1, Math.round(at)))];
+  // Line samples are a metre apart: interpolate between them so paths curve instead of stepping.
+  const lineAt = (at: number) => {
+    const u = Math.max(0, Math.min(line.length - 1.001, at)), i = Math.floor(u), f = u - i, a = line[i], b = line[i + 1];
+    return { x: a.x + (b.x - a.x) * f, z: a.z + (b.z - a.z) * f, nx: a.nx + (b.nx - a.nx) * f, nz: a.nz + (b.nz - a.nz) * f };
+  };
   for (let k = 1; k * TEA_ESTATE.pathEveryM < line.at(-1)!.s; k++) for (const side of [-1, 1]) {
     let path: Vec3[] = [];
     const flush = () => { if (path.length >= 4) paths.push(path); path = []; };
@@ -112,6 +116,17 @@ function createEstate() {
     }
     flush();
   }
+  // A path only runs where it has tea either side: trim each to the stretch beside planted rows.
+  const rowBins = new Set<string>();
+  for (const row of rows) for (const [x, , z] of row.points) rowBins.add(`${Math.round(x / 2)},${Math.round(z / 2)}`);
+  const beside = ([x, , z]: Vec3) => [-1, 0, 1].some(dx => [-1, 0, 1].some(dz => rowBins.has(`${Math.round(x / 2) + dx},${Math.round(z / 2) + dz}`)));
+  const plantedPaths = paths.flatMap(path => {
+    const out: Vec3[][] = [];
+    let run: Vec3[] = [];
+    for (const p of path) { if (beside(p)) run.push(p); else { if (run.length >= 4) out.push(run); run = []; } }
+    if (run.length >= 4) out.push(run);
+    return out;
+  });
   // Silver oaks for shade, standing in the rows every so often.
   const random = rng(7351), shade: ShadeTree[] = [];
   // Sparse: one every few dozen metres of every third row.
@@ -120,7 +135,7 @@ function createEstate() {
     const [x, y, z] = row.points[i];
     shade.push({ position: [x, y, z], height: 9 + random() * 6, yaw: random() * Math.PI * 2 });
   }
-  return { rows, shade, paths };
+  return { rows, shade, paths: plantedPaths };
 }
 
 export const TEA_ESTATE_PLANTING = createEstate();
