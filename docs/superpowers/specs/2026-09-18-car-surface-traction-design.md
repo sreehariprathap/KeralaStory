@@ -42,9 +42,16 @@ motor, unaffected, until part 2).
 
 A new pure module, `src/content/world/roadSurface.ts`, assembles every
 drivable route into one lookup table at module load (mirrors the network
-already assembled ad hoc in `tests/roadNetwork.test.ts`: `EXPANSION_LAYOUT.routes`
-filtered to routes that allow `car`, `V2_ROUTES`, `CHALAKKUDY_BRIDGES`, and
-the city roads from `chalakkudyCity.ts`). It exposes one pure function:
+already assembled ad hoc in `tests/roadNetwork.test.ts`): `EXPANSION_LAYOUT.routes`,
+`V2_ROUTES`, `CHALAKKUDY_BRIDGES`, the city roads from `chalakkudyCityPlan.ts`,
+and `MAIN_PATH` — the original road corridor near spawn, which predates the
+`ExpansionRoute` system and isn't part of any of the above. `MAIN_PATH` is a
+plain `[x, z][]` list with no width of its own; the rest of the codebase
+(`isCycleAllowed`, `wildlifeRules.ts`) already treats it as a fixed 3 m
+half-width paved corridor, so this module does the same for consistency.
+Without it, the classic starting road near spawn would read as off-road,
+which would make the very first driving experience feel broken. It exposes
+one pure function:
 
 ```ts
 export type SurfaceKind = 'paved' | 'dirt' | 'offroad';
