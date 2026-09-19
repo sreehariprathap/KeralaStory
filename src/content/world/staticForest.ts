@@ -1,4 +1,4 @@
-import { KODASSERY_PATH, terrainHeight } from './definition';
+import { KODASSERY_PATH, isClearOfRoads, terrainHeight } from './definition';
 import type { TraversalBox } from '../../game/world/traversalGeometry';
 type Point = [number, number, number];
 
@@ -38,7 +38,7 @@ export function staticForestBoxes(): TraversalBox[] {
   for (let i = 0; i < 230; i++) {
     const x = (random() - .5) * 148, z = -496 + random() * 162;
     const nearest = Math.min(...CANONICAL_TRAIL_POINTS.map(p => Math.hypot(p[0] - x, p[2] - z)));
-    if (nearest < 6 || (x > 4 && x < 37 && z > -436 && z < -400) || (x > 24 && z > -405 && z < -370)) continue;
+    if (nearest < 6 || !isClearOfRoads(x, z, 6) || (x > 4 && x < 37 && z > -436 && z < -400) || (x > 24 && z > -405 && z < -370)) continue;
     const h = 6 + random() * 9, y = terrainHeight(x, z); random();
     for (let leaf = 0; leaf < 4; leaf++) random();
     if (i % 4 === 0) { random(); random(); random(); }

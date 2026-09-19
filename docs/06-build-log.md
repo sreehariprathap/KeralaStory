@@ -1,5 +1,16 @@
 # Build log — observed implementation status
 
+## 17 September 2026 — multiplayer rooms reachable from the running app
+
+- Wired the previously-orphaned multiplayer server, protocol, and client (see the two entries below) into the actual running app on `feature/multiplayer-rooms`. Up to ten guests can now create or join a private on-foot room by an eight-character code or invite link, from the title screen's new `Play together` action, and explore the shared Kerala world together. Implementation followed `docs/superpowers/specs/2026-09-17-multiplayer-room-integration-design.md` and `docs/superpowers/plans/2026-09-17-multiplayer-room-integration.md`.
+- New: `src/features/multiplayer/roomSessionModel.ts` (pure selectors and player-facing error copy), `src/features/multiplayer/MultiplayerRoomScene.tsx` (in-canvas local controller plus one render-only remote avatar per guest), `src/app/useRoomSession.ts` (lobby/entered/chat-focus state). Modified `WorldCanvas.tsx` (optional `multiplayer` prop, suppresses `Collectables`/`SoccerMatch` in a room), `App.tsx` (title action, lobby modal, HUD room panel, solo-system suppression, and a guard so `persist()` never writes the local save while in a room), `RoomStatus.tsx` (seat/vehicle controls removed — the server still answers `enterVehicle`/`exitVehicle` with `VEHICLE_DENIED` and always reports `vehicles: []`, so no seat UI ships this milestone), `multiplayer.css`, and `package.json` (`dev:all` runs the client and server together).
+- **This milestone is explicitly on-foot only.** Shared vehicles, seats, public/named lobbies, and deployment remain out of scope and unimplemented, matching the design doc.
+- Manual verification was performed live, not merely described: `npm run dev:all` was started for real and two independent headless-Chrome browser pages were driven end-to-end against the actual running client and server (no mocks). Confirmed working: creating a room and receiving a real server-issued code; `?room=CODE` deep-linking the lobby open with the code pre-filled; joining by that code resolving through the real `GET /rooms/:code` endpoint and `joinById`; the roster updating live in both windows as guests joined (1/10 → 2/10) purely from server state patches; entering the shared world showing the "Shared room" HUD panel with both guests listed; two-way chat delivered end-to-end through the real Colyseus room; car/bike HUD buttons and the wallet HUD correctly absent while in a room; `Leave room` returning to the title screen with `Continue your journey` still available; and, most importantly, the local save's `updatedAt`/`position` provably unchanged (read directly from `localStorage`) across a room session and after leaving it — the persistence guard holds under real conditions, not just in the unit test.
+- Also verified live: a hard page reload while connected, followed by rejoining with the same room code, resumed the same guest slot (roster stayed at 1/10 rather than adding a duplicate) via the stored `sessionStorage` reconnect token — the reconnect-grace-period path works.
+- **Known issue found during this verification, not introduced by this work:** immediately after that reload-and-rejoin path, the room HUD briefly showed a "The server rejected that request. Try again." banner (`roomErrorMessage('INVALID_MESSAGE')`), even though the guest resumed correctly and nothing else broke. This did not reproduce on a clean, non-reload join in either window. It touches `Admission`/`KeralaRoom`/`roomClient` reconnect internals that no task in this plan modified, so it was recorded rather than fixed here; it would be worth a focused look before this ships beyond local testing.
+- **Not verified in this pass:** real touch/mobile input actually driving a guest in a room (the touch layout was confirmed non-overlapping under phone-width emulation and the reconnect flow above was run under that same emulation, but this sandboxed browser has no WebGL, so `MultiplayerLocalController` never mounts here and no physics-driven movement could be exercised — the `Canvas` fallback renders instead). A hardware-accelerated browser is needed to close this out. Also not run: the 10th-guest `ROOM_FULL` boundary, and an actual network-loss simulation (only a full reload was tested, which exercises a related but not identical path).
+- Checks: `npm run typecheck` PASS (all 5 sub-projects). `npm test`: 222/225 files, 1377/1385 tests PASS. The 3 failing files are pre-existing and unrelated to this branch's changes — confirmed by isolating the diff (`git stash`) and re-running one of them in isolation, which failed identically on the unmodified tree: `apps/server/tests/roomIntegration.test.ts` (one snapshot-timeout test waiting on ten real Colyseus connections; reproduced identically three separate times during this work, including once against a completely clean stash) and its stale copy under `.worktrees/perf-pwa/`; `.worktrees/ten-player-multiplayer/tests/generatedRigs.test.ts` (6 failures, all `ENOENT` on `public/assets/characters/*.glb` files that don't exist in that stale worktree). `npm run build` PASS. Existing Three.js CommonJS deprecation and large `WorldCanvas` chunk warnings remain.
+
 ## 15 September 2026 — multiplayer Luna-isolated slice
 
 - Implemented the unblocked plan tasks L03 and L04 without touching server contracts, app composition, physics, or world integration. L03 now parses direct or shared-link room codes and provides session-only, room-scoped token storage with recoverable storage warnings. L04 now buffers ordered snapshots with bounded capacity, interpolates render-time samples, handles short newest-sample gaps, and provides shortest-arc heading/vector interpolation.
@@ -481,3 +492,205 @@ Seven layout tests pass, including connectivity, grades, lengths, unique anchors
   - Any real-device testing: iPhone Add to Home Screen, Android full screen and landscape lock, Wake Lock, vibration, and frame rate on a mobile GPU.
   - KTX2 textures (no encoder installed).
   - Region-based scenery loading and far-distance tree versions (Phase 4).
+
+## 2026-09-17 — Chalakkudy Tier A city
+
+- Chalakkudy is now built out as a Tier A city (`src/content/world/chalakkudyCityPlan.ts`, `chalakkudyCity.ts`, `src/game/world/ChalakkudyCity.tsx`):
+  - Two four-lane (4 × 3.5 m) roads added to `V2_LAYOUT.roads`: MG Road (east–west, z = −60) and Chalakkudy Boulevard (north–south, x = −430). They level the terrain, draw on the map and are drivable. Road paint includes a double yellow centre line, dashed lane lines, edge lines and zebra crossings at the junction. Street lights line both sides.
+  - Chalakkudy Central Mall: three floors, a glass atrium, an entrance canopy and a car park reached by a driveway off MG Road.
+  - 15 modern shops along MG Road, each with a glass front and a painted signboard.
+  - Chalakkudy Motors, a walk-in car showroom with three cars on display inside and two on the forecourt.
+  - A gateway board for arrivals from the north.
+  - The 12 placeholder `chalakkudy-frontage-*` blocks were removed. The coffee street, the houses and the fuel station are unchanged.
+- All city colliders are shared with the multiplayer simulation. `WORLD_VERSION` is now `kodassery-diaries-v2-chalakkudy-city-1`.
+- Checks run:
+  - `npm run typecheck`: PASS.
+  - `npm run build`: PASS.
+  - New `tests/chalakkudyCity.test.ts`: 6/6 pass.
+  - Full `npm test`: the same 8 failures as the unchanged baseline, all in `.worktrees/*` copies plus the known load-sensitive `apps/server/tests/roomIntegration.test.ts`. Run on its own, that test passes.
+- Inspected in the dev server (Chrome) using the three new `?inspect` destinations: the mall and car park, the MG Road shops and lane paint, and the showroom with its display cars. Frame time was about 8 ms. Draw calls rise near the showroom (about 950) because each display car is a full GLB.
+- NOT yet done: mobile GPU profiling of the city, and interiors (the mall and shops are closed shells).
+
+## 2026-09-17 — Chalakkudy across the Kurumalippuzha
+
+- Chalakkudy now covers both banks of the Kurumalippuzha, as marked on the atlas.
+  - The town has two more districts. **Riverfront** covers the valley and both bridges; it counts as town area and draws on the map, but the ground is not levelled. **East** is a new district levelled at y = 37.
+  - Zones, the map and the town list all include both districts.
+- Two cable-stayed four-lane bridges (`CHALAKKUDY_BRIDGES`), each with a deck, walkways, parapets, piers, a pylon pair, stay cables and lamps:
+  - MG Road Bridge runs from MG Road to East Avenue.
+  - Kurumali North Bridge runs from the Link Road to Riverside Road.
+  - Each deck is a separate walkable structure between two road ends, so every road sample stays on dry, carved terrain. Deck heights feed `walkableDeckHeight`, and the colliders are shared with the server.
+- New four-lane roads:
+  - The Chalakkudy–Kodakara Highway, which replaces the old narrow Chalakkudy–Kodakara stretch. `kodakara-road` now starts in Kodakara.
+  - Riverside Road, East Avenue and Link Road.
+  - The Chalakkudy–Kodaly Highway: a ghat that loops down the escarpment and joins Kodaly by its north gate, between the Kodaly Stunt Park and the river.
+  - Every control segment is ≤10% grade.
+- Chalakkudy East also has three glass towers (River View Towers, East Plaza and Chalakkudy Tech Park) and three shops.
+- Checks run:
+  - `npm run typecheck`: PASS.
+  - `npm run build`: PASS.
+  - `vitest` outside `.worktrees`: 605/605 PASS.
+  - New tests cover: bridge ends meeting roads, decks over water keeping swimmers dry and cars allowed, the conversion of tilted collider rotations, highway endpoints, and every bridge sample lying inside Chalakkudy.
+- Inspected in the dev server using the new `?inspect` stops: both bridges (including a car driving on the north deck), Chalakkudy East, the Kodaly ghat, and the world map. Shadow striping on the tilted decks was fixed: the deck surfaces now receive shadows without casting them.
+- NOT yet done: mobile GPU profiling, and a drive from the ghat all the way into Kodaly in a car.
+
+## 2026-09-17 — NH 544 loop, seamless roads, scenery off the carriageway
+
+- **NH 544 loop.** The highway now runs Chalakkudy → Kodakara → Kurumali Bridge → Kodaly junction → up the ghat → Chalakkudy East → MG Road Bridge → Chalakkudy. A third cable-stayed bridge (`kurumali-highway-bridge`) crosses the Kurumalippuzha–Kurumali confluence. The Kodakara–village lane now branches from the loop at a fork east of Kodakara and falls with it through the fork, so the two roads meet at one grade. Kodaly Road runs from the junction into town. Green NH 544 direction boards stand at the junctions, and town boards moved off the carriageway.
+- **Roads blend into the ground.** Road surfaces are rebuilt as a dense mesh (rows and columns about 1 m apart) that follows the walkable surface, takes the highest ground within ~0.7 m, and fades to a dusty shoulder at its outer edge. Where a road ends on another road, its end flares into rounded kerb corners. No terrain pokes through any road any more (was up to 3.8 m on the forest road, 0.5 m on the Kodaly road).
+- **Road surfaces restored after carving.** River banks and town pads used to be carved after the authored roads, which cut steps across them — including a 26 m pit in the Chokkana forest road at Athirappilly. Each road's surface is now restored with the authored blend, while authored clearings and the Athirappilly walking trail keep their own levels so the trail still descends to the lower viewpoint.
+- **Bridges keep air beneath them.** The ground under each span is dug out to 3.5 m below the deck, fading in past the abutments. This fixed a 9 m mound that buried the new Kurumali deck mid-span.
+- **Nothing grows on a road.** A shared `isClearOfRoads` check now gates coconut palms (5 m clearance, so leaning fronds cannot overhang), village palms and shrubs, Kodassery trees and grass, and the forest colliders that mirror them. Chalakkudy's two street palms were removed: the mall car park and the MG Road shops stand there now.
+- Checks run:
+  - `npm run typecheck`: PASS. `npm run build`: PASS.
+  - `vitest` outside `.worktrees`: 607 of 608 pass. The one failure is the known load-sensitive `apps/server/tests/roomIntegration.test.ts`, which passes 3 of 3 when run on its own (~1.1 s). It also fails on the unchanged baseline under the same parallel load.
+  - New `tests/roadScenery.test.ts`: no palm, tree, shrub, flower or grass tuft stands within its own radius of any road or bridge; stunt ramps stay clear; every driveable road surface sits above the ground it covers.
+  - `tests/chalakkudyCity.test.ts` now asserts the loop end to end, including that Kodaly Road reaches the town edge and that each bridge meets road ends on both banks.
+- Inspected in the dev server: the MG Road/Boulevard crossroads (flared corners, zebra crossings), the Kodakara junction and NH boards, and the Kurumali bridge from the Kodaly junction.
+- NOT yet done: a full drive of the loop in a car, and mobile GPU profiling.
+
+## 2026-09-17 — Character and car catalogue refresh
+
+- Removed at the user's request: the Maya (school uniform), Tommy, Appu and Kichu characters, and the Mazda RX-7. Their served GLBs and the three rig sources behind them are deleted, along with the rig profiles, the saved-profile enum entries, and the Mazda-specific calibration test. The showroom's red display car is now the muscle car.
+- Added the four remaining car files, measured against the same normalization the renderer applies (rotate, centre, scale to `length`, wheels from the tyre meshes):
+  - Golf GTI, Sports coupe and Toy car have tyres fused into one mesh per model, so their wheels are positioned for physics but do not spin, as with the Bronco. The Toy car is authored rotated 45 degrees and facing backwards; its catalog rotation corrects both.
+  - The Supercar is the only new car with separate corner meshes, so its wheels steer and spin. It hides its exported shadow plane and exposes its `488_PAINT` material as recolourable paint.
+  - Inspect-mode car cheats now reach the tenth car with the 0 key.
+- Added the four remaining character files:
+  - Spidey and Player 07 ship Mixamo skeletons. A new `mixamo` rig maps their limb bones onto the existing walk cycle, so they animate without a generated rig.
+  - Raja (lungi) and Luffy are static sources rigged by `scripts/rig-characters.mjs` from measured joint positions. Raja's lungi reuses the skirt blend.
+  - `lionel_messi.glb` is left out: it duplicates the rigged Qatar Messi already in the catalog.
+- Checks run:
+  - `npm run typecheck`: PASS. `npm run build`: PASS.
+  - `vitest` outside `.worktrees`: all pass except the known load-sensitive `apps/server/tests/roomIntegration.test.ts`, which passes on its own.
+  - The generated-rig suite runs over every catalog entry: each new character deforms both arms and both legs while walking, running, falling and riding, with normalized weights. The vehicle suite measures the Supercar's wheels against its meshes.
+- Inspected in the dev server: Raja, Spidey, Player 07 and Luffy walking, and all four cars spawned (each sits on its wheels and faces forward).
+- NOT yet done: mobile GPU profiling of the heavier new characters.
+
+## 2026-09-18 — Splash screen and retro main menu
+
+- Replaced the "An Explorer's Tale" title with a logo splash (Malayalam → English crossfade, segmented green loader, "BY SREEHARI") and a white PS2-era main menu over the Kerala story map at 20%. Spec: `docs/superpowers/specs/2026-09-18-splash-and-retro-menu-design.md`.
+- The 3D world now mounts only after New Game, Load Game, or entering a room, behind a load screen. The closed in-game car spawner no longer renders a live preview, so the menu runs no WebGL at all.
+- Game Store: cars, bikes, and characters, all free; Equip sets the spawner defaults and the player character (stored in preferences as `equipped`).
+- Account and the lobby browser are SOON placeholders; Exit appears only in the installed PWA.
+- Deviations from the spec:
+  - The load bar is not pure download progress. `THREE.DefaultLoadingManager` only counts downloads, which finish long before parsing and shader compiles, so the bar sat at 95% for most of the load. Downloads now fill 70% and elapsed time eases the rest toward 95%; it reaches 100% when the player spawns.
+  - `menu-map.webp` is 1100 px at quality 45 (176 KB). At 1600 px it could not get under the 200 KB target.
+- Checks run:
+  - `npm run typecheck`: PASS. `npm run build`: PASS. The entry chunk has no three.js renderer and grew about 4 KB (820 → 824 KB).
+  - `vitest` outside `.worktrees`: all pass except `tests/expansionLayout.test.ts`, which fails the same way before this work, and the load-sensitive `apps/server/tests/roomIntegration.test.ts`, which passes on its own.
+  - Browser walkthrough with headless Chromium (Playwright; the Chrome DevTools MCP profile was locked by another session), at 1280×800 and at 390×844 with touch: splash crossfade, menu keyboard navigation (skips disabled Load Game), store equip of Supercar and Luffy saved to preferences, New Game preselecting Luffy, load screen to gameplay, Supercar preselected in the spawner, pause → Quit to main menu with no canvas left mounted, Load Game back to gameplay, invite link landing on Multiplayer with the code filled, and menu reached with logo/map requests blocked and no broken images. No console errors.
+  - Production build timing (headless, software GL): splash visible at about 1.2 s, menu at about 5.0 s, gameplay about 10.6 s after New Game.
+- Phone layouts: every shell screen (splash, menu, store, multiplayer, settings, account, character creator, load screen) was screenshotted and audited for clipped or overlapping elements and horizontal scroll at 390×844 and 360×640 portrait and 844×390 and 667×375 landscape. Portrait stacks the menu, store and creator; landscape phones keep two columns with a compact layout under 500 px tall. After the fixes, nothing is clipped at any of the four sizes.
+- NOT yet done: Exit in an installed PWA (no installed app to test), gamepad input on real hardware, and real-device mobile timing. The creator's three traveler-style cards are cramped at 667×375 but readable.
+
+## 2026-09-18 — Peringalkuthu Dam, Nedumbassery Airport and Sneha Theeram
+
+- Region 1 (north-west): the dam is renamed **Peringalkuthu Dam** (landmark id `chalakudy-dam` kept for saves). Its reservoir now fills a highland basin with long arms west (to x -835) and east (to x -550), backed by hills; the crest is 10 m lower (`base + 46`). The sixteen-hairpin access road is gone; `chalakudy-dam-road` now runs from Malakkappara (level out of town between the shops, then one even grade) round the valley head and west along the lake's south shoulder onto the east end of the crest. Both buttresses are trimmed flush with the crest walkway and collide; the pedestrian stairs moved to the west buttress. The gorge in front of the wall steps back so the whole downstream face and all three spillways show.
+- Region 2 (south-west): **Nedumbassery Airport** on a levelled pad (y 24) at x -800..-450, z 92..186: 317 m runway with thresholds, centreline and edge lights, apron with three stands and jet bridges, two taxiways, a terminal under tiered Kerala roofs with a named entrance canopy, control tower, hangar, car park, windsock and three parked aircraft. All solids have colliders, shared with the multiplayer simulation. Airport Road leaves MG Road at x -500, crosses the Chalakkudy River on a new four-lane cable-stayed bridge, and descends at an even grade to the terminal forecourt.
+- Region 3 (south of Kodaly): **Sneha Theeram**, a curved beach from Kodaly's headland round to the Chalakkudy River mouth. The coast is one smoothed waterline (`snehaTheeram.ts`) that drives terrain (sand slope, sea floor, a grassy bluff under the NH 544 loop), water (`isSeaAt`), the sea mesh, sand-tinted ground and the atlas. Dressing: beach palms leaning to the sea, umbrellas with loungers, four vallams, a lifeguard tower, a snack stall, an entrance arch and surf.
+- Fixed a pre-existing seam: the terrain column at exactly x = -78 south of Kodaly (z > 92) skipped the V2 ground profile and stood ~50 m tall, a wall between the lowland and the sea.
+- New landmarks `nedumbassery-airport` and `sneha-theeram` (map icons, English and Malayalam names). Stunt sites were regenerated; parks now also avoid the airport, the beach, the football ground and the map rim.
+- Checks run:
+  - `npm run typecheck`: PASS. `vite build`: PASS.
+  - `vitest` outside `.worktrees`: all pass except `tests/expansionLayout.test.ts` (fails the same way before this work) and the load-sensitive `apps/server/tests/roomIntegration.test.ts`.
+  - Inspected in the running game (headless Chromium with GPU, free camera over the live scene): dam front and crest, reservoir from above, the dam road arriving on the crest, airport overview, terminal, apron and runway, Airport Road bridge, the beach from the sea, from the sand and from the headland. Atlas checked at full size and zoomed.
+- NOT yet done: driving the dam road and Airport Road end to end with a real car, and phone performance with the new scenery.
+
+## 2026-09-18 — Connected road network, Peringalkuthu Tea Estate, hill-country detail
+
+- Road network made continuous and race-ready, driven by two new tools: `scripts/audit-roads.ts` (ends, bumps, grade, cross-slope, solids on carriageways) and `scripts/drive-roads.ts` (a physics supercar driven along every paved road both ways at ~14 m/s, measuring jolt, airtime, tilt, lane keeping). Both are now enforced by `tests/roadNetwork.test.ts`.
+- Fixed:
+  - Chokkana main road dropped 26 m into the Athirappilly lower-view footpath notch. It now crosses on a new beam bridge (`athirappilly-trail-bridge`); paths and viewpoints under a deck keep ground level.
+  - Chokkana stream bridge deck was flat on an 8% road (0.6–0.8 m steps). The deck now follows the road's grade.
+  - City bridges had terrain lips up to 0.7 m at their ends. Added abutments laid on the deck line and a ceiling so no ground pokes through a deck.
+  - Old Kurumali wooden bridge: the south bank stood 1 m above the deck. Notched the bank, built a 7% approach embankment, and rebuilt both ramps as cubic vertical curves. Also eased the 10%→23% grade kink on the village road at z = -334.
+  - Silver Storm forecourt slab stood 28 cm proud across the access road. It is now flush, and its name board is off the road.
+  - Summit gate posts stood in the access road's end. They moved 6 m down the footpath.
+  - Kodakara Road ran over Rajan's tea-shop steps. It is rerouted north of the shop to join the village road at z -165.
+  - Kodaly Road stopped short of Kodaly. A two-lane link now carries it into the Banyan circle's west avenue.
+  - Airport Road left the bridge into a sharp bend. It now runs one broad bend and a single 6.8% descent to a terminal turning circle. The terminal, apron, tower, hangar and car park moved west to suit.
+  - The summit off-road track started in the open valley. Its foot is now a junction on the dam road's new U-turn, with a level landing.
+  - Wayfinding boards and the Chokkana tea hut stood on roads. `roadsideSpot()` now places them.
+- Turning circles (`V2_LAYOUT.roadCaps`) finish every road that doesn't join another: MG Road west end, Boulevard north end, Silver Storm forecourt, summit trailhead, the airport forecourt, and a lay-by viewpoint on the dam road. Each is levelled to its road, drawn as asphalt and on the atlas, and treated as road by terrain, scenery and travel rules.
+- Peringalkuthu Tea Estate (`teaEstate.ts`, `TeaEstate.tsx`): the dam road's sides are graded as broad slopes (verge widens with cut/fill, no bank steeper than about 1 in 3). Seventeen rows of clipped tea hedges each side contour the slopes, with picker paths, silver-oak shade trees, soil tint between rows and an estate board. The estate is shown on the atlas.
+- Hill-country detail (`mountainDressing.ts`, `MountainDressing.tsx`): about 1,450 boulders on steep and high ground (large ones collide, shared with multiplayer) and about 550 shola trees in clumps, kept off roads, water, tea, towns, landmarks and stunt sites. Terrain is now coloured from its own grid: highland grass, dry tops, stony steep faces, darker folds.
+- Stunt sites regenerated (parks avoid tea, boulders and the stadium).
+- Checks run:
+  - `npm run typecheck`: PASS. `vite build`: PASS.
+  - `vitest` outside `.worktrees`: all pass except `tests/expansionLayout.test.ts` (fails the same way before this work) and the load-sensitive `apps/server/tests/roomIntegration.test.ts`. The new `tests/roadNetwork.test.ts` passes: no dead ends, caps level, no solids on carriageways, every paved road driven both ways with jolt ≤ 10.5 m/s², no airtime over 150 ms, tilt < 0.45 rad.
+  - Inspected in the running game with a free camera: tea estate from above and at road level, dam and lake with hills, summit mountain, the trail bridge, Kodaly link, Kodakara junction, airport forecourt, Silver Storm, dam lay-by, and the atlas.
+- Known, not from this work: `Cannot set properties of undefined (setting '_cacheIndex')` appears in the console during inspect-mode teleports on the previous commit too.
+- NOT yet done: race-line tuning for specific race routes, and phone performance with the added scenery (about +1M triangles in hill views).
+
+## 2026-09-17 — Authored water park, lighter assets
+
+Asset audit of the built app: 29 models loaded before the player could press Play (19.1 MB, 1.6M vertices,
+about 344 MB of texture memory). Texture memory, not file size, is what limits phones: a 0.55 MB file with
+sixteen 1024² textures costs 89 MB on the GPU.
+
+- Silver Storm is now authored geometry (`src/content/world/waterPark.ts`, `src/game/world/WaterPark.tsx`)
+  instead of `park/amusement_park.glb` (4.9 MB, 494k vertices, 53 MB of texture memory, collision built from
+  its full mesh).
+  - Two slide towers whose flumes spiral down and run out into their splash pools, a wave pool on the
+    authored pool footprint, a lap pool, a kids' pool, a walk-through splash pad with jets, sun loungers and
+    umbrellas, palms, changing rooms, a café, a plant room, ticket booths, a perimeter fence and an entrance arch.
+  - Positions all derive from `V2_LAYOUT.park`, so the park follows the authored footprint. The wave pool keeps
+    its original collider ids.
+  - Colliders come from `waterParkBoxes()` via `v2DressingBoxes()`, so the multiplayer simulation gets them too;
+    a test asserts that. The pools stay closed off, as they are not part of the swimmable water system.
+  - It draws as merged geometry per colour with no textures at all.
+  - `/park-review.html?view=aerial|entrance|slides|pools` renders the park on its real terrain for review.
+- Texture sizes are now chosen per asset with a per-model budget (`scripts/optimize-assets.mjs`): a model with
+  26 textures gets smaller ones than a model with two. Characters up to 1024, vehicles and buildings 512,
+  scenery and props 256, and each model capped (characters 3 MP, vehicles 2.2 MP, buildings 2 MP, else 1 MP).
+- The 4.3 MB concept map only loads when the atlas is opened; it used to download on every cold start.
+- Removed from the build: `adventure/mini_stadium.glb` (23 MB), `characters/lionel_messi.glb`,
+  `kerala-story-map.png`, `soccer/soccer_field.glb`, `stunt/ramp_lowpoly.glb` and a stray generated PNG —
+  none were referenced. The two world reference images moved to `asset-sources/reference/` (manifest updated).
+- Measured results:
+  - Startup: 29 models, 19.1 MB, ~344 MB of texture memory → 28 models, 10.1 MB, ~21 MB.
+  - Every model loaded at once: ~880 MB of texture memory → ~106 MB.
+  - Models total 422 → 55 MB; `dist` 107 → 75 MB.
+- Checks run:
+  - `npm run typecheck`: PASS. `vite build`: PASS.
+  - `vitest` (excluding the intermittent `roomIntegration`): 600 of 600, including `tests/waterPark.test.ts`.
+  - `roomIntegration` failed in this session on both this tree and the untouched worktree copy, so it is the
+    known intermittent failure rather than a change here.
+  - Reviewed in the running game (fast travel to Silver Storm) and in the review page: pools hold water, the
+    flumes land in the splash pool, and the splash pad is walkable.
+- NOT verified: how the smaller textures look on characters and vehicles up close, and anything on a real phone.
+
+## 2026-09-18 — Merge feature/map-expansion (authored water park)
+
+- The new park fills its whole footprint behind a fence, but the Silver Storm access road still ran into it and ended at a turning circle inside the grounds (through the east fence and the café). The road now bends west outside the south edge and ends at a forecourt turning circle in front of the entrance gate (38, −626). The old forecourt slab and name board went with the imported park model.
+- Title-screen atlas and profile modal: kept this branch's shell flow, so the atlas image lazy-load change from map-expansion does not apply here.
+- Checks run: `npm run typecheck` PASS, `vite build` PASS, `vitest` 643 of 644 (only the known `tests/expansionLayout.test.ts` failure; `roomIntegration` excluded). `tests/roadNetwork.test.ts` and `tests/waterPark.test.ts` pass.
+- NOT yet done: looking at the new forecourt in the running game.
+
+## 2026-09-18 — Parachute drop
+
+- A parachute button on the HUD (on foot, solo only) opens the glider 120 m above the highest ground within 80 m of the player (`parachuteDropHeight()` in `gliderSites.ts`), facing the way the player looks. It then flies exactly like the summit glider: thermals, edge turn-back, landing, splash. The button hides while riding anything.
+- Multiplayer rooms do not get the button: the server owns glider launches and only allows the summit circle. Adding it there needs a protocol message and server validation.
+- While gliding, the F prompt now reads "Let go of the glider" (it said "Ride bicycle"). The altitude and nitro readouts moved beside the HUD icon column on desktop; the column had grown over them.
+- Checks run: `npm run typecheck` PASS, `vite build` PASS, `vitest` all pass except the known `tests/expansionLayout.test.ts` (`roomIntegration` excluded). Headless Chromium (Playwright, 1280×800): new game → parachute button → 150 m above ground in the glider, diving to 119 m in 8 s, prompt and readout placed correctly, no console errors.
+- NOT yet done: touch layout check and a Malayalam translation for the new strings.
+
+## 2026-09-18 — Google accounts (Firebase)
+
+- Accounts use the project's Firebase app (`src/firebase.ts`: Google sign-in, Firestore database `kodassery-db`). The SDK loads lazily (`src/account/accountService.ts`), so the splash and menu do not wait on it.
+- Free play needs no account: guests get the launch skin (Explorer), the Admin car and the Roadster bicycle (`GUEST_LOADOUT`, `isUnlocked` in `content/store/catalog.ts`). `resolveEquipped(equipped, signedIn)` falls back to that loadout for guests, so a signed-out device never spawns a locked model. The store, the character creator and the in-game car and bike spawners show the rest locked, with "Sign in".
+- Signing in (Account screen, or a locked store item) unlocks everything. The account keeps the saved game (coins included) and the equipped loadout at `users/{uid}` (`src/account/cloudSave.ts`: the save as JSON text, parsed with the save schemas on the way back). On sign-in the newer save wins, a tie keeps the account's copy, and a run already in progress always wins. Nothing is written until the account's copy has been read. While playing, saves go up at most every 30 s, and immediately on pause, quit, sign-out or hiding the app.
+- `firestore.rules`: owner-only read/write of `users/{uid}`, only the three expected fields, and `updatedAt` must be the server time. Registered in `firebase.json`.
+- Checks run: `npm run typecheck` PASS, `vite build` PASS (Firebase in separate lazy chunks), `vitest` all pass except the known `tests/expansionLayout.test.ts` (`roomIntegration` excluded); new `tests/cloudSave.test.ts` and store-lock tests. Headless Chromium at 127.0.0.1:5000: guest Account screen, the Google popup opens (Firebase handler), the unauthorised-domain error is shown, store tags and Sign-in button on locked items, locked character options, locked spawner cards. No console errors.
+- NOT verified: a real Google sign-in and a cloud save round trip (needs a person to log in), and the rules (no Java for the emulator; the CLI account lacks permission on the project, so they are not deployed).
+
+## 2026-09-18 — Email and phone sign-in, pause screen, Google tag, app icons
+
+- Account screen (guest): Google, plus email/password (sign in, create account, password reset link) and phone (SMS code behind an invisible reCAPTCHA, fresh container per attempt, 2-minute limit so a closed puzzle cannot leave the form stuck). Firebase errors map to short messages (`signInErrorKey`).
+- Provider check against the live project (read-only probes with the public web key): email/password is on; phone returns `OPERATION_NOT_ALLOWED`, so it shows "This sign-in method is not switched on yet" until enabled in the console. Authorized domains are the firebaseapp/web.app/vercel ones; `localhost` is not yet listed, which is why local Google sign-in fails. The console takes bare domains only (no scheme, port or IP).
+- Pause screen (`PauseMenu.tsx`) now matches the main menu: Resume, Field Atlas, Settings, Quit/Leave Room; Esc and Enter-on-Resume resume.
+- Google tag (`G-G767396RKX`) added to `index.html`; the service worker ignores cross-origin requests, so analytics pass through.
+- Install icons regenerated from `public/assets/logo-english.png` (`scripts/generate-icons.mjs`), palette-compressed to about 170 KB total; the maskable icon keeps the logo inside the 80% safe circle.
+- Checks run: `npm run typecheck` PASS, `vite build` PASS, `vitest` all pass except the known `tests/expansionLayout.test.ts` (`roomIntegration` excluded). Headless Chromium on localhost:1996: wrong email/password shows the credentials error from the real project; reset link reports sent; phone reaches the reCAPTCHA challenge; phone-width layout has no horizontal scroll.
+- NOT verified: a real Google, email-account or SMS sign-in end to end, and Firestore rules (not deployed from here).

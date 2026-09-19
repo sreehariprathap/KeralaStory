@@ -7,9 +7,11 @@ import { CuboidCollider, RigidBody } from '@react-three/rapier';
 import { BufferGeometry, Float32BufferAttribute, Color, CatmullRomCurve3, Vector3, Object3D, DoubleSide, InstancedMesh, Box3, Mesh } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { KODASSERY_PATH, terrainHeight } from '../../content/world/kodassery';
+import { isClearOfRoads } from '../../content/world/definition';
 import { ImportedTrees, type ImportedTreeInstance } from './ImportedTrees';
 import { Waterfall } from './Waterfall';
 import { isWaterfallFootprint } from './waterfallGeometry';
+import { BROADLEAF_FOREST, FOREST_ROCKS, ForestModelSet, bucketByModel, hash01, pickModel } from './ForestModels';
 
 const greens = ['#477153','#658956','#789857','#527c59','#95aa64'];
 function rng(seed: number) { return () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }; }
@@ -33,13 +35,11 @@ function trailGeometry(points:Vector3[],width:number) {
 }
 
 export type Instance = {position:[number,number,number];scale:[number,number,number];rotation?:[number,number,number];color:string};
-function InstanceMesh({data,kind}:{data:Instance[];kind:'leaf'|'trunk'|'rock'|'cloud'|'grass'|'timber'}) {
+/** Instanced timber boards for the treehouse floor and bridge deck. */
+function InstanceMesh({data}:{data:Instance[];kind:'timber'}) {
   const ref=useRef<InstancedMesh>(null);
   useLayoutEffect(()=>{const obj=new Object3D();const color=new Color();data.forEach((v,i)=>{obj.position.set(...v.position);obj.scale.set(...v.scale);obj.rotation.set(...(v.rotation??[0,0,0]));obj.updateMatrix();ref.current!.setMatrixAt(i,obj.matrix);ref.current!.setColorAt(i,color.set(v.color));});ref.current!.instanceMatrix.needsUpdate=true;ref.current!.computeBoundingSphere();},[data]);
-  return <instancedMesh ref={ref} args={[undefined,undefined,data.length]} castShadow={kind!=='cloud'&&kind!=='grass'} receiveShadow={kind!=='cloud'}>
-    {kind==='timber'?<boxGeometry/>:kind==='trunk'?<cylinderGeometry args={[.32,.57,1,6]}/>:kind==='grass'?<coneGeometry args={[.5,1,4]}/>:<icosahedronGeometry args={[1,kind==='cloud'?2:1]}/>}
-    {kind==='cloud'?<meshBasicMaterial color="#e4ecda" transparent opacity={.82}/>:<meshStandardMaterial roughness={1} flatShading/>}
-  </instancedMesh>;
+  return <instancedMesh ref={ref} args={[undefined,undefined,data.length]} castShadow receiveShadow><boxGeometry/><meshStandardMaterial roughness={1} flatShading/></instancedMesh>;
 }
 
 const KODASSERY_GRASS = [
@@ -90,13 +90,13 @@ export function GrassAssetMesh({ data, url }: { data: Instance[]; url: string })
   return <instancedMesh ref={ref} args={[geometry, material, data.length]} frustumCulled={false} />;
 }
 
-function generateForest(){
+export function generateForest(){
   const trunks:Instance[]=[], leaves:Instance[]=[], importedFallbackTrunks:Instance[]=[], importedFallbackLeaves:Instance[]=[], importedTrees:ImportedTreeInstance[][]=KODASSERY_TREES.map(()=>[]), rocks:Instance[]=[], grass:Instance[]=[],clouds:Instance[]=[];
   const r=rng(831);
   for(let i=0;i<230;i++){
     const x=(r()-.5)*148,z=-496+r()*162;
     const nearest=Math.min(...TRAIL_POINTS.map(p=>Math.hypot(p.x-x,p.z-z)));
-    if(nearest<6 || (x>4&&x<37&&z>-436&&z<-400) || (x>24&&z>-405&&z<-370))continue;
+    if(nearest<6 || !isClearOfRoads(x,z,6) || (x>4&&x<37&&z>-436&&z<-400) || (x>24&&z>-405&&z<-370))continue;
     const h=6+r()*9,y=terrainHeight(x,z),s=.8+r()*.5;
     // Every seventeenth authored position uses a supplied tree. Keeping the
     // source position and height makes the replacement deterministic and
@@ -117,7 +117,7 @@ function generateForest(){
   }
   for(let i=0;i<850;i++){
     const x=(r()-.5)*125,z=-483+r()*147;
-    if(Math.min(...TRAIL_POINTS.map(p=>Math.hypot(p.x-x,p.z-z)))<3)continue;
+    if(Math.min(...TRAIL_POINTS.map(p=>Math.hypot(p.x-x,p.z-z)))<3||!isClearOfRoads(x,z,1.5))continue;
     grass.push({position:[x,terrainHeight(x,z)+.35,z],scale:[.35+r()*.5,.4+r()*.6,.35+r()*.4],rotation:[0,r()*6,0],color:greens[Math.floor(r()*greens.length)]});
   }
   for(let i=0;i<35;i++){clouds.push({position:[-130+r()*250,88+r()*40,-500-r()*100],scale:[14+r()*20,2+r()*4,6+r()*10],color:'#e5eadb'});}
@@ -142,6 +142,28 @@ export function kodasseryTreeSpots(){
 /** Kept as a parity check against the authored visual generator. */
 export function authoredForestColliderBoxes() {
   return [...forest.trunks,...forest.importedFallbackTrunks].filter(t=>Math.min(...TRAIL_POINTS.map(p=>Math.hypot(p.x-t.position[0],p.z-t.position[2])))<15).map(t=>({position:t.position,size:[1,t.scale[1],1]}));
+}
+
+/** Where a tree stands, the shape it gets is fixed by its position, so every tier agrees. */
+const spotRoll=(x:number,z:number,salt:number)=>hash01(Math.round(x*8)*73856093^Math.round(z*8)*19349663,salt);
+/**
+ * The generated forest drawn with the low-poly tree pack. Medium and high keep the authored anime
+ * trees at their own spots; low draws half of every spot with the lightest shapes instead.
+ */
+function forestTreeModels(quality:'low'|'medium'|'high'){
+  const low=quality==='low';
+  const trunks=low?[...forest.trunks,...forest.importedFallbackTrunks].filter((_,i)=>i%2===0):forest.trunks;
+  return bucketByModel(BROADLEAF_FOREST,trunks.map(t=>{
+    const [x,,z]=t.position,h=t.scale[1],s=t.scale[0],model=pickModel(BROADLEAF_FOREST,spotRoll(x,z,1),low);
+    const height=(h+3.5)*s*model.size;
+    return {model,item:{position:[x,t.position[1]-h/2-.1,z],yaw:spotRoll(x,z,2)*Math.PI*2,scale:[height,height,height],shade:spotRoll(x,z,3)}};
+  }));
+}
+function forestRockModels(){
+  return bucketByModel(FOREST_ROCKS,forest.rocks.map(r=>{
+    const [x,y,z]=r.position,model=pickModel(FOREST_ROCKS,spotRoll(x,z,4));
+    return {model,item:{position:[x,y-.5-r.scale[1]*.25,z],yaw:spotRoll(x,z,5)*Math.PI*2,scale:[r.scale[0],r.scale[1]*1.4,r.scale[2]],shade:spotRoll(x,z,6)}};
+  }));
 }
 
 function Timber({position,scale,color='#80684a',rotation=[0,0,0]}:{position:[number,number,number];scale:[number,number,number];color?:string;rotation?:[number,number,number]}) {
@@ -182,14 +204,14 @@ function WorldGeometry({quality='medium',animated=true}:{quality?:'low'|'medium'
   const canopyCollision=useMemo(()=>[...canopyArchitectureBoxes(),...staticForestBoxes()],[]);
   const ground=useMemo(terrainGeometry,[]);const path=useMemo(()=>trailGeometry(TRAIL_POINTS,3.8),[]);
   const pathBranch=useMemo(()=>trailGeometry(new CatmullRomCurve3([new Vector3(7,0,-396),new Vector3(21,0,-391),new Vector3(31,0,-386)]).getPoints(35),2.4),[]);
-  const treeTrunks=useMemo(()=>quality==='low'?[...forest.trunks,...forest.importedFallbackTrunks].filter((_,i)=>i%2===0):forest.trunks,[quality]);
-  const treeLeaves=useMemo(()=>quality==='low'?[...forest.leaves,...forest.importedFallbackLeaves].filter((_,i)=>Math.floor(i/4)%2===0):forest.leaves,[quality]);
+  const trees=useMemo(()=>forestTreeModels(quality),[quality]);
+  const rocks=useMemo(()=>forestRockModels(),[]);
   return <>
     
     <RigidBody type="fixed" colliders="trimesh"><mesh geometry={ground} receiveShadow><meshStandardMaterial vertexColors roughness={1}/></mesh></RigidBody>
     <mesh geometry={path} receiveShadow><meshStandardMaterial color="#d5c396" roughness={1} side={DoubleSide}/></mesh>
     <mesh geometry={pathBranch} receiveShadow><meshStandardMaterial color="#c8b58b" roughness={1} side={DoubleSide}/></mesh>
-    <InstanceMesh data={treeTrunks} kind="trunk"/><InstanceMesh data={treeLeaves} kind="leaf"/><InstanceMesh data={forest.rocks} kind="rock"/>
+    <ForestModelSet groups={trees}/><ForestModelSet groups={rocks} normalize="footprint"/>
     {quality!=='low'&&KODASSERY_TREES.map((url,index)=><ImportedTrees key={url} url={url} data={forest.importedTrees[index]}/>) }
     {quality!=='low'&&KODASSERY_GRASS.map((url,index)=><GrassAssetMesh key={url} url={url} data={forest.grass.filter((_,i)=>i%KODASSERY_GRASS.length===index)}/>)}
     <Treehouse x={18} z={-415}/><Treehouse x={32} z={-425} scale={.8}/><Bridge/><Waterfall animated={animated} quality={quality}/>

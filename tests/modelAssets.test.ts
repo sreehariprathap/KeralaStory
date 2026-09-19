@@ -60,7 +60,7 @@ function readGlb(url: string, staticModel = true) {
 
 describe('character model assets', () => {
   it('catalogs all supplied self-contained car files', () => {
-    expect(CAR_MODELS).toHaveLength(7);
+    expect(CAR_MODELS).toHaveLength(14);
     for (const model of CAR_MODELS) readGlb(model.url, false);
   });
   it('preserves a selected character model through the local save round trip', () => {
@@ -76,8 +76,10 @@ describe('character model assets', () => {
     expect(loadLocalSave(storage).save?.profile.characterModelId).toBeUndefined();
   });
 
-  it('catalogs existing self-contained static GLB character files', () => {
+  it('catalogs existing self-contained GLB character files', () => {
     expect(CHARACTER_MODELS.length).toBeGreaterThan(0);
-    for (const model of CHARACTER_MODELS) readGlb(model.url);
+    // Characters supplied with their own skeleton (rig 'mixamo') ship an unused authored clip; the
+    // rest are static sources rigged by scripts/rig-characters.mjs and carry no animation.
+    for (const model of CHARACTER_MODELS) readGlb(model.url, model.rig !== 'mixamo');
   });
 });

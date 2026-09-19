@@ -22,8 +22,8 @@ describe('authored expansion layout', () => {
   it('keeps construction deterministic and preserves the exact original junction', () => {
     expect(createExpansionLayout({ junction, panoramaTargets: [[65, 25, 54]] })).toEqual(layout);
     expect(get('chokkana-main-road').points[0]).toEqual(junction);
-    expect(layout.anchors).toHaveLength(9);
-    expect(new Set(layout.anchors.map(a => a.id)).size).toBe(9);
+    expect(layout.anchors).toHaveLength(10);
+    expect(new Set(layout.anchors.map(a => a.id)).size).toBe(10);
     expect(layout.anchors.every(a => a.position.every(Number.isFinite))).toBe(true);
   });
   it('authors a meaningful climb and road journey with viable segment grades', () => {
@@ -38,7 +38,10 @@ describe('authored expansion layout', () => {
         const a = r.points[i - 1], b = r.points[i], run = Math.hypot(a[0] - b[0], a[2] - b[2]);
         expect(run).toBeGreaterThan(0);
         expect(run).toBeLessThanOrEqual(2.001);
-        expect(Math.abs(a[1] - b[1]) / run).toBeLessThanOrEqual(r.allowedModes.includes('car') ? .1001 : .4);
+        // Sealed roads stay gentle; the unsealed summit track is a deliberate steep straight climb,
+        // and walking trails are steeper again.
+        const limit = r.surface === 'dirt' ? .6 : r.allowedModes.includes('car') ? .1001 : .4;
+        expect(Math.abs(a[1] - b[1]) / run, r.id).toBeLessThanOrEqual(limit);
       }
     }
     let flat = 0, longest = 0;

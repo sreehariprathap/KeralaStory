@@ -3,7 +3,7 @@ import type { AvatarMotion } from './ExplorerAvatar';
 import { CELEBRATE_SECONDS, KICK_SWING_SECONDS, TOUCH_SECONDS, kickSwing, kickWindup, touchPulse } from '../soccer/soccerMotion';
 
 /** In-place locomotion for Nick and the fitted character skeletons. */
-export type CharacterRig = 'nick' | 'kid-boy' | 'little-girl' | 'uniform' | 'relaxed' | 'fitted' | 'appu' | 'messi';
+export type CharacterRig = 'nick' | 'kid-boy' | 'little-girl' | 'uniform' | 'relaxed' | 'fitted' | 'appu' | 'messi' | 'mixamo';
 export function createNickAnimation(root: Object3D, rig: CharacterRig = 'nick') {
   const parts = ['Hip', 'Knee', 'Shoulder', 'Elbow'] as const;
   const joints: { bone: Bone; part: typeof parts[number]; side: number; rest: Quaternion; previous: Quaternion }[] = [];
@@ -12,7 +12,11 @@ export function createNickAnimation(root: Object3D, rig: CharacterRig = 'nick') 
   root.traverse(object => {
     if (!(object instanceof Bone)) return;
     const appu = rig === 'appu' ? object.name.match(/^J_Bip_([LR])_(UpperLeg|LowerLeg|UpperArm|LowerArm)_\d+$/) : null;
-    const match = appu ? ['', ({UpperLeg:'Hip',LowerLeg:'Knee',UpperArm:'Shoulder',LowerArm:'Elbow'} as Record<string,string>)[appu[2]], appu[1]] : object.name.match(rig === 'nick' ? /Nick:?(Hip|Knee|Shoulder|Elbow)_([LR])_0\d+$/ : /Kerala(Hip|Knee|Shoulder|Elbow)_([LR])_0\d+$/);
+    // Authored Mixamo skeletons (Spider-Man, the mask player) name their limbs differently.
+    const mixamo = rig === 'mixamo' ? object.name.match(/^mixamorig:?(Left|Right)(UpLeg|ForeArm|Leg|Arm)_\d+$/) : null;
+    const match = appu ? ['', ({UpperLeg:'Hip',LowerLeg:'Knee',UpperArm:'Shoulder',LowerArm:'Elbow'} as Record<string,string>)[appu[2]], appu[1]]
+      : mixamo ? ['', ({UpLeg:'Hip',Leg:'Knee',Arm:'Shoulder',ForeArm:'Elbow'} as Record<string,string>)[mixamo[2]], mixamo[1][0]]
+      : object.name.match(rig === 'nick' ? /Nick:?(Hip|Knee|Shoulder|Elbow)_([LR])_0\d+$/ : /Kerala(Hip|Knee|Shoulder|Elbow)_([LR])_0\d+$/);
     if (!match) return;
     root.worldToLocal(object.getWorldPosition(point));
     joints.push({ bone: object, part: match[1] as typeof parts[number], side: Math.sign(point.x) || 1, rest: object.quaternion.clone(), previous: object.quaternion.clone() });

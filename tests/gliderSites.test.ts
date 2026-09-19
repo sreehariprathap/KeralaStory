@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EXPANSION_LAYOUT, hasGroundAt, isTravelAllowed, isWater, terrainHeight } from '../src/content/world/definition';
-import { GLIDER_LAUNCH, THERMALS, isInGliderLaunch, thermalLift } from '../src/content/world/gliderSites';
+import { GLIDER_LAUNCH, PARACHUTE_DROP_CLEARANCE_M, THERMALS, isInGliderLaunch, parachuteDropHeight, thermalLift } from '../src/content/world/gliderSites';
 import { GLIDER } from '../src/game/vehicle/gliderMotor';
 
 const glideRatio = GLIDER.cruiseSpeed / GLIDER.cruiseSink;
@@ -57,5 +57,23 @@ describe('thermals', () => {
       }
     }
     expect([...reached].sort()).toEqual(THERMALS.map(t => t.id).sort());
+  });
+});
+
+describe('parachute drop', () => {
+  it('starts well clear of every hill around the drop point', () => {
+    const summit = EXPANSION_LAYOUT.summitPosition;
+    for (const [x, z] of [[summit[0], summit[2]], [summit[0] + 40, summit[2] + 40], [0, -300], [-430, -60]] as const) {
+      const ground = terrainHeight(x, z), y = parachuteDropHeight(x, z, ground);
+      expect(y - ground).toBeGreaterThanOrEqual(PARACHUTE_DROP_CLEARANCE_M);
+      for (let r = 0; r <= 80; r += 10) for (let a = 0; a < 16; a++) {
+        const px = x + Math.cos(a / 16 * Math.PI * 2) * r, pz = z + Math.sin(a / 16 * Math.PI * 2) * r;
+        if (hasGroundAt(px, pz)) expect(y - terrainHeight(px, pz), `clear at ${r} m`).toBeGreaterThanOrEqual(PARACHUTE_DROP_CLEARANCE_M - 1);
+      }
+    }
+  });
+
+  it('starts above a raised deck the player stands on', () => {
+    expect(parachuteDropHeight(0, -300, 900)).toBe(900 + PARACHUTE_DROP_CLEARANCE_M);
   });
 });

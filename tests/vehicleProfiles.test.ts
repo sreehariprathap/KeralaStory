@@ -20,13 +20,15 @@ async function loadGeometry(url: string) {
 }
 
 describe('measured vehicle calibration', () => {
-  it('keeps the one unresolved source unavailable in the eight-car catalog', () => {
-    expect(CAR_PICKER_CATALOG).toHaveLength(8);
+  it('keeps the one unresolved source unavailable in the fifteen-car catalog', () => {
+    expect(CAR_PICKER_CATALOG).toHaveLength(15);
     expect(CAR_PICKER_CATALOG.filter(car => !car.available).map(car => car.id)).toEqual(['car']);
   });
-  it.each(['car-carton', 'fennec', 'cyberpunk'] as const)('%s physics matches actual four wheel meshes', async id => {
+  it.each(['car-carton', 'fennec', 'cyberpunk', 'supercar', 'lambini', 'celero', 'willys-buggy'] as const)('%s physics matches actual four wheel meshes', async id => {
     const model = CAR_MODELS.find(car => car.id === id)!;
     const profile = VEHICLE_PROFILES[id], root = new Group(), scene = await loadGeometry(model.url);
+    // The renderer drops hidden nodes before it measures, so the shadow plane never sets the scale.
+    removeHiddenVehicleNodes(scene, id);
     scene.rotation.y += model.rotationY; root.add(scene); root.updateMatrixWorld(true);
     const bounds = new Box3().setFromObject(root, true), size = bounds.getSize(new Vector3());
     root.scale.setScalar(profile.length / size.z);
@@ -43,6 +45,26 @@ describe('measured vehicle calibration', () => {
     for (let i = 0; i < 4; i++) expect(root.getObjectByName(`car-wheel-spin-${i}`)).toBeTruthy();
     expect(new Box3().setFromObject(root, true).getSize(new Vector3()).z).toBeCloseTo(profile.length, 3);
   });
+  it('bus physics matches actual six wheel meshes', async () => {
+    const model = CAR_MODELS.find(car => car.id === 'bus')!;
+    const profile = VEHICLE_PROFILES.bus, root = new Group(), scene = await loadGeometry(model.url);
+    removeHiddenVehicleNodes(scene, 'bus');
+    scene.rotation.y += model.rotationY; root.add(scene); root.updateMatrixWorld(true);
+    const bounds = new Box3().setFromObject(root, true), size = bounds.getSize(new Vector3());
+    root.scale.setScalar(profile.length / size.z);
+    scene.position.set(-(bounds.min.x + bounds.max.x) / 2, -bounds.min.y, -(bounds.min.z + bounds.max.z) / 2);
+    root.updateMatrixWorld(true);
+    expect(profile.wheels).toHaveLength(6);
+    profile.wheels.forEach(wheel => {
+      const wheelBounds = new Box3();
+      wheel.nodes.forEach(name => { const part = root.getObjectByName(name); expect(part, name).toBeTruthy(); wheelBounds.expandByObject(part!, true); });
+      const center = wheelBounds.getCenter(new Vector3());
+      expect(center.x).toBeCloseTo(wheel.x, 3); expect(center.y).toBeCloseTo(wheel.y, 3); expect(center.z).toBeCloseTo(wheel.z, 2);
+      expect(wheelBounds.getSize(new Vector3()).y / 2).toBeCloseTo(wheel.radius, 3);
+    });
+    createCarWheelAnimation(root, 'bus');
+    for (let i = 0; i < 6; i++) expect(root.getObjectByName(`car-wheel-spin-${i}`)).toBeTruthy();
+  });
 });
 
 describe('chassis belly clearance', () => {
@@ -53,20 +75,20 @@ describe('chassis belly clearance', () => {
   });
 });
 
-describe('Mazda RX-7 presentation', () => {
-  it('drops the exported floor, replaces every flat black material, and exposes recolourable paint', async () => {
-    const model = CAR_MODELS.find(car => car.id === 'mazda-rx7')!;
-    const scene = await loadGeometry(model.url);
-    removeHiddenVehicleNodes(scene, 'mazda-rx7');
-    expect(scene.getObjectByName('Floor')).toBeUndefined();
-    const { owned, paint } = applyVehicleMaterials(scene, 'mazda-rx7');
-    expect(paint.length).toBe(2);
+describe('supercar presentation', () => {
+  it('drops the exported shadow plane and exposes recolourable paint', async () => {
+    const scene = await loadGeometry(CAR_MODELS.find(car => car.id === 'supercar')!.url);
+    removeHiddenVehicleNodes(scene, 'supercar');
+    expect(scene.getObjectByName('488_shadow_488_SHADOW_0')).toBeUndefined();
+    const { owned, paint } = applyVehicleMaterials(scene, 'supercar');
+    expect(paint).toHaveLength(1);
+    paint.forEach(material => material.color.set('#1f4fa8'));
+    expect(paint.every(material => material.color.getHexString() === '1f4fa8')).toBe(true);
     scene.traverse(object => {
       const mesh = object as Mesh;
-      if (mesh.isMesh) expect((mesh.material as Material).name).toMatch(/^(paint|look)-/);
+      // Only the paint material is replaced; the rest keep their exported textures.
+      if (mesh.isMesh && (mesh.material as Material).name.startsWith('paint-')) expect((mesh.material as Material).name).toBe('paint-488_PAINT');
     });
-    paint.forEach(material => material.color.set('#eef0f2'));
-    expect(paint.every(material => material.color.getHexString() === 'eef0f2')).toBe(true);
     owned.forEach(material => material.dispose());
   });
 });

@@ -4,7 +4,6 @@ import { Euler, Quaternion } from 'three';
 import { MAIN_PATH, safeGroundPosition, isCycleAllowed } from '../src/content/world/definition';
 import { buildArchitecture } from '../src/game/world/KeralaWorld';
 import { terrainMeshData } from '../src/game/world/traversalGeometry';
-import { createBicycleState, stepBicycle } from '../src/game/vehicle/bicycleMotor';
 import { computeExplorerMovement, createExplorerMotor } from '../src/game/player/characterMotor';
 import { CAPSULE_HALF_HEIGHT, CAPSULE_RADIUS, FEET_TO_CENTER, WALK_SPEED, needsSafeReset } from '../src/game/player/controllerMath';
 
@@ -26,7 +25,10 @@ function followRoute(route: [number,number][], bicycleEnvelope=false) {
     const body=world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(start[0],start[1]+FEET_TO_CENTER,start[2]));
     const collider=world.createCollider(bicycleEnvelope?RAPIER.ColliderDesc.cuboid(.38,FEET_TO_CENTER,.95):RAPIER.ColliderDesc.capsule(CAPSULE_HALF_HEIGHT,CAPSULE_RADIUS),body);
     const motor=createExplorerMotor(world),state={grounded:false,verticalSpeed:0};world.step();
-    let steps=0;const bicycle=createBicycleState();
+    let steps=0,bicycleHeading=0,bicycleSpeed=0;
+    // Roadster's old cruise tuning (9 m/s, 3 m/s^2): this harness only needs a speed ramp toward a
+    // cruise speed, since heading is overridden from the route each frame regardless.
+    const BICYCLE_CRUISE_SPEED=9,BICYCLE_ACCEL=3;
     for(const [x,z] of route.slice(1)) {
       let arrived=false;
       const initial=body.translation(),budget=Math.ceil(Math.hypot(x-initial.x,z-initial.z)/WALK_SPEED*60*3)+120;
@@ -35,10 +37,10 @@ function followRoute(route: [number,number][], bicycleEnvelope=false) {
         if(distance<.16){arrived=true;break;}
         let speed=WALK_SPEED;
         if(bicycleEnvelope) {
-          bicycle.headingRad=Math.atan2(x-p.x,-(z-p.z));
-          stepBicycle(bicycle,{forward:1,steer:0,brake:false},1/60);speed=bicycle.speed;
+          bicycleHeading=Math.atan2(x-p.x,-(z-p.z));
+          bicycleSpeed=Math.min(BICYCLE_CRUISE_SPEED,bicycleSpeed+BICYCLE_ACCEL/60);speed=bicycleSpeed;
           expect(isCycleAllowed(p.x+(x-p.x)/distance*speed/60,p.z+(z-p.z)/distance*speed/60)).toBe(true);
-          const angle=Math.PI-bicycle.headingRad;
+          const angle=Math.PI-bicycleHeading;
           body.setRotation({x:0,y:Math.sin(angle/2),z:0,w:Math.cos(angle/2)},true);
         }
         const move=computeExplorerMovement(motor,collider,state,{xVelocity:(x-p.x)/distance*speed,zVelocity:(z-p.z)/distance*speed,jump:false},1/60);

@@ -12,7 +12,7 @@ const hashes: AssetHashes = { version: 1, files: {
 describe('asset cache keys', () => {
   it('caches world models, images and audio but not bundles or other files', () => {
     expect(isCacheableAsset('/assets/cars/bronco.glb')).toBe(true);
-    expect(isCacheableAsset('/park/amusement_park.glb')).toBe(true);
+    expect(isCacheableAsset('/assets/trees/anime_tree_2.glb')).toBe(true);
     expect(isCacheableAsset('/assets/bgm.mp3')).toBe(true);
     expect(isCacheableAsset('/app/index-abc.js')).toBe(false);
     expect(isCacheableAsset('/assets/notes.txt')).toBe(false);

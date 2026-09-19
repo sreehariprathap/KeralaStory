@@ -42,8 +42,10 @@ it.each(['admin', 'muscle'] as const)('%s stays stable when the explorer enters 
       expect(shape.isSensor()).toBe(false);
       expect(shape.shape.type).toBe(RAPIER.ShapeType.Capsule);
       configureTravelCollider(shape, 'bicycle');
-      expect(shape.isEnabled()).toBe(true);
-      expect(shape.isSensor()).toBe(false);
+      // Bikes now have their own solid physics chassis (see bikePhysics.ts), so the character's own
+      // collider gets the same passenger-sensor treatment cars and planes already have.
+      expect(shape.isEnabled()).toBe(false);
+      expect(shape.isSensor()).toBe(true);
       expect(shape.shape.type).toBe(RAPIER.ShapeType.Cuboid);
     }
   } finally { world.free(); }

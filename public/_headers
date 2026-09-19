@@ -22,5 +22,3 @@
 # Browsers without it revalidate cheaply with ETag after a day.
 /assets/*
   Cache-Control: public, max-age=86400, stale-while-revalidate=604800
-/park/*
-  Cache-Control: public, max-age=86400, stale-while-revalidate=604800

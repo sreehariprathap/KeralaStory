@@ -1,0 +1,26 @@
+rules_version = '2';
+
+// One document per player at users/{uid}: the saved game (as JSON text), the eq
+// server timestamp. Only the signed-in owner can read or write it; nothing else is reachable.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      function isOwner() {
+        return request.auth != null && request.auth.uid == uid;
+      }
+      function validPlayerDoc() {
+        let data = request.resource.data;
+        return data.keys().hasOnly(['saveJson', 'equipped', 'updatedAt'])
+          && (!('saveJson' in data) || (data.saveJson is string && data.saveJson.size() < 200000))
+          && (!('equipped' in data) || (data.equipped is map
+          && data.equipped.keys().hasOnly(['carId', 'carColor', 'bikeId', 'characterId'])))
+          && data.updatedAt == request.time;
+      }
+      allow read, delete: if isOwner();
+      allow create, update: if isOwner() && validPlayerDoc();
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

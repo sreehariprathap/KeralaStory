@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { DoubleSide, BufferGeometry, Float32BufferAttribute } from 'three';
-import { EXPANSION_LAYOUT } from '../../content/world/definition';
+import { EXPANSION_LAYOUT, roadsideSpot } from '../../content/world/definition';
 import type { Locale } from '../../contracts';
 import { localizedPlace } from '../../features/i18n/translate';
 import { cascadeGeometry } from './waterfallGeometry';
@@ -33,7 +33,7 @@ export function AthirappillyWorld({ quality, animated, locale }: { quality: 'low
     {[[-658,5],[-638,3],[-616,3],[-596,4]].map(([x,width],i)=><mesh key={i} position={[x,(assets.top+assets.bottom)/2,-398.5]}><boxGeometry args={[width,assets.top-assets.bottom+1,4]}/><meshStandardMaterial color={i%2?'#838977':'#717c6b'} roughness={1}/></mesh>)}
     <mesh position={[-626,assets.bottom+.04,-389]} rotation={[-Math.PI/2,0,0]}><planeGeometry args={[57,4]}/><meshBasicMaterial color="#d8e8d7" transparent opacity={.48} depthWrite={false}/></mesh>
     {quality!=='low'&&<mesh position={[-627,assets.bottom+1,-394]} scale={[26,1.6,3]}><sphereGeometry args={[1,16,8]}/><meshBasicMaterial color="#e3efd6" transparent opacity={.18} depthWrite={false}/></mesh>}
-    <ExpansionSign position={[upper.position[0]+5,upper.position[1],upper.position[2]-3]} label={localizedPlace(upper.id,locale)} width={4}/>
-    <ExpansionSign position={[lower.position[0]+4,lower.position[1],lower.position[2]+1]} label={localizedPlace(lower.id,locale)} width={3.8}/>
+    <ExpansionSign position={roadsideSpot(upper.position[0],upper.position[2],5)} label={localizedPlace(upper.id,locale)} width={4}/>
+    <ExpansionSign position={roadsideSpot(lower.position[0],lower.position[2],4)} label={localizedPlace(lower.id,locale)} width={3.8}/>
   </group>;
 }

@@ -9,7 +9,12 @@ import { staticForestBoxes } from '../../content/world/staticForest';
 import { v2DressingBoxes } from '../../content/world/v2Dressing';
 import { traversalBoxes } from './traversalGeometry';
 import { STUNT_SITES } from './stuntSites.data';
-import { isStadiumGround } from '../../content/world/stadiumLayout';
+import { STADIUM, isStadiumGround } from '../../content/world/stadiumLayout';
+import { NEDUMBASSERY_AIRPORT, airportBoxes } from '../../content/world/airport';
+import { snehaTheeramBoxes } from '../../content/world/snehaTheeramDressing';
+import { SNEHA_THEERAM, coastDistance } from '../../content/world/snehaTheeram';
+import { isTeaEstateGround } from '../../content/world/teaEstate';
+import { mountainDressingBoxes } from '../../content/world/mountainDressing';
 
 export type RampModelId = 'kicker' | 'wedge' | 'curve';
 
@@ -67,7 +72,7 @@ interface Obstacles { circles: { x: number; z: number; r: number }[] }
 let obstacles: Obstacles | null = null;
 function getObstacles(): Obstacles {
   if (obstacles) return obstacles;
-  const boxes = [...staticArchitectureBoxes(), ...canopyArchitectureBoxes(), ...mountainArchitectureBoxes(), ...staticForestBoxes(), ...v2DressingBoxes(), ...traversalBoxes()];
+  const boxes = [...staticArchitectureBoxes(), ...canopyArchitectureBoxes(), ...mountainArchitectureBoxes(), ...staticForestBoxes(), ...v2DressingBoxes(), ...traversalBoxes(), ...airportBoxes(), ...snehaTheeramBoxes(), ...mountainDressingBoxes()];
   const park = V2_LAYOUT.park.footprint, pcx = park.reduce((a, p) => a + p[0], 0) / park.length, pcz = park.reduce((a, p) => a + p[1], 0) / park.length;
   obstacles = { circles: [
     ...boxes.map(b => ({ x: b.position[0], z: b.position[2], r: Math.hypot(b.size[0], b.size[2]) / 2 + 3 })),
@@ -78,14 +83,18 @@ function getObstacles(): Obstacles {
   return obstacles;
 }
 
-const NO_GO = [JETTY_BOUNDS, QUAY_BOUNDS, BRIDGE_BOUNDS, KODASSERY_BOUNDS];
+const NO_GO = [JETTY_BOUNDS, QUAY_BOUNDS, BRIDGE_BOUNDS, KODASSERY_BOUNDS, ...NEDUMBASSERY_AIRPORT.clearAreas];
 
 /** Open, dry, gentle ground that is off roads and clear of every known structure. */
 export function isOpenGround(x: number, z: number, water: 'none' | 'allowed' = 'none') {
   if (water === 'none' && (isWater(x, z) || !isCarTerrainAllowed(x, z))) return false;
   if (isOnWalkableDeck(x, z) || NO_GO.some(b => containsPoint(b, x, z))) return false;
   if (V2_LAYOUT.towns.some(t => pointInPolygon(x, z, t.footprint))) return false;
-  if (getAreaAt(x, z) === 'kodassery-summit') return false;
+  if (getAreaAt(x, z) === 'kodassery-summit' || isStadiumGround(x, z, STADIUM.pad.blend + 4)) return false;
+  // Sneha Theeram's sand is for walking, not ramps.
+  const coast = coastDistance(x, z);
+  if (coast !== null && coast < SNEHA_THEERAM.sandWidthM + 12) return false;
+  if (isTeaEstateGround(x, z)) return false;
   const route = EXPANSION_GROUND.field(x, z), v2 = EXPANSION_GROUND.v2?.field(x, z);
   if ((route && route.distance < route.width + 3) || (v2 && v2.distance < v2.width + 3) || distanceToPath(x, z, MAIN_PATH) < 6) return false;
   return !getObstacles().circles.some(c => Math.hypot(c.x - x, c.z - z) < c.r);
@@ -161,6 +170,8 @@ export function findParks(avoid: XZ[], stats?: Record<string, number>): StuntSit
     const zone = getAreaAt(center[0], center[1]) ?? getZoneAtPosition(center[0], center[1]);
     if (!isOpenGround(center[0], center[1]) || terrainHeight(center[0], center[1]) > 100) { fail(`centre ${zone}`); continue; }
     if (avoid.some(p => Math.hypot(p[0] - center[0], p[1] - center[1]) < 160)) continue;
+    // Not out on the map's rim, where a park would sit in the backdrop hills or against the edge.
+    if (Math.min(center[0] - b.xMin, b.xMax - center[0], center[1] - b.zMin, b.zMax - center[1]) < 90) continue;
     const survey = surveyStrip(center, dir, side, -46, 40, 19);
     // Hills are fine as long as the grade is gentle, each ramp sits nearly level, and the gap jump's lips match.
     if (!survey || survey.max - survey.min > 10) { fail(survey ? `steep ${zone}` : `blocked ${zone}`); continue; }

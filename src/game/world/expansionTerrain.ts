@@ -63,9 +63,9 @@ export function sampleTerrainChunk(chunk: TerrainChunk, x: number, z: number): n
 export interface RouteFieldSample { height: number; distance: number; width: number; footOnly: boolean }
 
 /** Index route segments once; per-vertex queries inspect nearby cells only. */
-export function createRouteField(routes: readonly import('../../contracts/worldExpansion').ExpansionRoute[]) {
+export function createRouteField(routes: readonly import('../../contracts/worldExpansion').ExpansionRoute[], reach = 24) {
   type Segment = { a: readonly number[]; b: readonly number[]; width: number; footOnly: boolean };
-  const bins = new Map<string, Segment[]>(), cell = 32, reach = 24;
+  const bins = new Map<string, Segment[]>(), cell = 32;
   for (const route of routes) for (let i = 1; i < route.points.length; i++) {
     const a = route.points[i - 1], b = route.points[i];
     const segment = { a, b, width: route.widthM / 2 + route.shoulderM, footOnly: route.allowedModes.length === 1 };

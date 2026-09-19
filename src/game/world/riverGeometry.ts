@@ -43,12 +43,12 @@ export function createRiverField(reaches: readonly RiverReach[]) {
     index(segments, { a, b, wa, wb, kind: reach.kind }, Math.min(a[0], b[0]) - pad, Math.max(a[0], b[0]) + pad, Math.min(a[2], b[2]) - pad, Math.max(a[2], b[2]) + pad);
   }
   const nearest = (x: number, z: number) => {
-    let result: { distance: number; halfWidth: number; height: number; segment: Segment } | null = null;
+    let result: { distance: number; halfWidth: number; height: number; segment: Segment; t: number } | null = null;
     for (const segment of segments.get(`${Math.floor(x / cell)},${Math.floor(z / cell)}`) ?? []) {
       const { a, b, wa, wb } = segment, dx = b[0] - a[0], dz = b[2] - a[2];
       const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[2]) * dz) / (dx * dx + dz * dz || 1)));
       const distance = Math.hypot(x - a[0] - t * dx, z - a[2] - t * dz);
-      if (!result || distance < result.distance) result = { distance, halfWidth: (wa + (wb - wa) * t) / 2, height: a[1] + (b[1] - a[1]) * t, segment };
+      if (!result || distance < result.distance) result = { distance, halfWidth: (wa + (wb - wa) * t) / 2, height: a[1] + (b[1] - a[1]) * t, segment, t };
     }
     return result;
   };

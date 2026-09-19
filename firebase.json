@@ -1,0 +1,21 @@
+{
+  "auth": {
+    "authorizedDomains": [
+      "localhost"
+    ],
+    "providers": {
+      "emailPassword": true,
+      "phone": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Kodassery Diaries",
+        "supportEmail": "srhari615@gmail.com"
+      }
+    }
+  },
+  "firestore": [
+    {
+      "database": "kodassery-db",
+      "rules": "firestore.rules"
+    }
+  ]
+}

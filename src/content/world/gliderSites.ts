@@ -1,5 +1,5 @@
 import type { Vec3 } from '../../contracts';
-import { EXPANSION_LAYOUT, V2_LAYOUT, WORLD_BOUNDS, terrainHeight } from './definition';
+import { EXPANSION_LAYOUT, V2_LAYOUT, WORLD_BOUNDS, hasGroundAt, terrainHeight } from './definition';
 import { headingToward, liftAt, type Thermal } from '../../game/vehicle/gliderMotor';
 
 const summit = EXPANSION_LAYOUT.summitPosition;
@@ -43,4 +43,20 @@ export const THERMALS: readonly Thermal[] = [
 
 export function thermalLift(x: number, y: number, z: number): number {
   return liftAt(THERMALS, x, y, z);
+}
+
+/** A parachute drop opens the glider this far above the highest ground around the player. */
+export const PARACHUTE_DROP_CLEARANCE_M = 120;
+const DROP_SCAN_RADIUS_M = 80, DROP_SCAN_STEP_M = 10, DROP_SCAN_BEARINGS = 16;
+
+/** Height a parachute drop at (x, z) starts from, clear of the hills nearby. `feetY` covers roofs and decks. */
+export function parachuteDropHeight(x: number, z: number, feetY: number): number {
+  let top = Math.max(feetY, hasGroundAt(x, z) ? terrainHeight(x, z) : feetY);
+  for (let r = DROP_SCAN_STEP_M; r <= DROP_SCAN_RADIUS_M; r += DROP_SCAN_STEP_M) {
+    for (let i = 0; i < DROP_SCAN_BEARINGS; i++) {
+      const a = i / DROP_SCAN_BEARINGS * Math.PI * 2, px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r;
+      if (hasGroundAt(px, pz)) top = Math.max(top, terrainHeight(px, pz));
+    }
+  }
+  return top + PARACHUTE_DROP_CLEARANCE_M;
 }

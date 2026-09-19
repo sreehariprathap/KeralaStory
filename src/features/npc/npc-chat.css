@@ -1,0 +1,10 @@
+.npc-chat-panel{position:fixed;right:16px;bottom:16px;width:min(340px,90vw);max-height:50vh;display:flex;flex-direction:column;background:rgba(20,24,18,.92);color:#fbf3d9;border-radius:12px;padding:10px;z-index:40;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.npc-chat-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.npc-chat-header button{background:none;border:none;color:inherit;cursor:pointer}
+.npc-chat-log{overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.npc-chat-line{padding:6px 9px;border-radius:8px;font-size:.9rem;max-width:85%}
+.npc-chat-player{align-self:flex-end;background:#2f5a3e}
+.npc-chat-npc{align-self:flex-start;background:#463421}
+.npc-chat-input{display:flex;gap:6px}
+.npc-chat-input input{flex:1;border-radius:8px;border:none;padding:6px 8px}
+.npc-chat-input button{border-radius:8px;border:none;padding:6px 10px;background:#d7a92a;cursor:pointer}

@@ -1,5 +1,6 @@
 import type { MapBounds } from '../../contracts';
-import { hasGroundAt, isWater, terrainHeight } from '../../content/world/definition';
+import { hasGroundAt, isSeaAt, isWater, terrainHeight } from '../../content/world/definition';
+import { beachSand } from '../../content/world/snehaTheeram';
 
 /** Elevation tints (metres → colour), lush lowland greens up to pale highland grass. */
 const STOPS: readonly [number, [number, number, number]][] = [
@@ -8,6 +9,7 @@ const STOPS: readonly [number, [number, number, number]][] = [
 ];
 const WATER: [number, number, number] = [124, 184, 196];
 const SEA: [number, number, number] = [164, 203, 197];
+const SAND: [number, number, number] = [236, 219, 170];
 
 export function elevationTint(height: number): [number, number, number] {
   if (height <= STOPS[0][0]) return [...STOPS[0][1]];
@@ -42,15 +44,16 @@ export function reliefImage(bounds: MapBounds, metresPerPixel = 2.5): Promise<Re
   if (cached) return cached;
   cached = (async () => {
     const width = Math.ceil((bounds.xMax - bounds.xMin) / metresPerPixel), height = Math.ceil((bounds.zMax - bounds.zMin) / metresPerPixel);
-    const heights = new Float32Array((width + 2) * (height + 2)), kind = new Uint8Array((width + 2) * (height + 2));
+    const heights = new Float32Array((width + 2) * (height + 2)), kind = new Uint8Array((width + 2) * (height + 2)), sand = new Float32Array((width + 2) * (height + 2));
     const index = (i: number, j: number) => (j + 1) * (width + 2) + (i + 1);
     let started = performance.now();
     for (let j = -1; j <= height; j++) {
       for (let i = -1; i <= width; i++) {
         const x = bounds.xMin + (i + .5) * metresPerPixel, z = bounds.zMin + (j + .5) * metresPerPixel, k = index(i, j);
-        if (!hasGroundAt(x, z)) { kind[k] = 2; heights[k] = 0; continue; }
+        if (!hasGroundAt(x, z) || isSeaAt(x, z)) { kind[k] = 2; heights[k] = 0; continue; }
         heights[k] = terrainHeight(x, z);
         kind[k] = isWater(x, z) ? 1 : 0;
+        sand[k] = kind[k] ? 0 : beachSand(x, z, heights[k]);
       }
       if (performance.now() - started > 12) { await nextFrame(); started = performance.now(); }
     }
@@ -71,7 +74,7 @@ export function reliefImage(bounds: MapBounds, metresPerPixel = 2.5): Promise<Re
         const left = kind[index(i - 1, j)] === 2 ? heights[k] : heights[index(i - 1, j)], right = kind[index(i + 1, j)] === 2 ? heights[k] : heights[index(i + 1, j)];
         const up = kind[index(i, j - 1)] === 2 ? heights[k] : heights[index(i, j - 1)], down = kind[index(i, j + 1)] === 2 ? heights[k] : heights[index(i, j + 1)];
         const shade = hillshade((right - left) / (2 * metresPerPixel), (down - up) / (2 * metresPerPixel));
-        rgb = elevationTint(heights[k]).map(c => c * shade);
+        rgb = elevationTint(heights[k]).map((c, n) => (c + (SAND[n] - c) * sand[k]) * shade);
       }
       data[o] = Math.min(255, rgb[0]); data[o + 1] = Math.min(255, rgb[1]); data[o + 2] = Math.min(255, rgb[2]); data[o + 3] = 255;
     }

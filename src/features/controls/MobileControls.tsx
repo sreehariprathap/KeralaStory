@@ -51,7 +51,7 @@ function useDriveButtons(commands: InputCommands, active: boolean) {
 
 export function MobileControls({ enabled, sprintLocked, commands, travelMode, canInteract, opacity, nitroActive, matchActive }: MobileControlsProps) {
   const t = useT();
-  const driving = travelMode === 'car' || travelMode === 'bicycle';
+  const driving = travelMode === 'car' || travelMode === 'bicycle' || travelMode === 'boat';
   const { padHandlers, lookHandlers, cancel } = useTouchControls(commands, enabled);
   // The joystick unmounts when a ride starts (and vice versa); drop any finger it still owned.
   useEffect(() => { cancel(); }, [driving, cancel]);

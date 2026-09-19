@@ -2,13 +2,13 @@ import { EnvironmentAsset } from '../render/EnvironmentAsset';
 import { ExpansionSign } from './ExpansionSign';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
 import { V2_ASSET_PROFILES } from '../../content/assets/v2AssetProfiles';
-import { V2_LAYOUT, terrainHeight } from '../../content/world/definition';
+import { WaterPark } from './WaterPark';
+import { terrainHeight } from '../../content/world/definition';
 
 type V3 = readonly [number, number, number];
 import { TOWN_BUILDINGS, buildingGround, parkPoolLayout, v2DressingBoxes, type Building } from '../../content/world/v2Dressing';
 
 const fuelProfile = V2_ASSET_PROFILES.find(asset => asset.id === 'fuel-station')!;
-const parkProfile = V2_ASSET_PROFILES.find(asset => asset.id === 'silver-storm')!;
 
 
 function House({ building }: { building: Building }) {
@@ -60,19 +60,8 @@ function ParkPool() {
 }
 
 function SilverStorm() {
-  const [x, , z] = V2_LAYOUT.park.center;
-  const y = terrainHeight(x, z);
-  return <group name="silver-storm-water-theme-park">
-    <group position={[x, y, z]}>
-      <EnvironmentAsset profile={parkProfile} collide="trimesh" fallback={<group name="silver-storm-park-fallback">
-        <mesh position={[0, 1.1, 0]} receiveShadow><boxGeometry args={[68, .35, 56]} /><meshStandardMaterial color="#81a65a" roughness={1} /></mesh>
-        <mesh position={[-24, 8, -8]} castShadow><cylinderGeometry args={[1.4, 1.8, 15, 10]} /><meshStandardMaterial color="#39aeb2" roughness={.42} /></mesh>
-        <mesh position={[-19, 12, -8]} rotation={[0, 0, -.5]} castShadow><cylinderGeometry args={[1.2, 1.2, 18, 10]} /><meshStandardMaterial color="#f08b58" roughness={.55} /></mesh>
-        <mesh position={[18, 6, -12]} castShadow><cylinderGeometry args={[1.1, 1.4, 11, 10]} /><meshStandardMaterial color="#e8b653" roughness={.55} /></mesh>
-      </group>} />
-      <mesh position={[0, .22, 31]} receiveShadow><boxGeometry args={[48, .12, 10]} /><meshStandardMaterial color="#c1aa78" roughness={1} /></mesh>
-      <ExpansionSign position={[0, 3.8, 29.8]} label="Silver Storm · ജല തീം പാർക്ക്" width={7} />
-    </group>
+  return <group name="silver-storm">
+    <WaterPark />
     <ParkPool />
   </group>;
 }
@@ -95,6 +84,7 @@ export function V2WorldDressing() {
     {TOWN_BUILDINGS.map(building => <House key={building.id} building={building} />)}
     <FuelStation />
     <SilverStorm />
-    <PalmRow positions={[[ -332, 0, -88 ], [ -318, 0, -74 ], [ -548, 0, -649 ], [ -518, 0, -658 ], [ 72, 0, -645 ]]} />
+    {/* Chalakkudy's and Malakkappara's street palms were removed: shops and the bus stand stand there now. */}
+    <PalmRow positions={[[ 72, 0, -645 ]]} />
   </group>;
 }

@@ -3,6 +3,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import { EXPANSION_GROUND, V2_LAYOUT, V2_ROUTES, hasGroundAt, isTravelAllowed, isWater, safeGroundPosition, terrainHeight, WORLD_BOUNDS } from '../src/content/world/definition';
 import { resolveClearFeet } from '../src/game/vehicle/clearance';
 import type { TerrainChunk } from '../src/game/world/expansionTerrain';
+import { terrainMeshData } from '../src/game/world/traversalGeometry';
 
 describe('V2 terrain and travel profile', () => {
   beforeAll(async () => { await RAPIER.init(); });
@@ -62,6 +63,9 @@ describe('V2 terrain and travel profile', () => {
       for (const chunk of chunks) {
         world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array(chunk.vertices), new Uint32Array(chunk.indices)));
       }
+      // Roads now reach Kodaly across the original southern terrain, which the fixture must carry too.
+      const south = terrainMeshData('south');
+      world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array(south.vertices), new Uint32Array(south.indices)));
       world.step();
       for (const route of V2_ROUTES) {
         const i = Math.floor(route.points.length / 2);

@@ -36,7 +36,7 @@ function worldAssets(): Plugin {
       const published: Record<string, { h: string; b: number }> = {};
       for (const path of files(outDir)) {
         const rel = relative(outDir, path).split(sep).join('/');
-        if (!/^(assets|park)\//.test(rel)) continue;
+        if (!rel.startsWith('assets/')) continue;
         const bytes = readFileSync(path);
         published[`/${rel}`] = { h: createHash('sha256').update(bytes).digest('hex').slice(0, 16), b: bytes.length };
       }

@@ -8,3 +8,5 @@ playwright-report/
 .env*
 !.env.example
 .asset-cache/
+
+.superpowers/
