@@ -20,6 +20,8 @@ export interface BikeModel {
   length: number;
   /** Distance from the bike's centre to each tyre's ground contact, in metres; used to lay the bike on slopes. */
   halfWheelbase: number;
+  /** Wheel radius in metres, for the physics vehicle controller's suspension. */
+  wheelRadius: number;
   /**
    * Seat surface in the scaled bike's space, in metres: `height` above the ground, `z` forward (+) or back (-)
    * of the bike's centre. The rider's own hip height is measured at runtime, so any character sits on it.
@@ -33,15 +35,15 @@ export interface BikeModel {
 }
 
 export const BIKE_MODELS = [
-  { id: 'roadster', name: 'Roadster bicycle', rotationY: 0, length: 1.9, halfWheelbase: .62, seat: { height: 1.08, z: -.3 },
+  { id: 'roadster', name: 'Roadster bicycle', rotationY: 0, length: 1.9, halfWheelbase: .62, wheelRadius: .33, seat: { height: 1.08, z: -.3 },
     tuning: { topSpeed: 9, acceleration: 3 } },
-  { id: 'electric', name: 'Electric bike', url: '/assets/bike/electric_bike_v_2.30.glb', rotationY: Math.PI / 2, length: 1.9, halfWheelbase: .56, seat: { height: .98, z: -.24 },
+  { id: 'electric', name: 'Electric bike', url: '/assets/bike/electric_bike_v_2.30.glb', rotationY: Math.PI / 2, length: 1.9, halfWheelbase: .56, wheelRadius: .3, seat: { height: .98, z: -.24 },
     tuning: { topSpeed: 14, acceleration: 6, brake: 9, nitro: { extraSpeed: 6, accelerationMultiplier: 1.8 } } },
-  { id: 'yamaha', name: 'Yamaha FZ8', url: '/assets/bike/yamaha_bike.glb', rotationY: 0, length: 2.2, halfWheelbase: .78, seat: { height: .79, z: -.29 }, hiddenNodes: ['Cylinder266_758'], rider: { lean: .45, pedals: false },
+  { id: 'yamaha', name: 'Yamaha FZ8', url: '/assets/bike/yamaha_bike.glb', rotationY: 0, length: 2.2, halfWheelbase: .78, wheelRadius: .32, seat: { height: .79, z: -.29 }, hiddenNodes: ['Cylinder266_758'], rider: { lean: .45, pedals: false },
     tuning: { topSpeed: 20, acceleration: 9, brake: 12, nitro: { extraSpeed: 10, accelerationMultiplier: 2 } } },
-  { id: 'cyberpunk-bike', name: 'Cyberpunk bike', url: '/assets/bike/cyberpunk_bike.glb', rotationY: 0, length: 2.3, halfWheelbase: .86, seat: { height: .79, z: -.43 }, rider: { lean: .55, pedals: false },
+  { id: 'cyberpunk-bike', name: 'Cyberpunk bike', url: '/assets/bike/cyberpunk_bike.glb', rotationY: 0, length: 2.3, halfWheelbase: .86, wheelRadius: .34, seat: { height: .79, z: -.43 }, rider: { lean: .55, pedals: false },
     tuning: { topSpeed: 24, acceleration: 22, brake: 16, nitro: { extraSpeed: 16, accelerationMultiplier: 2.5 } } },
-  { id: 'sports-bike', name: 'Sports bike', url: '/assets/bike/sports_bike.glb', rotationY: 0, length: 2.1, halfWheelbase: .72, seat: { height: .84, z: -.3 }, rider: { lean: .6, pedals: false },
+  { id: 'sports-bike', name: 'Sports bike', url: '/assets/bike/sports_bike.glb', rotationY: 0, length: 2.1, halfWheelbase: .72, wheelRadius: .31, seat: { height: .84, z: -.3 }, rider: { lean: .6, pedals: false },
     tuning: { topSpeed: 22, acceleration: 14, brake: 14, nitro: { extraSpeed: 12, accelerationMultiplier: 2.2 } } },
 ] as const satisfies readonly BikeModel[];
 
