@@ -2,7 +2,8 @@ import { Suspense, lazy, useState } from 'react';
 import type { Equipped, ExplorerProfile } from '../../contracts';
 import type { CarModelId } from '../../content/assets/models';
 import { CAR_PAINT_COLORS, VEHICLE_PROFILES } from '../../content/assets/vehicleProfiles';
-import { applyEquippedCharacter, resolveEquipped, storeItems, PROCEDURAL_CHARACTER_ID, type CharacterChoiceId, type StoreKind } from '../../content/store/catalog';
+import type { Account } from '../../app/useAccount';
+import { applyEquippedCharacter, isUnlocked, resolveEquipped, storeItems, PROCEDURAL_CHARACTER_ID, type CharacterChoiceId, type StoreKind } from '../../content/store/catalog';
 import { useT, type TranslationKey } from '../i18n/translate';
 import { ShellFrame } from './ShellFrame';
 import { useMenuNavigation } from './useMenuNavigation';
@@ -17,15 +18,18 @@ const TABS: { kind: StoreKind; label: TranslationKey }[] = [
 ];
 const equippedIdFor = (kind: StoreKind, equipped: Equipped) => (kind === 'car' ? equipped.carId : kind === 'bike' ? equipped.bikeId : equipped.characterId);
 
-export function StoreScreen({ equipped, coins, previewProfile, reducedMotion, onEquip, onBack }: { equipped: Equipped; coins: number; previewProfile: ExplorerProfile; reducedMotion: boolean; onEquip: (next: Equipped) => void; onBack: () => void }) {
+export function StoreScreen({ account, equipped, coins, previewProfile, reducedMotion, onEquip, onBack }: { account: Account; equipped: Equipped; coins: number; previewProfile: ExplorerProfile; reducedMotion: boolean; onEquip: (next: Equipped) => void; onBack: () => void }) {
   const t = useT();
-  const resolved = resolveEquipped(equipped);
+  const signedIn = account.status === 'signedIn';
+  const resolved = resolveEquipped(equipped, signedIn);
   const [tab, setTab] = useState(0);
   const kind = TABS[tab].kind;
   const items = storeItems(kind);
   const [color, setColor] = useState(resolved.carColor);
+  // A locked item's action is signing in; everything unlocks once the account is back.
   const equip = (i: number) => {
     const id = items[i].id;
+    if (!isUnlocked(kind, id, signedIn)) { if (account.status === 'guest') account.signIn(); return; }
     if (kind === 'car') onEquip({ ...equipped, carId: id, carColor: color });
     else if (kind === 'bike') onEquip({ ...equipped, bikeId: id });
     else onEquip({ ...equipped, characterId: id });
@@ -43,11 +47,11 @@ export function StoreScreen({ equipped, coins, previewProfile, reducedMotion, on
     <div className="shell-store">
       <ul className="shell-list" role="listbox" aria-label={t(TABS[tab].label)}>
         {items.map((entry, i) => {
-          const isEquipped = equippedIdFor(kind, resolved) === entry.id;
+          const isEquipped = equippedIdFor(kind, resolved) === entry.id, locked = !isUnlocked(kind, entry.id, signedIn);
           return <li key={entry.id} role="none">
             <button role="option" aria-selected={i === index} className={`shell-list__item ${i === index ? 'is-selected' : ''}`} onMouseEnter={() => setIndex(i)} onClick={() => setIndex(i)} onDoubleClick={() => equip(i)}>
               {nameOf(entry.id, entry.name)}
-              <small className={`shell-tag ${isEquipped ? 'is-equipped' : ''}`}>{isEquipped ? t('shell.equipped') : t('shell.free')}</small>
+              <small className={`shell-tag ${isEquipped ? 'is-equipped' : locked ? 'is-locked' : ''}`}>{isEquipped ? t('shell.equipped') : locked ? `🔒 ${t('account.locked')}` : t('shell.free')}</small>
             </button>
           </li>;
         })}
@@ -63,7 +67,10 @@ export function StoreScreen({ equipped, coins, previewProfile, reducedMotion, on
         {paintable && <div className="shell-swatches" role="group" aria-label="Paint">
           {CAR_PAINT_COLORS.map(paint => <button key={paint.id} aria-label={paint.label} aria-pressed={paint.value === color} style={{ background: paint.value }} onClick={() => setColor(paint.value)}/>)}
         </div>}
-        <button className="shell-button is-primary" onClick={() => equip(index)}>{t('shell.equip')}</button>
+        {isUnlocked(kind, selected.id, signedIn)
+          ? <button className="shell-button is-primary" onClick={() => equip(index)}>{t('shell.equip')}</button>
+          : <button className="shell-button is-primary" onClick={account.signIn} disabled={account.status !== 'guest'}>{t('account.signIn')}</button>}
+        {account.error && <p className="shell-account__error" role="alert">{t(account.error)}</p>}
       </div>
     </div>
   </ShellFrame>;

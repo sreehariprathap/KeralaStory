@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Equipped, ExplorerProfile, Locale } from '../../contracts';
 import type { RoomSession } from '../../app/useRoomSession';
+import type { Account } from '../../app/useAccount';
 import { resolveEquipped } from '../../content/store/catalog';
 import { AccountScreen } from './AccountScreen';
 import { CharacterScreen } from './CharacterScreen';
@@ -20,6 +21,7 @@ const LOAD_FADE_MS = 400;
 interface ShellProps {
   state: ShellState;
   dispatch: (event: ShellEvent) => void;
+  account: Account;
   locale: Locale;
   touch: boolean;
   reducedMotion: boolean;
@@ -78,13 +80,13 @@ export function Shell(props: ShellProps) {
     case 'menu': screen = <MainMenu hasSave={state.hasSave} locale={props.locale} onLocaleChange={props.onLocaleChange} touch={props.touch}
       onSelect={item => { if (item === 'loadGame') props.onLoadGame(); dispatch({ type: 'SELECT', item }); }} onExitBlocked={() => dispatch({ type: 'EXIT_BLOCKED' })}/>; break;
     case 'newGameConfirm': screen = <NewGameConfirm name={props.savedProfile?.displayName ?? ''} discoveries={props.savedDiscoveries} onConfirm={() => dispatch({ type: 'CONFIRM_NEW' })} onBack={back}/>; break;
-    case 'character': screen = <CharacterScreen initialProfile={props.savedProfile ?? undefined} initialCharacterId={resolveEquipped(props.equipped).characterId} reducedMotion={props.reducedMotion}
+    case 'character': screen = <CharacterScreen initialProfile={props.savedProfile ?? undefined} initialCharacterId={resolveEquipped(props.equipped, props.account.status === 'signedIn').characterId} signedIn={props.account.status === 'signedIn'} reducedMotion={props.reducedMotion}
       onSubmit={profile => { props.onNewGame(profile); dispatch({ type: 'PROFILE_SUBMITTED' }); }} onBack={back}/>; break;
     case 'multiplayer': screen = <MultiplayerScreen session={props.room.session} profile={props.roomProfile} initialCode={props.room.initialCode} errorMessage={props.room.errorMessage}
       onEnter={() => { props.onEnterRoom(); dispatch({ type: 'ROOM_ENTERED' }); }} onBack={() => { props.onLeaveLobby(); back(); }}/>; break;
-    case 'store': screen = <StoreScreen equipped={props.equipped} coins={props.coins} previewProfile={props.savedProfile ?? props.roomProfile} reducedMotion={props.reducedMotion} onEquip={props.onEquip} onBack={back}/>; break;
+    case 'store': screen = <StoreScreen account={props.account} equipped={props.equipped} coins={props.coins} previewProfile={props.savedProfile ?? props.roomProfile} reducedMotion={props.reducedMotion} onEquip={props.onEquip} onBack={back}/>; break;
     case 'settings': screen = <SettingsScreen panel={props.settingsPanel} canReset={state.hasSave} onReset={props.onResetExplorer} onBack={back}/>; break;
-    case 'account': screen = <AccountScreen onBack={back}/>; break;
+    case 'account': screen = <AccountScreen account={props.account} coins={props.coins} onBack={back}/>; break;
     case 'goodbye': screen = <GoodbyeScreen onBack={back}/>; break;
     case 'loading':
     case 'playing': screen = <GameLoadScreen failed={false} leaving={fading} onRetry={props.onRetry} onBack={props.onAbandonLoad}/>; break;

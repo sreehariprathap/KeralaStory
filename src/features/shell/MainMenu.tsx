@@ -14,7 +14,7 @@ const ITEMS: { id: MenuItem; label: TranslationKey; soon?: boolean }[] = [
   { id: 'multiplayer', label: 'shell.menu.multiplayer' },
   { id: 'store', label: 'shell.menu.store' },
   { id: 'settings', label: 'shell.menu.settings' },
-  { id: 'account', label: 'shell.menu.account', soon: true },
+  { id: 'account', label: 'shell.menu.account' },
   { id: 'exit', label: 'shell.menu.exit' },
 ];
 const EXIT_CHECK_MS = 300;

@@ -4,7 +4,7 @@ import { CAR_PAINT_COLORS } from '../assets/vehicleProfiles';
 import { DEFAULT_EQUIPPED, type Equipped, type ExplorerProfile } from '../../contracts';
 
 export type StoreKind = 'car' | 'bike' | 'character';
-/** Everything is free for now; prices become a data change when purchases arrive. */
+/** Everything is free for now; prices become a data change when purchases arrive. Locks come from `isUnlocked`. */
 export interface StoreItem { id: string; kind: StoreKind; name: string; price: 0; unlocked: true }
 
 export const PROCEDURAL_CHARACTER_ID = 'procedural';
@@ -27,13 +27,25 @@ export interface ResolvedEquipped { carId: CarModelId; carColor: string; bikeId:
 
 const valid = (kind: StoreKind, id: string | undefined, fallback: string) => (id !== undefined && STORE_ITEMS.some(entry => entry.kind === kind && entry.id === id) ? id : fallback);
 
-export function resolveEquipped(equipped: Partial<Equipped> | undefined): ResolvedEquipped {
+/** Free play without an account: the launch skin, one car and one bicycle. Signing in unlocks the rest. */
+export const GUEST_LOADOUT: Readonly<Record<StoreKind, string>> = { car: DEFAULT_EQUIPPED.carId, bike: DEFAULT_EQUIPPED.bikeId, character: DEFAULT_EQUIPPED.characterId };
+
+export function isUnlocked(kind: StoreKind, id: string, signedIn: boolean): boolean {
+  return signedIn || GUEST_LOADOUT[kind] === id;
+}
+
+/** Equipped ids that are unknown, or locked for a signed-out player, fall back per field. */
+export function resolveEquipped(equipped: Partial<Equipped> | undefined, signedIn: boolean): ResolvedEquipped {
   const color = equipped?.carColor;
+  const pick = (kind: StoreKind, id: string | undefined, fallback: string) => {
+    const known = valid(kind, id, fallback);
+    return isUnlocked(kind, known, signedIn) ? known : GUEST_LOADOUT[kind];
+  };
   return {
-    carId: valid('car', equipped?.carId, DEFAULT_EQUIPPED.carId) as CarModelId,
+    carId: pick('car', equipped?.carId, DEFAULT_EQUIPPED.carId) as CarModelId,
     carColor: color !== undefined && CAR_PAINT_COLORS.some(paint => paint.value === color) ? color : DEFAULT_EQUIPPED.carColor,
-    bikeId: valid('bike', equipped?.bikeId, DEFAULT_EQUIPPED.bikeId) as BikeModelId,
-    characterId: valid('character', equipped?.characterId, DEFAULT_EQUIPPED.characterId) as CharacterChoiceId,
+    bikeId: pick('bike', equipped?.bikeId, DEFAULT_EQUIPPED.bikeId) as BikeModelId,
+    characterId: pick('character', equipped?.characterId, DEFAULT_EQUIPPED.characterId) as CharacterChoiceId,
   };
 }
 

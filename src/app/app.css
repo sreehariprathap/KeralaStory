@@ -150,3 +150,7 @@ body{background:#24382e}
   .world-viewport { transition: none; }
   .wasted-banner { animation: none; }
 }
+
+/* Flight and nitro readouts sit beside the HUD icon column, which grew past their old spot. */
+.experience:not(.uses-touch) .glider-status,.experience:not(.uses-touch) .nitro-status{top:260px;right:77px}
+@media(max-width:760px){.experience:not(.uses-touch) .glider-status,.experience:not(.uses-touch) .nitro-status{top:182px;right:62px}}

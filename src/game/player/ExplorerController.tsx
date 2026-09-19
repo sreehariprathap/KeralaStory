@@ -6,7 +6,7 @@ import type { KinematicCharacterController } from '@dimforge/rapier3d-compat';
 import type { Group, Vector3 } from 'three';
 import type { BicycleSave, ExplorerControllerProps, TravelMode, Vec3 } from '../../contracts';
 import { PARKING_SPOTS, hasGroundAt, isOnWalkableDeck, nearestParking, safeGroundPosition, isTravelAllowed, isVehicleTerrainAllowed, openWaterSurfaceAt, isWater, terrainHeight, walkableDeckHeight, waterFlowAt, waterLevelAt } from '../../content/world/definition';
-import { GLIDER_LAUNCH, GLIDER_TURN_BACK, isInGliderLaunch, thermalLift } from '../../content/world/gliderSites';
+import { GLIDER_LAUNCH, GLIDER_TURN_BACK, isInGliderLaunch, parachuteDropHeight, thermalLift } from '../../content/world/gliderSites';
 import { bikeModel, type BikeModelId } from '../../content/assets/bikeProfiles';
 import { useExplorerInput } from '../input/useExplorerInput';
 import { clearInput, headingFromMotion, readFollowMovement, readMovement } from '../input/inputState';
@@ -259,6 +259,19 @@ export function ExplorerController(props: ExplorerControllerProps) {
     teleport([p.x,p.y-FEET_TO_CENTER+1,p.z]);
     report('glider.launched');
   },[props.gliderLaunchToken]);
+  const lastParachuteDrop=useRef(props.parachuteDropToken);
+  useEffect(()=>{
+    if(lastParachuteDrop.current===props.parachuteDropToken)return;lastParachuteDrop.current=props.parachuteDropToken;
+    const rigidBody=body.current;if(!rigidBody)return;
+    if(vehicle.current!=='foot'){report('parachute.leaveVehicle');return;}
+    const p=rigidBody.translation();
+    // The wing opens facing the way the player looks, high above the spot they stand on.
+    azimuth.current=-heading.current;swimming.current=false;motion.current.swimming=false;
+    glider.current=createGliderState(heading.current);gliderStuck.current=0;
+    setTravel('glider');
+    teleport([p.x,parachuteDropHeight(p.x,p.z,p.y-FEET_TO_CENTER),p.z]);
+    report('parachute.dropped');
+  },[props.parachuteDropToken]);
   const lastBikeSpawn=useRef(props.bikeSpawnToken);
   useEffect(()=>{
     if(lastBikeSpawn.current===props.bikeSpawnToken)return;lastBikeSpawn.current=props.bikeSpawnToken;

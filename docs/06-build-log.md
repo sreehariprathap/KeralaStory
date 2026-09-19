@@ -667,3 +667,30 @@ sixteen 1024² textures costs 89 MB on the GPU.
 - Title-screen atlas and profile modal: kept this branch's shell flow, so the atlas image lazy-load change from map-expansion does not apply here.
 - Checks run: `npm run typecheck` PASS, `vite build` PASS, `vitest` 643 of 644 (only the known `tests/expansionLayout.test.ts` failure; `roomIntegration` excluded). `tests/roadNetwork.test.ts` and `tests/waterPark.test.ts` pass.
 - NOT yet done: looking at the new forecourt in the running game.
+
+## 2026-09-18 — Parachute drop
+
+- A parachute button on the HUD (on foot, solo only) opens the glider 120 m above the highest ground within 80 m of the player (`parachuteDropHeight()` in `gliderSites.ts`), facing the way the player looks. It then flies exactly like the summit glider: thermals, edge turn-back, landing, splash. The button hides while riding anything.
+- Multiplayer rooms do not get the button: the server owns glider launches and only allows the summit circle. Adding it there needs a protocol message and server validation.
+- While gliding, the F prompt now reads "Let go of the glider" (it said "Ride bicycle"). The altitude and nitro readouts moved beside the HUD icon column on desktop; the column had grown over them.
+- Checks run: `npm run typecheck` PASS, `vite build` PASS, `vitest` all pass except the known `tests/expansionLayout.test.ts` (`roomIntegration` excluded). Headless Chromium (Playwright, 1280×800): new game → parachute button → 150 m above ground in the glider, diving to 119 m in 8 s, prompt and readout placed correctly, no console errors.
+- NOT yet done: touch layout check and a Malayalam translation for the new strings.
+
+## 2026-09-18 — Google accounts (Firebase)
+
+- Accounts use the project's Firebase app (`src/firebase.ts`: Google sign-in, Firestore database `kodassery-db`). The SDK loads lazily (`src/account/accountService.ts`), so the splash and menu do not wait on it.
+- Free play needs no account: guests get the launch skin (Explorer), the Admin car and the Roadster bicycle (`GUEST_LOADOUT`, `isUnlocked` in `content/store/catalog.ts`). `resolveEquipped(equipped, signedIn)` falls back to that loadout for guests, so a signed-out device never spawns a locked model. The store, the character creator and the in-game car and bike spawners show the rest locked, with "Sign in".
+- Signing in (Account screen, or a locked store item) unlocks everything. The account keeps the saved game (coins included) and the equipped loadout at `users/{uid}` (`src/account/cloudSave.ts`: the save as JSON text, parsed with the save schemas on the way back). On sign-in the newer save wins, a tie keeps the account's copy, and a run already in progress always wins. Nothing is written until the account's copy has been read. While playing, saves go up at most every 30 s, and immediately on pause, quit, sign-out or hiding the app.
+- `firestore.rules`: owner-only read/write of `users/{uid}`, only the three expected fields, and `updatedAt` must be the server time. Registered in `firebase.json`.
+- Checks run: `npm run typecheck` PASS, `vite build` PASS (Firebase in separate lazy chunks), `vitest` all pass except the known `tests/expansionLayout.test.ts` (`roomIntegration` excluded); new `tests/cloudSave.test.ts` and store-lock tests. Headless Chromium at 127.0.0.1:5000: guest Account screen, the Google popup opens (Firebase handler), the unauthorised-domain error is shown, store tags and Sign-in button on locked items, locked character options, locked spawner cards. No console errors.
+- NOT verified: a real Google sign-in and a cloud save round trip (needs a person to log in), and the rules (no Java for the emulator; the CLI account lacks permission on the project, so they are not deployed).
+
+## 2026-09-18 — Email and phone sign-in, pause screen, Google tag, app icons
+
+- Account screen (guest): Google, plus email/password (sign in, create account, password reset link) and phone (SMS code behind an invisible reCAPTCHA, fresh container per attempt, 2-minute limit so a closed puzzle cannot leave the form stuck). Firebase errors map to short messages (`signInErrorKey`).
+- Provider check against the live project (read-only probes with the public web key): email/password is on; phone returns `OPERATION_NOT_ALLOWED`, so it shows "This sign-in method is not switched on yet" until enabled in the console. Authorized domains are the firebaseapp/web.app/vercel ones; `localhost` is not yet listed, which is why local Google sign-in fails. The console takes bare domains only (no scheme, port or IP).
+- Pause screen (`PauseMenu.tsx`) now matches the main menu: Resume, Field Atlas, Settings, Quit/Leave Room; Esc and Enter-on-Resume resume.
+- Google tag (`G-G767396RKX`) added to `index.html`; the service worker ignores cross-origin requests, so analytics pass through.
+- Install icons regenerated from `public/assets/logo-english.png` (`scripts/generate-icons.mjs`), palette-compressed to about 170 KB total; the maskable icon keeps the logo inside the 80% safe circle.
+- Checks run: `npm run typecheck` PASS, `vite build` PASS, `vitest` all pass except the known `tests/expansionLayout.test.ts` (`roomIntegration` excluded). Headless Chromium on localhost:1996: wrong email/password shows the credentials error from the real project; reset link reports sent; phone reaches the reCAPTCHA challenge; phone-width layout has no horizontal scroll.
+- NOT verified: a real Google, email-account or SMS sign-in end to end, and Firestore rules (not deployed from here).

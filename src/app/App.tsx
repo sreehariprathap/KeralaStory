@@ -1,5 +1,5 @@
 import { Component, Suspense, lazy, useCallback, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
-import { ArrowRight, Compass, MapTrifold, Pause, GearSix, ArrowCounterClockwise, House, Footprints, FlagPennant, CaretDown, X, Tree, Car, Motorcycle, Wind, SoccerBall } from '@phosphor-icons/react';
+import { Compass, MapTrifold, Pause, ArrowCounterClockwise, Footprints, FlagPennant, CaretDown, X, Tree, Car, Motorcycle, Wind, SoccerBall, Parachute } from '@phosphor-icons/react';
 import { CAR_MODELS, CAR_PICKER_CATALOG, type CarModelId } from '../content/assets/models';
 import { BIKE_MODELS, BIKE_PICKER_CATALOG, type BikeModelId } from '../content/assets/bikeProfiles';
 import { CarPicker } from '../features/vehicles/CarPicker';
@@ -19,11 +19,15 @@ import { WalletHud, heartsFoundToday } from '../features/wallet/WalletHud';
 import { shouldPersistSave } from '../features/multiplayer/roomSessionModel';
 import { useRoomSession } from './useRoomSession';
 import { Shell } from '../features/shell/Shell';
+import { PauseMenu } from '../features/shell/PauseMenu';
 import { createShellState, reduceShell } from '../features/shell/shellFlow';
-import { applyEquippedCharacter, resolveEquipped, type CharacterChoiceId } from '../content/store/catalog';
+import { applyEquippedCharacter, isUnlocked, resolveEquipped, type CharacterChoiceId } from '../content/store/catalog';
 import { resetLoadProgress } from '../game/render/loadProgress';
 import type { Equipped } from '../contracts';
 import { RoomStatus } from '../features/multiplayer/RoomStatus';
+import { useAccount } from './useAccount';
+import { chooseSave, type CloudRecord } from '../account/cloudSave';
+import type { AccountUser } from '../account/accountService';
 
 import { LocaleProvider, translate, localizedPlace, localizedRegion, type TranslationKey, ENGLISH_CATALOG } from '../features/i18n/translate';
 import { MobileControls } from '../features/controls/MobileControls';
@@ -65,11 +69,11 @@ export function App(){
   const [bicycleSpawn,setBicycleSpawn]=useState<BicycleSave|null>(null);
   const [returnBicycleToken,setReturnBicycleToken]=useState(0);
   const [carSpawnToken,setCarSpawnToken]=useState(0);
-  const [carModelId,setCarModelId]=useState<CarModelId>(()=>resolveEquipped(initialPreferences.preferences.equipped).carId);
-  const [carColor,setCarColor]=useState<string>(()=>resolveEquipped(initialPreferences.preferences.equipped).carColor);
+  const [carModelId,setCarModelId]=useState<CarModelId>(()=>resolveEquipped(initialPreferences.preferences.equipped,false).carId);
+  const [carColor,setCarColor]=useState<string>(()=>resolveEquipped(initialPreferences.preferences.equipped,false).carColor);
   const [bikeSpawnToken,setBikeSpawnToken]=useState(0);
-  const [gliderLaunchToken,setGliderLaunchToken]=useState(0);const [gliderDismissed,setGliderDismissed]=useState(false);
-  const [bikeModelId,setBikeModelId]=useState<BikeModelId>(()=>resolveEquipped(initialPreferences.preferences.equipped).bikeId);
+  const [gliderLaunchToken,setGliderLaunchToken]=useState(0);const [parachuteDropToken,setParachuteDropToken]=useState(0);const [gliderDismissed,setGliderDismissed]=useState(false);
+  const [bikeModelId,setBikeModelId]=useState<BikeModelId>(()=>resolveEquipped(initialPreferences.preferences.equipped,false).bikeId);
   const [soccerActive,setSoccerActive]=useState(false);const [soccerDismissed,setSoccerDismissed]=useState(false);
   const [soccerScore,setSoccerScore]=useState({north:0,south:0});const [soccerBanner,setSoccerBanner]=useState<{text:TranslationKey;id:number}|null>(null);
   const kick=useRef<KickControl>({held:false}).current;const chargeBar=useRef<HTMLElement|null>(null);
@@ -82,11 +86,31 @@ export function App(){
   const room=useRoomSession();
   const inRoom=room.inRoom;
   const [shell,dispatchShell]=useReducer(reduceShell,undefined,()=>createShellState({hasSave:!!initial.save,inviteCode:room.initialCode}));
-  const equipped=resolveEquipped(preferences.equipped);
+  // Accounts: signing in unlocks the whole store and keeps the save, coins and loadout in Firestore.
+  const savedRef=useRef(saved);savedRef.current=saved;
+  const preferencesRef=useRef(preferences);preferencesRef.current=preferences;
+  const activeRef=useRef(false);
+  const adoptSave=(save:SaveV3)=>{setSaved(save);setProfile(save.profile);setSettings(save.settings);setVisited(save.visitedLandmarkIds.filter(id=>LANDMARKS.some(l=>l.id===id)));setCollectState(rollOver(save.collect,todayKey()));};
+  const adoptRef=useRef(adoptSave);adoptRef.current=adoptSave;
+  const onSignedIn=useCallback((_user:AccountUser,cloud:CloudRecord):Partial<CloudRecord>=>{
+    const local=savedRef.current,send:Partial<CloudRecord>={};
+    // A run already under way keeps going: it is newer than anything the account holds.
+    const choice=activeRef.current?(local?'local':'none'):chooseSave(local,cloud.save);
+    if(choice==='cloud'&&cloud.save){const result=writeLocalSave(cloud.save);if(!result.ok)setWarning(result.warning);adoptRef.current(cloud.save);}
+    else if(choice==='local'&&local)send.save=local;
+    if(cloud.equipped){const next={...preferencesRef.current,equipped:cloud.equipped};setPreferences(next);writePreferences(next);}
+    else send.equipped=preferencesRef.current.equipped;
+    return send;
+  },[]);
+  const account=useAccount(onSignedIn);
+  const signedIn=account.status==='signedIn';
+  // Guests see the rest of the garage, locked, in the in-game spawners.
+  const lockFor=(kind:'car'|'bike')=>(entry:{id:string;name:string;available:boolean;reason:string})=>entry.available&&!isUnlocked(kind,entry.id,signedIn)?{...entry,available:false,reason:t('account.lockedReason'),badge:t('account.locked')}:entry;
+  const equipped=resolveEquipped(preferences.equipped,signedIn);
   const [profile,setProfile]=useState<ExplorerProfile>(initial.save?.profile??defaultProfile);
   const [settings,setSettings]=useState<GameSettings>(()=>initial.save?.settings??{...DEFAULT_SETTINGS,quality:coarse?'low':'medium',reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches});
   const [mode,setMode]=useState<InputMode>('menu');
-  const [active,setActive]=useState(false);const [menu,setMenu]=useState<'none'|'settings'|'reset'|'car'|'bike'>('none');
+  const [active,setActive]=useState(false);activeRef.current=active;const [menu,setMenu]=useState<'none'|'settings'|'reset'|'car'|'bike'>('none');
   const [sceneError,setSceneError]=useState<string|null>(null);const [sceneKey,setSceneKey]=useState(0);
   const [spawn,setSpawn]=useState<Vec3>(SPAWN);const [initialHeading,setInitialHeading]=useState(Math.PI);const [resetToken,setResetToken]=useState(0);
   const [snapshot,setSnapshot]=useState<PlayerSnapshot>(defaultSnapshot);
@@ -106,25 +130,26 @@ export function App(){
   const onMap=useCallback(()=>setMode(m=>m==='playing'?'map':m),[]);
   const onPlayerReady=useCallback(()=>{restored.current=true;setMode(m=>m==='loading'?'playing':m);dispatchShell({type:'WORLD_READY'});},[]);
   const onSceneError=useCallback((error:string)=>{setSceneError(error);setMenu('none');setMode(m=>m==='menu'?'menu':'paused');dispatchShell({type:'LOAD_FAILED'});},[]);
-  const persist=useCallback(()=>{
+  const persist=useCallback((urgent=false)=>{
     if(!active||profile.id==='preview'||!restored.current)return;
     if(!shouldPersistSave(inRoom))return;
     const last=safeRef.current;
     const save:SaveV3={version:3,collect:collectRef.current,locale,bicycle:snapshotRef.current.bicycle??bicycleSpawn,worldVersion:WORLD_VERSION,profile,position:last.position,headingRad:last.headingRad,safeSpawnId:'origin',visitedLandmarkIds:visitedRef.current,settings,updatedAt:new Date().toISOString()};
     const result=writeLocalSave(save);if(!result.ok)setWarning(result.warning);else setSaved(save);
-  },[active,profile,settings,locale,bicycleSpawn,inRoom]);
-  useEffect(()=>{if(!active)return;persist();const timer=setInterval(persist,5000);const hide=()=>{if(document.hidden)persist();};document.addEventListener('visibilitychange',hide);return()=>{clearInterval(timer);document.removeEventListener('visibilitychange',hide);};},[active,persist]);
+    account.push({save},urgent);
+  },[active,profile,settings,locale,bicycleSpawn,inRoom,account.push]);
+  useEffect(()=>{if(!active)return;persist();const timer=setInterval(()=>persist(),5000);const hide=()=>{if(document.hidden)persist(true);};document.addEventListener('visibilitychange',hide);return()=>{clearInterval(timer);document.removeEventListener('visibilitychange',hide);};},[active,persist]);
   // A run of pickups becomes one write, not one per coin.
-  useEffect(()=>{if(!active)return;const id=setTimeout(persist,500);return()=>clearTimeout(id);},[collectState,active,persist]);
+  useEffect(()=>{if(!active)return;const id=setTimeout(()=>persist(),500);return()=>clearTimeout(id);},[collectState,active,persist]);
   useEffect(()=>{if(mode!=='playing')return;for(const landmark of LANDMARKS){if(visitedRef.current.includes(landmark.id))continue;const distance=Math.hypot(snapshot.position[0]-landmark.position[0],snapshot.position[2]-landmark.position[2]);if(distance<landmark.discoveryRadiusM){setVisited(v=>v.includes(landmark.id)?v:[...v,landmark.id]);setDiscovery(landmark.id);break;}}},[snapshot,mode]);
   useEffect(()=>{if(!discovery)return;const t=setTimeout(()=>setDiscovery(null),5500);return()=>clearTimeout(t);},[discovery]);
-  useEffect(()=>{if(active&&mode!=='playing')persist();},[mode,active,persist]);
+  useEffect(()=>{if(active&&mode!=='playing')persist(true);},[mode,active,persist]);
   useWakeLock(active&&mode==='playing');
   // Switching apps on a phone pauses the trail rather than letting it run unseen.
   useEffect(()=>{if(!active)return;const hide=()=>{if(document.hidden){commands?.clear();setMode(m=>m==='playing'?'paused':m);}};document.addEventListener('visibilitychange',hide);return()=>document.removeEventListener('visibilitychange',hide);},[active,commands]);
 
   const start=(chosen:ExplorerProfile,continuing=false,characterId?:CharacterChoiceId)=>{
-    const loadout=resolveEquipped(preferences.equipped);
+    const loadout=resolveEquipped(preferences.equipped,signedIn);
     setCarModelId(loadout.carId);setCarColor(loadout.carColor);setBikeModelId(loadout.bikeId);
     resetLoadProgress();
     // An explicit character (New Game) wins over the equipped one, which this render may not have seen yet.
@@ -137,9 +162,9 @@ export function App(){
     if(!continuing)setVisited([]);
     setActive(true);setMenu('none');setMode('loading');setResetToken(n=>n+1);
   };
-  const exit=()=>{persist();setActive(false);setMode('menu');setMenu('none');setDiscovery(null);dispatchShell({type:'QUIT_TO_MENU'});};
+  const exit=()=>{persist(true);setActive(false);setMode('menu');setMenu('none');setDiscovery(null);dispatchShell({type:'QUIT_TO_MENU'});};
   const enterRoom=()=>{
-    const loadout=resolveEquipped(preferences.equipped);
+    const loadout=resolveEquipped(preferences.equipped,signedIn);
     setCarModelId(loadout.carId);setCarColor(loadout.carColor);setBikeModelId(loadout.bikeId);
     resetLoadProgress();
     room.enter();
@@ -149,12 +174,12 @@ export function App(){
   const leaveRoom=()=>{room.leave();setActive(false);setMode('menu');setMenu('none');setDiscovery(null);dispatchShell({type:'QUIT_TO_MENU'});};
   const newGame=(chosen:ExplorerProfile)=>{
     // The creator's character choice becomes the equipped one, so the store and the game agree.
-    const characterId=resolveEquipped({characterId:chosen.characterModelId??'procedural'}).characterId;
+    const characterId=resolveEquipped({characterId:chosen.characterModelId??'procedural'},signedIn).characterId;
     if(characterId!==preferences.equipped.characterId)updatePreferences({...preferences,equipped:{...preferences.equipped,characterId}});
     setVisited([]);
     start(chosen,false,characterId);
   };
-  const equip=(next:Equipped)=>updatePreferences({...preferences,equipped:next});
+  const equip=(next:Equipped)=>{updatePreferences({...preferences,equipped:next});account.push({equipped:next},true);};
   const abandonLoad=()=>{if(inRoom)leaveRoom();else exit();setSceneError(null);setSceneKey(n=>n+1);};
   useEffect(()=>{dispatchShell({type:'SAVE_CHANGED',hasSave:!!saved});},[saved]);
   // A room that ends underneath the player, even mid-load, returns them to the multiplayer screen.
@@ -231,7 +256,7 @@ export function App(){
   const spawnCar=()=>{setCarSpawnToken(token=>token+1);closeCarControls();};
   const openBikeControls=()=>{setMode('paused');setMenu('bike');};
   const spawnBike=()=>{setBikeSpawnToken(token=>token+1);closeCarControls();};
-  const controller=useMemo<ExplorerControllerProps>(()=>({mode,profile,spawn,initialHeading,resetToken,inputCommands:receiveCommands,bicycleSpawn,returnBicycleToken,carSpawnToken,carModelId,carColor,bikeSpawnToken,bikeModelId,gliderLaunchToken,sensitivity:settings.sensitivity,reducedMotion:settings.reducedMotion,cameraControl:touch?'mouse':settings.cameraControl,onSnapshot,onPause,onMap,onReady:onPlayerReady,onError:onSceneError}),[mode,profile,spawn,initialHeading,resetToken,receiveCommands,bicycleSpawn,returnBicycleToken,carSpawnToken,carModelId,carColor,bikeSpawnToken,bikeModelId,gliderLaunchToken,settings.sensitivity,settings.reducedMotion,settings.cameraControl,touch,onSnapshot,onPause,onMap,onPlayerReady,onSceneError]);
+  const controller=useMemo<ExplorerControllerProps>(()=>({mode,profile,spawn,initialHeading,resetToken,inputCommands:receiveCommands,bicycleSpawn,returnBicycleToken,carSpawnToken,carModelId,carColor,bikeSpawnToken,bikeModelId,gliderLaunchToken,parachuteDropToken,sensitivity:settings.sensitivity,reducedMotion:settings.reducedMotion,cameraControl:touch?'mouse':settings.cameraControl,onSnapshot,onPause,onMap,onReady:onPlayerReady,onError:onSceneError}),[mode,profile,spawn,initialHeading,resetToken,receiveCommands,bicycleSpawn,returnBicycleToken,carSpawnToken,carModelId,carColor,bikeSpawnToken,bikeModelId,gliderLaunchToken,parachuteDropToken,settings.sensitivity,settings.reducedMotion,settings.cameraControl,touch,onSnapshot,onPause,onMap,onPlayerReady,onSceneError]);
   const currentRegion=WORLD_REGIONS.find(r=>r.id===getZoneAtPosition(snapshot.position[0],snapshot.position[2]))??WORLD_REGIONS[0];
   const currentArea=getAreaAt(snapshot.position[0],snapshot.position[2]);
   const placeLabel=currentArea?t(`area.${currentArea}` as TranslationKey):localizedRegion(currentRegion.id,locale);
@@ -240,7 +265,7 @@ export function App(){
 
   return <LocaleProvider locale={locale}><main className={`experience ${active?'is-exploring':'is-entry'} ${snapshot.wasted?'is-wasted':''} ${touch?'uses-touch':''} ${soccerActive?'in-match':''}`} data-mode={mode} data-travel-mode={snapshot.travelMode??'foot'} data-player-position={snapshot.position.map(n=>n.toFixed(3)).join(",")} data-player-grounded={snapshot.grounded}>
     <AudioDirector settings={settings} mode={mode} player={snapshot}/>
-    <Shell state={shell} dispatch={dispatchShell} locale={locale} touch={touch} reducedMotion={settings.reducedMotion} equipped={preferences.equipped} coins={collectState.coins}
+    <Shell state={shell} dispatch={dispatchShell} account={account} locale={locale} touch={touch} reducedMotion={settings.reducedMotion} equipped={preferences.equipped} coins={collectState.coins}
       savedProfile={saved?.profile??null} savedDiscoveries={saved?.visitedLandmarkIds.length??0}
       roomProfile={applyEquippedCharacter(saved?.profile??profile,equipped.characterId)} room={room}
       settingsPanel={<SettingsPanel settings={settings} onChange={setSettings} controls={preferences.controls} onControlsChange={value=>updatePreferences({...preferences,controls:value})} locale={locale} onLocaleChange={value=>updatePreferences({...preferences,locale:value})} developerMode={inspectMode} onDeveloperModeChange={import.meta.env.DEV?setDeveloperMode:undefined} haptics={preferences.haptics} onHapticsChange={touch?value=>updatePreferences({...preferences,haptics:value}):undefined} offline={<OfflineSettings/>}/>}
@@ -249,7 +274,7 @@ export function App(){
       onRetry={retry} onAbandonLoad={abandonLoad} onResetExplorer={()=>setMenu('reset')}/>{active&&(<div className="world-viewport" aria-label="3D Kerala exploration world">
       <SceneBoundary key={sceneKey} onRetry={retry} onError={onSceneError} onExit={exit}><Suspense fallback={null}><WorldCanvas locale={locale} active={active} settings={settings} controller={controller} onReady={noop} onError={onSceneError} playerRef={snapshotRef} collectedIds={collectState.collectedIds} onCollect={onCollect} soccer={soccer} multiplayer={inRoom?{session:room.session,selfId:room.selfId,chatFocused:room.chatFocused}:undefined}/></Suspense></SceneBoundary>
     </div>)}
-    {active&&<div className="hud" aria-label="Explorer heads-up display">{!touch&&<div className="hud-identity"><div className="identity-emblem"><Tree size={28} weight="light"/></div><div><span className="hud-name">{profile.displayName}</span><span className="hud-place">{placeLabel}</span></div></div>}<div className="hud-top-center"><span>N</span><span className="compass-tick"/><span>KERALA · CIRCA 2000</span><span className="compass-tick"/><span>S</span></div><div className="hud-map"><button className="minimap-button" aria-label="Open world map" onClick={onMap}><ExplorerMap compact player={snapshot} visited={visited} waypoint={waypoint} onWaypoint={setWaypoint}/><div className="minimap-north">N</div></button><button className="map-open-button" onClick={onMap}><MapTrifold size={17}/> World map <kbd>M</kbd></button></div>{!inRoom&&<WalletHud coins={collectState.coins} heartsFound={heartsFoundToday(collectState)} locale={locale} compact={touch} place={placeLabel}/>}<div className="hud-actions"><button className="hud-icon" aria-label="Pause and settings" onClick={onPause}><Pause size={20}/></button><FullscreenButton className="hud-icon" landscape={touch}/>{!inRoom&&<><button className="hud-icon" aria-label="Open car controls" title="Car controls" onClick={openCarControls}><Car size={20}/></button><button className="hud-icon" aria-label="Open bike controls" title="Bike controls" onClick={openBikeControls}><Motorcycle size={20}/></button></>}</div>
+    {active&&<div className="hud" aria-label="Explorer heads-up display">{!touch&&<div className="hud-identity"><div className="identity-emblem"><Tree size={28} weight="light"/></div><div><span className="hud-name">{profile.displayName}</span><span className="hud-place">{placeLabel}</span></div></div>}<div className="hud-top-center"><span>N</span><span className="compass-tick"/><span>KERALA · CIRCA 2000</span><span className="compass-tick"/><span>S</span></div><div className="hud-map"><button className="minimap-button" aria-label="Open world map" onClick={onMap}><ExplorerMap compact player={snapshot} visited={visited} waypoint={waypoint} onWaypoint={setWaypoint}/><div className="minimap-north">N</div></button><button className="map-open-button" onClick={onMap}><MapTrifold size={17}/> World map <kbd>M</kbd></button></div>{!inRoom&&<WalletHud coins={collectState.coins} heartsFound={heartsFoundToday(collectState)} locale={locale} compact={touch} place={placeLabel}/>}<div className="hud-actions"><button className="hud-icon" aria-label="Pause and settings" onClick={onPause}><Pause size={20}/></button><FullscreenButton className="hud-icon" landscape={touch}/>{!inRoom&&<><button className="hud-icon" aria-label="Open car controls" title="Car controls" onClick={openCarControls}><Car size={20}/></button><button className="hud-icon" aria-label="Open bike controls" title="Bike controls" onClick={openBikeControls}><Motorcycle size={20}/></button>{(snapshot.travelMode??'foot')==='foot'&&!snapshot.wasted&&<button className="hud-icon" aria-label={t('parachute.drop')} title={t('parachute.drop')} onClick={()=>setParachuteDropToken(n=>n+1)}><Parachute size={20}/></button>}</>}</div>
       {inRoom&&<RoomStatus session={room.session} onLeave={leaveRoom} onChatFocus={room.setChatFocused}/>}
       {!touch&&<div className="control-hints"><button onClick={()=>setHints(!hints)} className="hints-toggle"><Footprints size={17}/> Trail controls <CaretDown size={13} style={{transform:hints?'rotate(180deg)':'none'}}/></button>{hints&&<div className="hint-keys"><span><kbd>W A S D</kbd> Move</span><span><kbd>SHIFT</kbd> Run</span><span><kbd>SPACE</kbd> Jump</span><span><kbd>Q E</kbd> Turn</span><span><kbd>F</kbd> {t('car.interact')}</span><span><kbd>R</kbd> Sprint lock</span></div>}</div>}
       <div className="hud-bottom-right"><span>{visited.length} / {LANDMARKS.length} {t('app.placesDiscovered')}</span><span className="save-indicator">{warning?t('app.saveAttention'):saved?t('app.savedDevice'):t('app.saving')}</span></div>
@@ -276,16 +301,16 @@ export function App(){
       {snapshot.wasted&&<div className="wasted-banner" role="status" aria-live="assertive"><span lang="ml">{t('plane.wasted')}</span></div>}
       {snapshot.travelMode==='plane'&&!snapshot.wasted&&<div className={`glider-status ${snapshot.climbing?'is-climbing':''}`} role="status"><Wind size={15}/><span>{t('plane.altitude')} {Math.round(snapshot.altitude??0)} m · {Math.round((snapshot.airspeed??0)*3.6)} km/h{snapshot.climbing?' ▲':''}</span>{!touch&&<small>{t('plane.controls')}</small>}</div>}
       {snapshot.travelMode==='glider'&&<div className={`glider-status ${snapshot.climbing?'is-climbing':''}`} role="status"><Wind size={15}/><span>{t('glider.altitude')} {Math.round(snapshot.altitude??0)} m{snapshot.climbing?` · ▲ ${t('glider.rising')}`:''}</span>{!touch&&<small>{t('glider.controls')}</small>}</div>}
-      {mode==='playing'&&!snapshot.wasted&&!gliderOffer&&!soccerOffer&&(touch?Boolean(snapshot.interactionMessage&&snapshot.interactionMessage in ENGLISH_CATALOG):snapshot.canInteract||snapshot.interactionMessage)&&<div className="bicycle-prompt" role="status">{snapshot.interactionMessage?(snapshot.interactionMessage in ENGLISH_CATALOG?t(snapshot.interactionMessage as TranslationKey):snapshot.interactionMessage):<><kbd>{touch?'●':'F'}</kbd> {t(snapshot.travelMode==='car'?'controls.exitCar':snapshot.travelMode==='bicycle'?'controls.dismount':snapshot.travelMode==='boat'?'controls.leaveBoat':snapshot.travelMode==='plane'?'controls.leavePlane':'controls.mount')}{snapshot.travelMode!=='foot'&&snapshot.travelMode!=='plane'&&<small>S / ↓ · {t('controls.brake')}</small>}</>}</div>}
+      {mode==='playing'&&!snapshot.wasted&&!gliderOffer&&!soccerOffer&&(touch?Boolean(snapshot.interactionMessage&&snapshot.interactionMessage in ENGLISH_CATALOG):snapshot.canInteract||snapshot.interactionMessage)&&<div className="bicycle-prompt" role="status">{snapshot.interactionMessage?(snapshot.interactionMessage in ENGLISH_CATALOG?t(snapshot.interactionMessage as TranslationKey):snapshot.interactionMessage):<><kbd>{touch?'●':'F'}</kbd> {t(snapshot.travelMode==='car'?'controls.exitCar':snapshot.travelMode==='bicycle'?'controls.dismount':snapshot.travelMode==='boat'?'controls.leaveBoat':snapshot.travelMode==='plane'?'controls.leavePlane':snapshot.travelMode==='glider'?'controls.letGo':'controls.mount')}{snapshot.travelMode!=='foot'&&snapshot.travelMode!=='plane'&&snapshot.travelMode!=='glider'&&<small>S / ↓ · {t('controls.brake')}</small>}</>}</div>}
       {(snapshot.travelMode==='car'||snapshot.travelMode==='boat'||snapshot.travelMode==='bicycle'&&snapshot.nitroAvailable)&&<div className={`nitro-status ${snapshot.nitroActive?'is-active':''}`} role="status"><Car size={15}/><span>SHIFT · NITRO {snapshot.nitroActive?'ACTIVE':'READY'}</span></div>}
       {location&&mode==='playing'&&<div className="discovery-toast" role="status"><div><Compass size={24}/><span>{t('app.placeDiscovered')}</span></div><h2>{localizedPlace(location.id,locale)}</h2><p>{t(({origin:'landmark.originDescription',canopy:'landmark.canopyDescription',waterfall:'landmark.waterfallDescription',paddy:'landmark.paddyDescription',temple:'landmark.templeDescription','tea-shop':'landmark.teaShopDescription','river-bridge':'landmark.riverBridgeDescription','fishing-bank':'landmark.fishingBankDescription',market:'landmark.marketDescription',lighthouse:'landmark.lighthouseDescription',harbor:'landmark.harborDescription','spice-garden':'landmark.spiceGardenDescription'} as Record<string,TranslationKey>)[location.id]??`landmark.${location.id}Description` as TranslationKey)}</p></div>}
     </div>}
     {warning&&<div className="storage-notice" role="status"><p>{warning}</p><button aria-label="Dismiss save notice" onClick={()=>setWarning(null)}><X size={16}/></button></div>}
     <ModalShell open={mode==='map'} title={t('app.yourFieldAtlas')} onClose={()=>setMode('playing')} className="map-modal"><ExplorerMap player={snapshot} visited={visited} waypoint={waypoint} onWaypoint={setWaypoint}/></ModalShell>
-    <ModalShell open={!sceneError&&mode==='paused'&&menu==='none'} title={t('app.takeAMoment')} onClose={resume} className="pause-modal"><div className="pause-intro"><Tree size={34} weight="light"/><p>{t('app.hillsWillBeHere')}</p></div><div className="pause-options"><button className="button button-primary" onClick={resume}><ArrowRight size={19}/> Back to the trail</button><button className="button button-secondary" onClick={()=>setMode('map')}><MapTrifold size={19}/> Open field atlas</button><button className="button button-secondary" onClick={()=>setMenu('settings')}><GearSix size={19}/> Settings</button><button className="button button-secondary" onClick={inRoom?leaveRoom:exit}><House size={19}/> {inRoom?'Leave room':t('shell.pauseQuit')}</button></div></ModalShell>
+    {!sceneError&&active&&mode==='paused'&&menu==='none'&&<PauseMenu locale={locale} inRoom={inRoom} onSelect={item=>item==='resume'?resume():item==='atlas'?setMode('map'):item==='settings'?setMenu('settings'):inRoom?leaveRoom():exit()}/>}
     <ModalShell open={menu==='settings'&&active} title={t('app.makeAtHome')} onClose={()=>setMenu('none')}><SettingsPanel settings={settings} onChange={setSettings} controls={preferences.controls} onControlsChange={value=>updatePreferences({...preferences,controls:value})} locale={locale} onLocaleChange={value=>updatePreferences({...preferences,locale:value})} developerMode={inspectMode} onDeveloperModeChange={import.meta.env.DEV?setDeveloperMode:undefined} haptics={preferences.haptics} onHapticsChange={touch?value=>updatePreferences({...preferences,haptics:value}):undefined} offline={<OfflineSettings/>} onResetPosition={active&&!inRoom?resetPosition:undefined}/>{active&&!inRoom&&snapshot.travelMode!=='bicycle'&&<button className="button button-secondary" onClick={()=>{setReturnBicycleToken(v=>v+1);resume();}}>{t('controls.returnBicycle')}</button>}{saved&&<button className="text-button reset-profile" onClick={()=>setMenu('reset')}><ArrowCounterClockwise size={16}/> Reset local explorer</button>}</ModalShell>
-    <ModalShell open={menu==='car'} title={t('car.spawnerTitle')} onClose={closeCarControls} className="car-modal"><p className="car-modal__intro">Choose a car and drop it nearby. Hold <kbd>SHIFT</kbd> while driving to ignite nitrous for a short boost.</p><CarPicker embedded catalog={CAR_PICKER_CATALOG} selectedId={carModelId} status={t('car.notSaved')} busy={false} preview={menu==='car'?<Suspense fallback={null}><CarPreview modelId={carModelId} color={carPaintable?carColor:undefined}/></Suspense>:null} colors={carPaintable?CAR_PAINT_COLORS:undefined} selectedColor={carColor} onColorSelect={setCarColor} onSelect={id=>setCarModelId(id as CarModelId)} onSpawn={spawnCar} onClose={closeCarControls}/></ModalShell>
-    <ModalShell open={menu==='bike'} title="Bike spawner" onClose={closeCarControls} className="car-modal"><p className="car-modal__intro">Choose a bike and drop it nearby, then walk up and press <kbd>F</kbd>. Bikes ride on any dry ground. Hold <kbd>SHIFT</kbd> while riding a motor bike for nitrous.</p><p className="car-modal__intro">Stunts: <kbd>SPACE</kbd> hops, and speed launches you off ramps and crests. In the air, tap <kbd>W</kbd>/<kbd>S</kbd> to flip and <kbd>A</kbd>/<kbd>D</kbd> to spin, then land level and facing forward.</p><CarPicker embedded noun="bike" catalog={BIKE_PICKER_CATALOG} selectedId={bikeModelId} status="Bikes are not saved yet." busy={false} onSelect={id=>setBikeModelId(id as BikeModelId)} onSpawn={spawnBike} onClose={closeCarControls}/></ModalShell>
+    <ModalShell open={menu==='car'} title={t('car.spawnerTitle')} onClose={closeCarControls} className="car-modal"><p className="car-modal__intro">Choose a car and drop it nearby. Hold <kbd>SHIFT</kbd> while driving to ignite nitrous for a short boost.</p><CarPicker embedded catalog={CAR_PICKER_CATALOG.map(lockFor('car'))} selectedId={carModelId} status={t('car.notSaved')} busy={false} preview={menu==='car'?<Suspense fallback={null}><CarPreview modelId={carModelId} color={carPaintable?carColor:undefined}/></Suspense>:null} colors={carPaintable?CAR_PAINT_COLORS:undefined} selectedColor={carColor} onColorSelect={setCarColor} onSelect={id=>setCarModelId(id as CarModelId)} onSpawn={spawnCar} onClose={closeCarControls}/></ModalShell>
+    <ModalShell open={menu==='bike'} title="Bike spawner" onClose={closeCarControls} className="car-modal"><p className="car-modal__intro">Choose a bike and drop it nearby, then walk up and press <kbd>F</kbd>. Bikes ride on any dry ground. Hold <kbd>SHIFT</kbd> while riding a motor bike for nitrous.</p><p className="car-modal__intro">Stunts: <kbd>SPACE</kbd> hops, and speed launches you off ramps and crests. In the air, tap <kbd>W</kbd>/<kbd>S</kbd> to flip and <kbd>A</kbd>/<kbd>D</kbd> to spin, then land level and facing forward.</p><CarPicker embedded noun="bike" catalog={BIKE_PICKER_CATALOG.map(lockFor('bike'))} selectedId={bikeModelId} status="Bikes are not saved yet." busy={false} onSelect={id=>setBikeModelId(id as BikeModelId)} onSpawn={spawnBike} onClose={closeCarControls}/></ModalShell>
     <ModalShell open={menu==='reset'} title={t('app.startNewChapter')} onClose={()=>setMenu(active?'settings':'none')}><p>This removes your name, appearance, saved position, and discoveries from this browser.</p><div className="reset-actions"><button className="button button-secondary" onClick={()=>setMenu(active?'settings':'none')}>{t('app.keepExplorer')}</button><button className="button button-primary" onClick={()=>{const r=clearLocalSave();if(!r.ok){setWarning(r.warning);return;}setSaved(null);setVisited([]);setActive(false);setProfile(defaultProfile);setMode('menu');setMenu('none');}}>{t('app.resetExplorer')}</button></div></ModalShell>
     {inspectMode&&active&&<aside className="inspection-panel"><strong>Development inspection</strong><button onClick={()=>onSceneError('Simulated graphics interruption for recovery testing.')}>Test scene recovery</button>
       <select aria-label="Inspect landmark" defaultValue="" onChange={e=>{inspectDestination(e.currentTarget.value);e.currentTarget.value='';}}>

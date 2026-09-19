@@ -8,7 +8,7 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "vite --host 127.0.0.1 --port 5000",
+    "dev": "vite --host 127.0.0.1 --port 1996",
     "build": "npm run typecheck && npm run optimize:assets && vite build",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.sw.json && npm run typecheck --workspace=@kerala-story/protocol && npm run typecheck --workspace=@kerala-story/simulation && npm run typecheck --workspace=@kerala-story/server",
     "test": "vitest run",
@@ -30,6 +30,7 @@
     "@phosphor-icons/react": "2.1.10",
     "@react-three/fiber": "9.7.0",
     "@react-three/rapier": "2.2.0",
+    "firebase": "^12.19.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "three": "0.186.0",

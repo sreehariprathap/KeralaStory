@@ -6,6 +6,8 @@ export interface CarPickerCatalogEntry {
   name: string;
   available: boolean;
   reason: string;
+  /** Short tag on an unavailable card; defaults to "Unavailable". */
+  badge?: string;
 }
 
 export interface CarPickerProps {
@@ -65,7 +67,7 @@ export function CarPicker({ catalog, selectedId, status, busy, preview, onSelect
                   <strong>{entry.name}</strong>
                   {!entry.available && <small id={reasonId}>{entry.reason || 'Not available yet.'}</small>}
                 </span>
-                {!entry.available && <span className="car-picker__badge">Unavailable</span>}
+                {!entry.available && <span className="car-picker__badge">{entry.badge ?? 'Unavailable'}</span>}
               </label>
             );
           })}

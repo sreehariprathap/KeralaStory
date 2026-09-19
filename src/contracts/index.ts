@@ -56,6 +56,8 @@ export interface ExplorerControllerProps {
   bikeSpawnToken?: number;
   bikeModelId?: import('../content/assets/bikeProfiles').BikeModelId;
   gliderLaunchToken?: number;
+  /** Bumped to open a glider high above the player, wherever they stand. Solo play only. */
+  parachuteDropToken?: number;
   onCarSpawnResult?: (result: { ok: boolean; message: string }) => void;
 }
 

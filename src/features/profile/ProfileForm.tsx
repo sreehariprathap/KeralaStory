@@ -8,6 +8,7 @@ import {
   type ExplorerProfile,
 } from '../../contracts';
 import { CHARACTER_MODELS } from '../../content/assets/models';
+import { isUnlocked } from '../../content/store/catalog';
 import './profile-form.css';
 import { useT } from '../i18n/translate';
 
@@ -17,11 +18,13 @@ interface ProfileFormProps {
   initialProfile?: ExplorerProfile;
   /** Equipped store character; wins over the saved profile's character. */
   initialCharacterId?: string;
+  /** Without an account only the launch skin can be chosen; the others are listed, locked. */
+  signedIn?: boolean;
 }
 
 const makeId = () => globalThis.crypto?.randomUUID?.() ?? `explorer-${Date.now().toString(36)}`;
 
-export function ProfileForm({ onSubmit, onPreview, initialProfile, initialCharacterId }: ProfileFormProps) {
+export function ProfileForm({ onSubmit, onPreview, initialProfile, initialCharacterId, signedIn = true }: ProfileFormProps) {
   const t = useT();
   const id = useId();
   const [displayName, setDisplayName] = useState(initialProfile?.displayName ?? '');
@@ -119,7 +122,7 @@ export function ProfileForm({ onSubmit, onPreview, initialProfile, initialCharac
           onChange={(event) => setCharacterModelId(event.target.value)}
         >
           <option value="procedural">Original traveler</option>
-          {CHARACTER_MODELS.map((model) => <option value={model.id} key={model.id}>{model.name}</option>)}
+          {CHARACTER_MODELS.map((model) => { const locked = !isUnlocked('character', model.id, signedIn); return <option value={model.id} key={model.id} disabled={locked}>{locked ? `${model.name} · ${t('account.locked')}` : model.name}</option>; })}
         </select>
         {usesImportedModel && <p>Animated arms and legs for walking, running, jumping and cycling.</p>}
       </fieldset>
