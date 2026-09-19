@@ -307,3 +307,18 @@ it('sizes the motion arrays to the profile wheel count', () => {
   const { car } = fixture('admin');
   expect(car.motion.wheelRotation).toHaveLength(CAR_WHEELS.admin.length);
 });
+
+it('registers all six bus wheels with the vehicle controller', () => {
+  const { car } = fixture('bus');
+  expect(CAR_WHEELS.bus).toHaveLength(6);
+  expect(car.motion.wheelRotation).toHaveLength(6);
+  expect(car.vehicle.numWheels()).toBe(6);
+});
+
+it('steers only the bus front axle and drives all four rear wheels', () => {
+  const { car, step } = fixture('bus');
+  for (let frame = 0; frame < 60; frame++) step(1, 1);
+  car.sample();
+  expect(Math.abs(car.motion.wheelSteering[0])).toBeGreaterThan(.05);
+  for (const rear of [2, 3, 4, 5]) expect(car.motion.wheelSteering[rear], `wheel ${rear}`).toBe(0);
+});

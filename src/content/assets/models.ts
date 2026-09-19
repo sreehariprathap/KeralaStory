@@ -27,12 +27,19 @@ export const CAR_MODELS = [
   { id: 'celero', name: 'Celero GT', url: '/assets/cars/bbr_2_-_celero_gt.glb', rotationY: 0 },
   // Source node names have left/right swapped relative to world +X; the measured coordinates rule.
   { id: 'willys-buggy', name: 'Willys buggy', url: '/assets/cars/willys_mountain_buggy_2.glb', rotationY: 0 },
+  // Six wheels on a dual rear axle, and authored facing -Z, so it needs the half turn.
+  { id: 'bus', name: 'KSRTC bus', url: '/assets/cars/etalon_a079_reworked.glb', rotationY: Math.PI },
 ] as const;
 /** Source assets remain visible to review tooling but cannot spawn before calibration. */
 export const PENDING_CAR_MODELS = [
   { id: 'car', name: 'Rigged car', url: '/assets/cars/car.glb', reason: 'Skinned source needs bone-driven wheel animation support, not present in the renderer yet.' },
 ] as const;
 export type CarModelId = typeof CAR_MODELS[number]['id'];
+/**
+ * Cars expected to climb the summit off-road track. The bus is a road vehicle:
+ * it drives between the towns, not up a 4x4 track, and must not be tuned until it does.
+ */
+export const SUMMIT_CAPABLE_CAR_IDS = CAR_MODELS.map(car => car.id).filter(id => id !== 'bus') as readonly CarModelId[];
 export const CAR_PICKER_CATALOG = [
   ...CAR_MODELS.map(model => ({ ...model, available: true as const, reason: '' })),
   ...PENDING_CAR_MODELS.map(model => ({ ...model, available: false as const })),

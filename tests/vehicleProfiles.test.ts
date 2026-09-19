@@ -20,8 +20,8 @@ async function loadGeometry(url: string) {
 }
 
 describe('measured vehicle calibration', () => {
-  it('keeps the one unresolved source unavailable in the fourteen-car catalog', () => {
-    expect(CAR_PICKER_CATALOG).toHaveLength(14);
+  it('keeps the one unresolved source unavailable in the fifteen-car catalog', () => {
+    expect(CAR_PICKER_CATALOG).toHaveLength(15);
     expect(CAR_PICKER_CATALOG.filter(car => !car.available).map(car => car.id)).toEqual(['car']);
   });
   it.each(['car-carton', 'fennec', 'cyberpunk', 'supercar', 'lambini', 'celero', 'willys-buggy'] as const)('%s physics matches actual four wheel meshes', async id => {
@@ -44,6 +44,26 @@ describe('measured vehicle calibration', () => {
     createCarWheelAnimation(root, id);
     for (let i = 0; i < 4; i++) expect(root.getObjectByName(`car-wheel-spin-${i}`)).toBeTruthy();
     expect(new Box3().setFromObject(root, true).getSize(new Vector3()).z).toBeCloseTo(profile.length, 3);
+  });
+  it('bus physics matches actual six wheel meshes', async () => {
+    const model = CAR_MODELS.find(car => car.id === 'bus')!;
+    const profile = VEHICLE_PROFILES.bus, root = new Group(), scene = await loadGeometry(model.url);
+    removeHiddenVehicleNodes(scene, 'bus');
+    scene.rotation.y += model.rotationY; root.add(scene); root.updateMatrixWorld(true);
+    const bounds = new Box3().setFromObject(root, true), size = bounds.getSize(new Vector3());
+    root.scale.setScalar(profile.length / size.z);
+    scene.position.set(-(bounds.min.x + bounds.max.x) / 2, -bounds.min.y, -(bounds.min.z + bounds.max.z) / 2);
+    root.updateMatrixWorld(true);
+    expect(profile.wheels).toHaveLength(6);
+    profile.wheels.forEach(wheel => {
+      const wheelBounds = new Box3();
+      wheel.nodes.forEach(name => { const part = root.getObjectByName(name); expect(part, name).toBeTruthy(); wheelBounds.expandByObject(part!, true); });
+      const center = wheelBounds.getCenter(new Vector3());
+      expect(center.x).toBeCloseTo(wheel.x, 3); expect(center.y).toBeCloseTo(wheel.y, 3); expect(center.z).toBeCloseTo(wheel.z, 2);
+      expect(wheelBounds.getSize(new Vector3()).y / 2).toBeCloseTo(wheel.radius, 3);
+    });
+    createCarWheelAnimation(root, 'bus');
+    for (let i = 0; i < 6; i++) expect(root.getObjectByName(`car-wheel-spin-${i}`)).toBeTruthy();
   });
 });
 

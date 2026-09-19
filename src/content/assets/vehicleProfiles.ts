@@ -106,4 +106,16 @@ export const VEHICLE_PROFILES: Record<CarModelId, VehicleProfile> = {
     wheel(1.01681,.58824,-1.41221,.58824,'rear_left_wheel_wheels_0','rear_left_wheel_suspension_part_2_0'),
     wheel(-1.0168,.58824,-1.41221,.58824,'rear_right_wheel_wheels_0','rear_right_wheel_suspension_part_2_0'),
   ] },
+  // 8.5 m, six wheels: a steering front pair and a dual rear axle. The slight x asymmetry on the
+  // front wheels (.949 vs -.924) is in the source model and is preserved, not rounded.
+  bus: { length: 8.5, chassis: { x: 1.25, y: 1.35, z: 3.9, offset: 1 }, topSpeed: 19,
+    cameraDistance: 13, exhaust: { x: -1, y: .5, z: -4.1 },
+    wheels: [
+      wheel(.94934,.47051,2.7029,.47051,'left_front_wheel_Material011_0'),
+      wheel(-.92399,.47155,2.7029,.47051,'right_front_wheel_Material011_0'),
+      wheel(1.0455,.47144,-1.79593,.47051,'left_rear_wheel_2_Material011_0'),
+      wheel(.75881,.47051,-1.79593,.47051,'left_rear_wheel_1_Material011_0'),
+      wheel(-.73347,.47155,-1.79593,.47051,'right_rear_wheel_1_Material011_0'),
+      wheel(-1.02015,.47051,-1.79593,.47051,'right_rear_wheel_2_Material011_0'),
+    ] },
 };

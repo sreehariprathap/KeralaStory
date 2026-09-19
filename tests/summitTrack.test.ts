@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { EXPANSION_GROUND, EXPANSION_LAYOUT, isCarTerrainAllowed, isTravelAllowed, isWater, terrainHeight } from '../src/content/world/definition';
 import { createCarPhysics } from '../src/game/vehicle/carPhysics';
-import { CAR_MODELS, type CarModelId } from '../src/content/assets/models';
+import { CAR_MODELS, SUMMIT_CAPABLE_CAR_IDS, type CarModelId } from '../src/content/assets/models';
 
 const track = EXPANSION_LAYOUT.routes.find(route => route.id === 'summit-offroad-track')!;
 const trail = EXPANSION_LAYOUT.routes.find(route => route.id === 'summit-trail')!;
@@ -49,9 +49,14 @@ describe('summit off-road track', () => {
     }
   });
 
+  it('excludes only the bus from the summit climb', () => {
+    const excluded = CAR_MODELS.map(car => car.id as CarModelId).filter(id => !SUMMIT_CAPABLE_CAR_IDS.includes(id));
+    expect(excluded).toEqual(['bus']);
+  });
+
   it('lets every car drive from the foot to the peak', { timeout: 180_000 }, () => {
     const heading = Math.atan2(top[0] - foot[0], -(top[2] - foot[2]));
-    for (const model of CAR_MODELS.map(car => car.id) as CarModelId[]) {
+    for (const model of SUMMIT_CAPABLE_CAR_IDS) {
       const world = new RAPIER.World({ x: 0, y: -22, z: 0 });
       world.timestep = 1 / 60;
       for (const chunk of EXPANSION_GROUND.chunks) {
