@@ -70,8 +70,9 @@ function SilverStorm() {
         <mesh position={[-19, 12, -8]} rotation={[0, 0, -.5]} castShadow><cylinderGeometry args={[1.2, 1.2, 18, 10]} /><meshStandardMaterial color="#f08b58" roughness={.55} /></mesh>
         <mesh position={[18, 6, -12]} castShadow><cylinderGeometry args={[1.1, 1.4, 11, 10]} /><meshStandardMaterial color="#e8b653" roughness={.55} /></mesh>
       </group>} />
-      <mesh position={[0, .22, 31]} receiveShadow><boxGeometry args={[48, .12, 10]} /><meshStandardMaterial color="#c1aa78" roughness={1} /></mesh>
-      <ExpansionSign position={[0, 3.8, 29.8]} label="Silver Storm · ജല തീം പാർക്ക്" width={7} />
+      <mesh position={[0, -.04, 31]} receiveShadow><boxGeometry args={[48, .12, 10]} /><meshStandardMaterial color="#c1aa78" roughness={1} polygonOffset polygonOffsetFactor={-.3} polygonOffsetUnits={-.3} /></mesh>
+      {/* The name board stands at the forecourt's west end, beside the turning circle rather than on the road. */}
+      <ExpansionSign position={[-19, 3.8, 29.8]} label="Silver Storm · ജല തീം പാർക്ക്" width={7} />
     </group>
     <ParkPool />
   </group>;

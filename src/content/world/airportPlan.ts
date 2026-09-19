@@ -18,14 +18,16 @@ export const NEDUMBASSERY_AIRPORT_PLAN = {
   /** Asphalt strip, x from `xMin` to `xMax` along z = `z`. */
   runway: { xMin: -785, xMax: -468, z: 166, width: 28 },
   /** Concrete apron in front of the terminal, where the aircraft park. */
-  apron: { xMin: -650, xMax: -470, zMin: 118, zMax: 146 },
+  apron: { xMin: -760, xMax: -590, zMin: 118, zMax: 146 },
   /** Two link taxiways from the apron's south edge to the runway. */
-  taxiways: [-630, -490],
+  taxiways: [-740, -610],
   /** Terminal faces north onto the forecourt road; its airside glass looks over the apron. */
-  terminal: { x: -560, z: 106, width: 78, depth: 18 } as AirportLot,
-  tower: { x: -662, z: 108 },
-  hangar: { x: -742, z: 116, width: 44, depth: 30 } as AirportLot,
-  carPark: { x: -492, z: 106, width: 40, depth: 22 } as AirportLot,
-  /** Where visitors arrive: the end of the airport road, on the forecourt kerb. */
-  forecourt: [-560, 80] as const,
+  terminal: { x: -680, z: 106, width: 78, depth: 18 } as AirportLot,
+  tower: { x: -776, z: 108 },
+  hangar: { x: -520, z: 116, width: 44, depth: 30 } as AirportLot,
+  carPark: { x: -744, z: 98, width: 32, depth: 20 } as AirportLot,
+  /** Parking stands on the apron, in front of the terminal's jet bridges. */
+  stands: [-730, -680, -630],
+  /** Where visitors arrive: the forecourt turning circle at the end of Airport Road. */
+  forecourt: [-718, 78] as const,
 } as const;

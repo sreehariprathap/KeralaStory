@@ -21,7 +21,11 @@ export function createExpansionGround(layout: ExpansionLayout, originalHeight: (
   const axisX=40/Math.hypot(40,100),axisZ=100/Math.hypot(40,100);
   const bridgeLocal=(x:number,z:number)=>({along:(x-crossing[0])*axisX+(z-crossing[2])*axisZ,across:(x-crossing[0])*axisZ-(z-crossing[2])*axisX});
   const rectangle=(halfWidth:number,halfLength:number)=>([[-1,-1],[1,-1],[1,1],[-1,1]] as const).map(([w,l])=>[crossing[0]+w*halfWidth*axisZ+l*halfLength*axisX,crossing[2]-w*halfWidth*axisX+l*halfLength*axisZ] as [number,number]);
-  const streamBridge={position:crossing,yawRad:Math.atan2(axisX,axisZ),widthM:7,lengthM:18,footprint:rectangle(3.5,9)};
+  // The deck follows the road's own grade across the stream, so neither end leaves a step.
+  const roadAt=(along:number)=>nearestRouteSample(mainRoad,crossing[0]+axisX*along,crossing[2]+axisZ*along).position[1];
+  const deckGrade=(roadAt(9)-roadAt(-9))/18;
+  const deckY=(along:number)=>crossing[1]+deckGrade*Math.max(-9,Math.min(9,along));
+  const streamBridge={position:crossing,yawRad:Math.atan2(axisX,axisZ),pitchRad:-Math.atan(deckGrade),widthM:7,lengthM:18,footprint:rectangle(3.5,9)};
   const streamWater={id:'chokkana-stream-water',kind:'river' as const,surfaceY:crossing[1]-3,footprint:rectangle(25,4)};
   const summitRoute=layout.routes.find(r=>r.id==='summit-trail')!;
   const restShelves=[.25,.5,.75].map(t=>[...summitRoute.points[Math.round((summitRoute.points.length-1)*t)]] as [number,number,number]);
@@ -72,7 +76,7 @@ export function createExpansionGround(layout: ExpansionLayout, originalHeight: (
     }
     const bridge=bridgeLocal(x,z);
     const bridgeBlend=(1-smooth((Math.abs(bridge.across)-5)/8))*(1-smooth((Math.abs(bridge.along)-9)/14));
-    height=crossing[1]*bridgeBlend+height*(1-bridgeBlend);
+    height=deckY(bridge.along)*bridgeBlend+height*(1-bridgeBlend);
     for (const water of [...layout.waterBodies,streamWater]) if (pointInPolygon(x,z,water.footprint)) height = water.surfaceY - 3;
     return height;
   };
@@ -146,6 +150,6 @@ export function createExpansionGround(layout: ExpansionLayout, originalHeight: (
     for(const chunk of chunks) { const y=sampleTerrainChunk(chunk,x,z); if(y!==null)return y; }
     return null;
   };
-  const deckHeightAt=(x:number,z:number):number|null=>pointInPolygon(x,z,streamBridge.footprint)?crossing[1]:profile?.bridgeDeckAt(x,z)??null;
+  const deckHeightAt=(x:number,z:number):number|null=>pointInPolygon(x,z,streamBridge.footprint)?deckY(bridgeLocal(x,z).along):profile?.bridgeDeckAt(x,z)??null;
   return { chunks, originalNorthChunk, heightAt, field, restShelves, streamBridge, streamWater, deckHeightAt, v2:profile };
 }

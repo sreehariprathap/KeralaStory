@@ -1,7 +1,7 @@
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
 import { mountainArchitectureBoxes } from '../../content/world/staticArchitecture';
 import type { Locale } from '../../contracts';
-import { EXPANSION_LAYOUT, terrainHeight } from '../../content/world/definition';
+import { EXPANSION_LAYOUT, terrainHeight, roadsideSpot } from '../../content/world/definition';
 import { localizedPlace } from '../../features/i18n/translate';
 import { ExpansionSign } from './ExpansionSign';
 
@@ -13,7 +13,7 @@ export function MountainExpansion({locale}:{locale:Locale}) {
   const pads=[.25,.5,.75].map(t=>trail.points[Math.round((trail.points.length-1)*t)]);
   const boxes=mountainArchitectureBoxes(),rails=boxes.slice(0,2),gates=boxes.slice(2).map(box=>box.position);
   return <group>
-    <ExpansionSign position={[head.position[0]+5,head.position[1],head.position[2]]} label={`${localizedPlace(head.id,locale)} · ${localizedPlace('kodassery-summit',locale)}`} width={4}/>
+    <ExpansionSign position={roadsideSpot(head.position[0],head.position[2],5)} label={`${localizedPlace(head.id,locale)} · ${localizedPlace('kodassery-summit',locale)}`} width={4}/>
     <ExpansionSign position={[summit[0]+5,summit[1],summit[2]+3]} label={localizedPlace('kodassery-summit',locale)} width={3.5}/>
     <RigidBody type="fixed" colliders={false}>
       {rails.map((rail,i)=><CuboidCollider key={i} position={rail.position} args={rail.size.map(v=>v/2) as [number,number,number]}/>)}

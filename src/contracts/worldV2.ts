@@ -43,6 +43,11 @@ export interface WorldV2Layout {
   riverReaches: readonly RiverReach[];
   roads: readonly RoadProposal[];
   park: { id: 'silver-storm'; label: string; footprint: PolygonXZ; center: Vec3; poolFootprint: PolygonXZ };
+  /**
+   * Paved turning circles where a road ends without joining another: levelled to `center[1]`, drawn as
+   * a round apron and treated as road by terrain, scenery and travel rules.
+   */
+  roadCaps: readonly { id: string; center: Vec3; radius: number }[];
   /** Levelled like a town pad; the runway, terminal and aircraft are built on it. */
   airport: { id: 'nedumbassery-airport'; label: string; footprint: PolygonXZ; center: Vec3 };
   /** Heights are design targets until shared terrain/collision is built. Not safe spawns. */

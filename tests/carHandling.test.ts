@@ -1,11 +1,14 @@
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
-import { createCarPhysics } from '../src/game/vehicle/carPhysics';
+import { createCarPhysics, DEFAULT_TOP_SPEED } from '../src/game/vehicle/carPhysics';
+import { VEHICLE_PROFILES } from '../src/content/assets/vehicleProfiles';
 import type { CarModelId } from '../src/content/assets/models';
 import { MAIN_PATH, safeGroundPosition } from '../src/content/world/definition';
 import { terrainMeshData } from '../src/game/world/traversalGeometry';
 
 const DT = 1 / 60;
+/** Largest honest per-frame displacement: the model's top speed plus a little slack, no teleports. */
+const maxFrameStep = (model: CarModelId) => ((VEHICLE_PROFILES[model].topSpeed ?? DEFAULT_TOP_SPEED) + 3) * DT;
 const models: CarModelId[] = ['admin', 'muscle', 'car-carton', 'fennec', 'bronco', 'cyberpunk'];
 const headings = [0, Math.PI / 2, Math.PI, -Math.PI / 2];
 const worlds: RAPIER.World[] = [];
@@ -100,7 +103,7 @@ describe('prolonged car handling on a large flat Rapier ground', () => {
         if (!Number.isFinite(maxTilt)) failures.push(`${report} non-finite tilt`);
         if (minContacts < 2) failures.push(`${report} lost wheel contact`);
         if (maxTilt >= 0.9) failures.push(`${report} excessive tilt`);
-        if (maxStep >= 0.5) failures.push(`${report} excessive frame displacement`);
+        if (maxStep >= maxFrameStep(model)) failures.push(`${report} excessive frame displacement`);
         if (maxAbsPosition >= 900) failures.push(`${report} approached ground edge`);
       }
       expect(failures, reports.join('\n')).toEqual([]);
@@ -139,7 +142,7 @@ describe('prolonged car handling on a large flat Rapier ground', () => {
         if (minContacts < 2) failures.push(`${report} lost wheel contact`);
         if (maxTilt >= 0.9) failures.push(`${report} excessive tilt`);
         if (maxLateral >= 3) failures.push(`${report} excessive lateral speed`);
-        if (maxStep >= 0.5) failures.push(`${report} excessive frame displacement`);
+        if (maxStep >= maxFrameStep(model)) failures.push(`${report} excessive frame displacement`);
         if (maxAbsPosition >= 900) failures.push(`${report} approached ground edge`);
       }
       expect(failures, reports.join('\n')).toEqual([]);

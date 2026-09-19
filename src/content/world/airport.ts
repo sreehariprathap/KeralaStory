@@ -51,7 +51,7 @@ function createAirport() {
     line([x, a.zMax - 6], [x, r.z - half + .5], .35, YELLOW);
   }
   line([PLAN.taxiways[0], a.zMax - 6], [PLAN.taxiways[1], a.zMax - 6], .35, YELLOW);
-  const stands = [-618, -562, -506];
+  const stands = PLAN.stands;
   for (const x of stands) {
     line([x, a.zMax - 6], [x, a.zMin + 3], .3, YELLOW);
     line([x - 6, a.zMin + 3], [x + 6, a.zMin + 3], .3, YELLOW);

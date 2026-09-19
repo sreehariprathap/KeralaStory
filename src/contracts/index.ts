@@ -38,7 +38,7 @@ export const SaveSchema = z.object({
   visitedLandmarkIds: z.array(z.string()).max(500), settings: SettingsSchema, updatedAt: z.string().datetime(),
 });
 export type SaveV1 = z.infer<typeof SaveSchema>;
-export interface PlayerSnapshot { position: Vec3; headingRad: number; speed: number; grounded: boolean; travelMode?: TravelMode; sprintLocked?: boolean; canInteract?: boolean; bicycle?: BicycleSave; interactionMessage?: string; nitroActive?: boolean; nitroRemaining?: number; nitroAvailable?: boolean; gliderAvailable?: boolean; soccerAvailable?: boolean; altitude?: number; climbing?: boolean }
+export interface PlayerSnapshot { position: Vec3; headingRad: number; speed: number; grounded: boolean; travelMode?: TravelMode; sprintLocked?: boolean; canInteract?: boolean; bicycle?: BicycleSave; interactionMessage?: string; nitroActive?: boolean; nitroRemaining?: number; nitroAvailable?: boolean; gliderAvailable?: boolean; soccerAvailable?: boolean; altitude?: number; climbing?: boolean; airspeed?: number; wasted?: boolean }
 export interface Landmark { id: string; zoneId: ZoneId; label: string; position: Vec3; discoveryRadiusM: number; iconId: string; description: string }
 export interface MapBounds { xMin: number; xMax: number; zMin: number; zMax: number }
 export interface ExplorerControllerProps {
@@ -74,7 +74,7 @@ export const EquippedSchema = z.object({
 export type Equipped = z.infer<typeof EquippedSchema>;
 export const PreferencesSchema = z.object({ locale: LocaleSchema.default('en'), controls: ControlsPreferenceSchema.default('auto'), haptics: z.boolean().default(true), equipped: EquippedSchema.default({ ...DEFAULT_EQUIPPED }) });
 export type Preferences = z.infer<typeof PreferencesSchema>;
-export type TravelMode = 'foot' | 'bicycle' | 'car' | 'glider';
+export type TravelMode = 'foot' | 'bicycle' | 'car' | 'glider' | 'boat' | 'plane';
 export const BicycleSaveSchema = z.object({ position: Vec3Schema, headingRad: z.number().finite() });
 export type BicycleSave = z.infer<typeof BicycleSaveSchema>;
 export const SaveV2Schema = SaveSchema.extend({ version: z.literal(2), locale: LocaleSchema, bicycle: BicycleSaveSchema.nullable() });

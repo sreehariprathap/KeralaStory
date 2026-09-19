@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import { InstancedMesh, Object3D } from 'three';
 import type { Locale } from '../../contracts';
-import { EXPANSION_LAYOUT, terrainHeight } from '../../content/world/definition';
+import { EXPANSION_LAYOUT, roadsideSpot } from '../../content/world/definition';
 import { chokkanaForest } from './chokkanaForest';
 import { ExpansionSign } from './ExpansionSign';
 import { localizedPlace } from '../../features/i18n/translate';
@@ -22,13 +22,14 @@ export function ChokkanaWorld({quality,locale}:{quality:'low'|'medium'|'high';lo
   },[trees]);
   const signs=EXPANSION_LAYOUT.anchors.filter(a=>['kodassery-junction','chokkana-entry','chokkana-ridge','chokkana-stream','chokkana-tea-stop'].includes(a.id));
   const tea=EXPANSION_LAYOUT.anchors.find(a=>a.id==='chokkana-tea-stop')!;
-  const tx=tea.position[0]+9,tz=tea.position[2],ty=terrainHeight(tx,tz);
+  // The tea hut stands on clear ground beside the road, with room for its roof overhang.
+  const [tx,ty,tz]=roadsideSpot(tea.position[0],tea.position[2],8,3.5);
   const imported=useMemo(()=>trees.filter((_,i)=>i%45===0).map(t=>({position:t.position,scale:12*t.scale,rotation:[0,t.yawRad,0] as [number,number,number]})),[trees]);
   return <group>
     <instancedMesh ref={trunks} args={[undefined,undefined,trees.length]}><cylinderGeometry args={[.65,1,1,6]}/><meshStandardMaterial color="#72563d" roughness={1}/></instancedMesh>
     <instancedMesh ref={canopy} args={[undefined,undefined,trees.length]}><icosahedronGeometry args={[1,1]}/><meshStandardMaterial color="#527c59" flatShading roughness={1}/></instancedMesh>
     {quality!=='low'&&<ImportedTrees url="/assets/trees/anime_tree_2.glb" data={imported}/>}
-    {signs.map(a=><ExpansionSign key={a.id} position={[a.position[0]+6,terrainHeight(a.position[0]+6,a.position[2]),a.position[2]]} label={localizedPlace(a.id,locale)} width={3.5}/>)}
+    {signs.map(a=><ExpansionSign key={a.id} position={roadsideSpot(a.position[0],a.position[2])} label={localizedPlace(a.id,locale)} width={3.5}/>)}
     <group position={[tx,ty,tz]}>
       <mesh position={[0,1.1,0]}><boxGeometry args={[4,2.2,3]}/><meshStandardMaterial color="#e5d7b3" roughness={1}/></mesh>
       <mesh position={[0,1.2,1.51]}><boxGeometry args={[2.7,1.2,.04]}/><meshStandardMaterial color="#285943"/></mesh>

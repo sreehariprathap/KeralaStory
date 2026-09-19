@@ -23,12 +23,14 @@ export const CHALAKKUDY_CITY_ROADS: readonly CityRoadPlan[] = [
   // then up the ghat → Chalakkudy East → MG Road Bridge → back into Chalakkudy.
   { id: 'chalakkudy-kodakara-highway', label: `${NH_LABEL} · Chalakkudy–Kodakara–Kodaly`, points: [[-430, CITY_PAD_Y, -155], [-340, 40.5, -200], [-280, 35, -203], [-210, 32, -200], [-190, 31.62, -197.14], [-130, 26.2, -186], [-100, 22.5, -146]] },
   { id: 'chalakkudy-kodaly-highway', label: `${NH_LABEL} · Kodaly–Chalakkudy`, points: [[-209.3, 39, -0.2], [-175, 37.5, 0], [-150, 37, 0], [-150, 30, 100], [-104, 28, 110], [-100, 13.8, -58]] },
-  { id: 'chalakkudy-kodaly-road', label: 'Kodaly Road', points: [[-100, 13.8, -58], [-80, 13.4, -54], [-8, 13.6, -54]] },
+  { id: 'chalakkudy-kodaly-road', label: 'Kodaly Road', points: [[-100, 13.8, -58], [-80, 13.4, -54], [-46, 13, -48]] },
   { id: 'chalakkudy-riverside-road', label: 'Riverside Road', points: [[-202, 44, -116.5], [-275, 46.5, -120], [-292, 48.09, -58.63]] },
   { id: 'chalakkudy-east-link', label: 'Link Road', points: [[-168, 38, -48.5], [-168, 37.36, 0]] },
   // Airport Road: off MG Road, over the Chalakkudy River, then a long easy descent to Nedumbassery's forecourt.
   { id: 'chalakkudy-airport-link', label: 'Airport Road', points: [[-500, CITY_PAD_Y, -60], [-500, 48.8, -48]] },
-  { id: 'nedumbassery-airport-road', label: 'Airport Road', points: [[-500, 40, 50], [-430, 34.73, 62], [-440, 33.2, 80], [-560, 24.3, 80]] },
+  // Straight on off the bridge, one broad bend west, and a single even descent north of the airfield to the
+  // terminal's turning circle.
+  { id: 'nedumbassery-airport-road', label: 'Airport Road', points: [[-500, 40, 50], [-510, 38.59, 68], [-570, 34.5, 70], [-660, 28.34, 66], [-718, 24.3, 78]] },
 ];
 
 /** Green direction boards beside the carriageway, `along` metres from the road's start, facing its traffic. */
@@ -45,7 +47,13 @@ export const CHALAKKUDY_ROAD_SIGNS: readonly CityRoadSignPlan[] = [
 ];
 
 /** A straight, evenly graded deck between two road ends (feet heights at each end). */
-export interface CityBridgePlan { id: string; label: string; from: Vec3; to: Vec3; /** Carriageway plus walkways. */ width: number }
+export interface CityBridgePlan {
+  id: string; label: string; from: Vec3; to: Vec3; /** Carriageway plus walkways. */ width: number;
+  /** 'cable': four-lane cable-stayed city bridge (the default). 'beam': a plain two-lane girder span. */
+  style?: 'cable' | 'beam';
+  /** What passes beneath: a river (the default) or a footpath cutting. */
+  crosses?: 'river' | 'path';
+}
 export const CHALAKKUDY_BRIDGES: readonly CityBridgePlan[] = [
   // Across the Kurumalippuzha, perpendicular to the reach: MG Road to the highway at Chalakkudy East.
   { id: 'chalakkudy-mg-bridge', label: 'MG Road Bridge', from: [-276.5, 47, -57], to: [-209.3, 39, -0.2], width: 18 },
@@ -54,6 +62,8 @@ export const CHALAKKUDY_BRIDGES: readonly CityBridgePlan[] = [
   { id: 'kurumali-highway-bridge', label: `${NH_LABEL} · Kurumali Bridge`, from: [-100, 13.8, -58], to: [-100, 22.5, -146], width: 18 },
   // Airport Road over the Chalakkudy River, south from MG Road.
   { id: 'chalakkudy-airport-bridge', label: 'Airport Road Bridge', from: [-500, 48.8, -48], to: [-500, 40, 50], width: 18 },
+  // The Chokkana road on its embankment through the Athirappilly gorge floor, over the lower-view footpath.
+  { id: 'athirappilly-trail-bridge', label: 'Athirappilly Trail Bridge', from: [-572.4, 74.5, -319.5], to: [-581.6, 74.5, -356.4], width: 9, style: 'beam', crosses: 'path' },
 ];
 
 /** Deck frame: unit axis, length, and the local position of a point (along from `from`, across to the right). */
@@ -95,6 +105,41 @@ export function cityBridgeUnderside(x: number, z: number): { target: number; wei
     if (!result || target < result.target) result = { target, weight };
   }
   return result;
+}
+
+/**
+ * Abutments: within a dozen metres of each bridge end the ground is laid exactly on the deck line
+ * (a few centimetres under it), across the full deck width plus a verge. Without this the road's own
+ * blend or the town pad leaves a lip above the deck that cars bump over.
+ */
+export function cityBridgeAbutment(x: number, z: number): { target: number; weight: number } | null {
+  let result: { target: number; weight: number } | null = null;
+  const smooth = (t: number) => { const u = Math.max(0, Math.min(1, t)); return u * u * (3 - 2 * u); };
+  for (const bridge of CHALAKKUDY_BRIDGES) {
+    const frame = bridgeFrame(bridge), { along, across } = frame.local(x, z);
+    const end = Math.min(along, frame.length - along);
+    // Deck side only: beyond the end the approach road keeps its own grade.
+    if (end > 12 || end < 0) continue;
+    const sides = 1 - smooth((Math.abs(across) - bridge.width / 2 - 1) / 6);
+    const weight = sides * (1 - smooth((end - 8) / 4)) * smooth(end / 1.5);
+    if (weight <= 0) continue;
+    const target = frame.heightAt(Math.max(0, Math.min(frame.length, along))) - .04;
+    if (!result || weight > result.weight) result = { target, weight };
+  }
+  return result;
+}
+
+/** Highest the ground may reach under a deck (plus a two-metre verge), so no terrain pokes through it. */
+export function cityBridgeCeiling(x: number, z: number): number | null {
+  let ceiling: number | null = null;
+  for (const bridge of CHALAKKUDY_BRIDGES) {
+    const frame = bridgeFrame(bridge), { along, across } = frame.local(x, z);
+    // From a metre onto the deck: at the very end the road's own last sample must keep its height.
+    if (along < 1 || along > frame.length - 1 || Math.abs(across) > bridge.width / 2 + 2) continue;
+    const line = frame.heightAt(along) - .08;
+    ceiling = Math.min(ceiling ?? Infinity, line);
+  }
+  return ceiling;
 }
 
 /** Levelled city districts beyond the original town pad, each with its own ground height. */

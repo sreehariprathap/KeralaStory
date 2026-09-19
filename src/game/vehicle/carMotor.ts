@@ -11,6 +11,8 @@ export interface CarIntent {
   steer: number;
   brake: boolean;
   nitro?: boolean;
+  /** Space: locks the rear wheels and loosens their grip, for handbrake turns and drifts. */
+  handbrake?: boolean;
 }
 
 export function createCarState(headingRad = 0): CarMotorState {

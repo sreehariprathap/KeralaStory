@@ -103,3 +103,28 @@ export function createRouteRibbon(
   });
   return { positions, colors: vertexColors, indices };
 }
+
+/** A round paved turning circle hugging the ground like a road ribbon, with a dusty shoulder ring. */
+export function createCapDisc(
+  center: readonly [number, number, number], radius: number, heightAt: (x: number, z: number) => number,
+  colors: { surface: readonly [number, number, number]; shoulder: readonly [number, number, number] },
+): RibbonMesh {
+  const positions: number[] = [], vertexColors: number[] = [], indices: number[] = [];
+  const rings = Math.max(4, Math.ceil(radius)), segments = 48;
+  const vertex = (x: number, z: number, shoulder: boolean) => {
+    let ground = heightAt(x, z);
+    for (const [dx, dz] of [[.6, 0], [-.6, 0], [0, .6], [0, -.6]]) ground = Math.max(ground, heightAt(x + dx, z + dz));
+    positions.push(x, ground + .05, z);
+    const c = shoulder ? colors.shoulder : colors.surface;
+    vertexColors.push(c[0], c[1], c[2]);
+  };
+  vertex(center[0], center[2], false);
+  for (let r = 1; r <= rings; r++) for (let k = 0; k < segments; k++) {
+    const a = k / segments * Math.PI * 2, d = radius * r / rings;
+    vertex(center[0] + Math.cos(a) * d, center[2] + Math.sin(a) * d, d > radius - .5);
+  }
+  const at = (r: number, k: number) => r === 0 ? 0 : 1 + (r - 1) * segments + (k % segments);
+  for (let k = 0; k < segments; k++) indices.push(0, at(1, k + 1), at(1, k));
+  for (let r = 2; r <= rings; r++) for (let k = 0; k < segments; k++) indices.push(at(r - 1, k), at(r - 1, k + 1), at(r, k), at(r - 1, k + 1), at(r, k + 1), at(r, k));
+  return { positions, colors: vertexColors, indices };
+}

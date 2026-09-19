@@ -13,6 +13,8 @@ import { STADIUM, isStadiumGround } from '../../content/world/stadiumLayout';
 import { NEDUMBASSERY_AIRPORT, airportBoxes } from '../../content/world/airport';
 import { snehaTheeramBoxes } from '../../content/world/snehaTheeramDressing';
 import { SNEHA_THEERAM, coastDistance } from '../../content/world/snehaTheeram';
+import { isTeaEstateGround } from '../../content/world/teaEstate';
+import { mountainDressingBoxes } from '../../content/world/mountainDressing';
 
 export type RampModelId = 'kicker' | 'wedge' | 'curve';
 
@@ -70,7 +72,7 @@ interface Obstacles { circles: { x: number; z: number; r: number }[] }
 let obstacles: Obstacles | null = null;
 function getObstacles(): Obstacles {
   if (obstacles) return obstacles;
-  const boxes = [...staticArchitectureBoxes(), ...canopyArchitectureBoxes(), ...mountainArchitectureBoxes(), ...staticForestBoxes(), ...v2DressingBoxes(), ...traversalBoxes(), ...airportBoxes(), ...snehaTheeramBoxes()];
+  const boxes = [...staticArchitectureBoxes(), ...canopyArchitectureBoxes(), ...mountainArchitectureBoxes(), ...staticForestBoxes(), ...v2DressingBoxes(), ...traversalBoxes(), ...airportBoxes(), ...snehaTheeramBoxes(), ...mountainDressingBoxes()];
   const park = V2_LAYOUT.park.footprint, pcx = park.reduce((a, p) => a + p[0], 0) / park.length, pcz = park.reduce((a, p) => a + p[1], 0) / park.length;
   obstacles = { circles: [
     ...boxes.map(b => ({ x: b.position[0], z: b.position[2], r: Math.hypot(b.size[0], b.size[2]) / 2 + 3 })),
@@ -92,6 +94,7 @@ export function isOpenGround(x: number, z: number, water: 'none' | 'allowed' = '
   // Sneha Theeram's sand is for walking, not ramps.
   const coast = coastDistance(x, z);
   if (coast !== null && coast < SNEHA_THEERAM.sandWidthM + 12) return false;
+  if (isTeaEstateGround(x, z)) return false;
   const route = EXPANSION_GROUND.field(x, z), v2 = EXPANSION_GROUND.v2?.field(x, z);
   if ((route && route.distance < route.width + 3) || (v2 && v2.distance < v2.width + 3) || distanceToPath(x, z, MAIN_PATH) < 6) return false;
   return !getObstacles().circles.some(c => Math.hypot(c.x - x, c.z - z) < c.r);

@@ -24,7 +24,7 @@ interface Props {
   /** Writes the rendered (interpolated) feet position; falls back to the raw body pose when absent. */
   target?: (outFeet: Vector3) => CameraTargetKind | null;
 }
-export type CameraTargetKind = 'foot' | 'car' | 'glider';
+export type CameraTargetKind = 'foot' | 'car' | 'glider' | 'boat' | 'plane';
 
 const FOOT_HEIGHT = 1.28;
 /** Per-target framing: the glider pulls back and looks up so the canopy stays in shot. */
@@ -32,6 +32,8 @@ const FRAMING: Record<CameraTargetKind, { distance: number; extraHeight: number;
   foot: { distance: 4.5, extraHeight: 0, extraPitch: 0 },
   car: { distance: 7.6, extraHeight: .5, extraPitch: .08 },
   glider: { distance: 8, extraHeight: 1.3, extraPitch: .1 },
+  boat: { distance: 7.2, extraHeight: .6, extraPitch: .08 },
+  plane: { distance: 16, extraHeight: 2.2, extraPitch: -.1 },
 };
 
 /** Environmental sphere sweep excludes the player and sensor-only discoveries. */
@@ -77,7 +79,9 @@ export function ThirdPersonCamera({ body, vehicleBody, input, azimuth, heading, 
       kind = 'foot';
     }
     const goal = FRAMING[kind], frame = framing.current, blend = !initialized.current || reducedMotion ? 1 : 1 - Math.exp(-3 * dt);
-    frame.distance += (goal.distance - frame.distance) * blend;
+    // Driving fast, the chase camera drops back a little so the road ahead opens up.
+    const speedPullBack = kind === 'car' || kind === 'boat' ? Math.min(3.2, Math.max(0, motion.current.speed - 8) * .12) : 0;
+    frame.distance += (goal.distance + speedPullBack - frame.distance) * blend;
     frame.extraHeight += (goal.extraHeight - frame.extraHeight) * blend;
     frame.extraPitch += (goal.extraPitch - frame.extraPitch) * blend;
     vectors.target.y += FOOT_HEIGHT + frame.extraHeight;

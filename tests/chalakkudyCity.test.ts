@@ -78,7 +78,9 @@ describe('Tier A Chalakkudy city', () => {
     const junction = bridge('kurumali-highway-bridge').from;
     expect(same(road('chalakkudy-kodaly-road').points[0], junction)).toBe(true);
     expect(same(road('chalakkudy-kodaly-highway').points.at(-1)!, junction)).toBe(true);
-    const kodalyGate = road('chalakkudy-kodaly-road').points.at(-1)!;
+    // Kodaly Road runs on as a two-lane link into the Banyan circle's west avenue.
+    expect(same(road('kodaly-avenue-link').points[0], road('chalakkudy-kodaly-road').points.at(-1)!)).toBe(true);
+    const kodalyGate = road('kodaly-avenue-link').points.at(-1)!;
     expect(Math.min(...kodaly.footprint.map(p => p[0])) - kodalyGate[0]).toBeLessThan(5);
     // Chalakkudy East → MG Road Bridge → MG Road → Boulevard.
     expect(same(road('chalakkudy-kodaly-highway').points[0], bridge('chalakkudy-mg-bridge').to)).toBe(true);
@@ -91,8 +93,11 @@ describe('Tier A Chalakkudy city', () => {
 
   it('joins each bridge to road ends on both banks, over water, with a walkable deck', () => {
     const ends = CHALAKKUDY_CITY_ROADS.flatMap(r => [r.points[0], r.points.at(-1)!]);
+    // Beam spans carry an existing road straight through: their ends lie on that road instead.
+    const onCarRoad = (p: readonly number[]) => [...EXPANSION_LAYOUT.routes, ...V2_ROUTES].filter(r => r.allowedModes.includes('car'))
+      .some(r => r.points.some(q => Math.hypot(q[0] - p[0], q[2] - p[2]) < 1.5 && Math.abs(q[1] - p[1]) < .2));
     for (const b of CHALAKKUDY_BRIDGES) {
-      for (const end of [b.from, b.to]) expect(ends.some(p => Math.hypot(p[0] - end[0], p[2] - end[2]) < .01 && Math.abs(p[1] - end[1]) < .01), `${b.id} end`).toBe(true);
+      for (const end of [b.from, b.to]) expect(ends.some(p => Math.hypot(p[0] - end[0], p[2] - end[2]) < .01 && Math.abs(p[1] - end[1]) < .01) || (b.style === 'beam' && onCarRoad(end)), `${b.id} end`).toBe(true);
       const frame = bridgeFrame(b);
       expect(Math.abs(frame.grade)).toBeLessThanOrEqual(.1);
       let overWater = 0;
@@ -102,7 +107,7 @@ describe('Tier A Chalakkudy city', () => {
         expect(isTravelAllowed('car', x, z)).toBe(true);
         if (isWater(x, z)) { overWater++; expect(openWaterSurfaceAt(x, z, deck)).toBeNull(); }
       }
-      expect(overWater, b.id).toBeGreaterThan(5);
+      if (b.crosses !== 'path') expect(overWater, b.id).toBeGreaterThan(5);
     }
   });
 

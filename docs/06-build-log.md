@@ -596,3 +596,29 @@ Seven layout tests pass, including connectivity, grades, lengths, unique anchors
   - `vitest` outside `.worktrees`: all pass except `tests/expansionLayout.test.ts` (fails the same way before this work) and the load-sensitive `apps/server/tests/roomIntegration.test.ts`.
   - Inspected in the running game (headless Chromium with GPU, free camera over the live scene): dam front and crest, reservoir from above, the dam road arriving on the crest, airport overview, terminal, apron and runway, Airport Road bridge, the beach from the sea, from the sand and from the headland. Atlas checked at full size and zoomed.
 - NOT yet done: driving the dam road and Airport Road end to end with a real car, and phone performance with the new scenery.
+
+## 2026-09-18 — Connected road network, Peringalkuthu Tea Estate, hill-country detail
+
+- Road network made continuous and race-ready, driven by two new tools: `scripts/audit-roads.ts` (ends, bumps, grade, cross-slope, solids on carriageways) and `scripts/drive-roads.ts` (a physics supercar driven along every paved road both ways at ~14 m/s, measuring jolt, airtime, tilt, lane keeping). Both are now enforced by `tests/roadNetwork.test.ts`.
+- Fixed:
+  - Chokkana main road dropped 26 m into the Athirappilly lower-view footpath notch. It now crosses on a new beam bridge (`athirappilly-trail-bridge`); paths and viewpoints under a deck keep ground level.
+  - Chokkana stream bridge deck was flat on an 8% road (0.6–0.8 m steps). The deck now follows the road's grade.
+  - City bridges had terrain lips up to 0.7 m at their ends. Added abutments laid on the deck line and a ceiling so no ground pokes through a deck.
+  - Old Kurumali wooden bridge: the south bank stood 1 m above the deck. Notched the bank, built a 7% approach embankment, and rebuilt both ramps as cubic vertical curves. Also eased the 10%→23% grade kink on the village road at z = -334.
+  - Silver Storm forecourt slab stood 28 cm proud across the access road. It is now flush, and its name board is off the road.
+  - Summit gate posts stood in the access road's end. They moved 6 m down the footpath.
+  - Kodakara Road ran over Rajan's tea-shop steps. It is rerouted north of the shop to join the village road at z -165.
+  - Kodaly Road stopped short of Kodaly. A two-lane link now carries it into the Banyan circle's west avenue.
+  - Airport Road left the bridge into a sharp bend. It now runs one broad bend and a single 6.8% descent to a terminal turning circle. The terminal, apron, tower, hangar and car park moved west to suit.
+  - The summit off-road track started in the open valley. Its foot is now a junction on the dam road's new U-turn, with a level landing.
+  - Wayfinding boards and the Chokkana tea hut stood on roads. `roadsideSpot()` now places them.
+- Turning circles (`V2_LAYOUT.roadCaps`) finish every road that doesn't join another: MG Road west end, Boulevard north end, Silver Storm forecourt, summit trailhead, the airport forecourt, and a lay-by viewpoint on the dam road. Each is levelled to its road, drawn as asphalt and on the atlas, and treated as road by terrain, scenery and travel rules.
+- Peringalkuthu Tea Estate (`teaEstate.ts`, `TeaEstate.tsx`): the dam road's sides are graded as broad slopes (verge widens with cut/fill, no bank steeper than about 1 in 3). Seventeen rows of clipped tea hedges each side contour the slopes, with picker paths, silver-oak shade trees, soil tint between rows and an estate board. The estate is shown on the atlas.
+- Hill-country detail (`mountainDressing.ts`, `MountainDressing.tsx`): about 1,450 boulders on steep and high ground (large ones collide, shared with multiplayer) and about 550 shola trees in clumps, kept off roads, water, tea, towns, landmarks and stunt sites. Terrain is now coloured from its own grid: highland grass, dry tops, stony steep faces, darker folds.
+- Stunt sites regenerated (parks avoid tea, boulders and the stadium).
+- Checks run:
+  - `npm run typecheck`: PASS. `vite build`: PASS.
+  - `vitest` outside `.worktrees`: all pass except `tests/expansionLayout.test.ts` (fails the same way before this work) and the load-sensitive `apps/server/tests/roomIntegration.test.ts`. The new `tests/roadNetwork.test.ts` passes: no dead ends, caps level, no solids on carriageways, every paved road driven both ways with jolt ≤ 10.5 m/s², no airtime over 150 ms, tilt < 0.45 rad.
+  - Inspected in the running game with a free camera: tea estate from above and at road level, dam and lake with hills, summit mountain, the trail bridge, Kodaly link, Kodakara junction, airport forecourt, Silver Storm, dam lay-by, and the atlas.
+- Known, not from this work: `Cannot set properties of undefined (setting '_cacheIndex')` appears in the console during inspect-mode teleports on the previous commit too.
+- NOT yet done: race-line tuning for specific race routes, and phone performance with the added scenery (about +1M triangles in hill views).

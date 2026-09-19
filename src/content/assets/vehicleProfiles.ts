@@ -62,7 +62,7 @@ export const VEHICLE_PROFILES: Record<CarModelId, VehicleProfile> = {
     wheel(.8993,.4803,-1.1078,.4803), wheel(-.8993,.4803,-1.1078,.4803),
   ] },
   // The only new car whose corners are separate meshes, so its wheels steer and spin.
-  supercar: { length: 4.4, chassis: { x: 1.05, y: .5, z: 1.95, offset: .18 }, topSpeed: 15,
+  supercar: { length: 4.4, chassis: { x: 1.05, y: .5, z: 1.95, offset: .18 }, topSpeed: 36,
     hiddenNodes: ['488_shadow_488_SHADOW_0'],
     paint: { materials: ['488_PAINT'], defaultColor: CAR_PAINT_COLORS[0].value },
     wheels: [
@@ -76,7 +76,7 @@ export const VEHICLE_PROFILES: Record<CarModelId, VehicleProfile> = {
     wheel(.5995,.4648,1.101,.4648), wheel(-.5995,.4648,1.101,.4648),
     wheel(.5995,.4648,-1.2257,.4648), wheel(-.5995,.4648,-1.2257,.4648),
   ] },
-  cyberpunk: { length: 4.5, chassis: { x: 1.2387, y: .6225, z: 1.9688, offset: .2525 }, topSpeed: 14, wheels: [
+  cyberpunk: { length: 4.5, chassis: { x: 1.2387, y: .6225, z: 1.9688, offset: .2525 }, topSpeed: 34, wheels: [
     wheel(0.8024,0.4424,1.2636,0.4198,"��������������_����������������3_0"),
     wheel(-0.8024,0.4424,1.2636,0.4198,"��������������_1_����������������3_0"),
     wheel(0.8024,0.4424,-1.4536,0.4198,"��������������_2_����������������3_0"),

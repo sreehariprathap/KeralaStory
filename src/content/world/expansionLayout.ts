@@ -66,6 +66,21 @@ function route(id: string, controls: readonly XZ[], radius: number, height: (dis
   return { id, points, widthM: options.widthM ?? (foot ? 3 : 5.5), shoulderM: foot ? .5 : .75, allowedModes: foot ? ['foot'] : ['foot', 'bicycle', 'car'], surface: options.surface };
 }
 
+/**
+ * Foot of the summit off-road track: a junction on the Peringalkuthu Dam road, which is graded to pass
+ * through it at this height, so the dirt track starts from a paved road instead of the open hillside.
+ */
+export const SUMMIT_TRACK_FOOT = { position: [-306.8, -770.5] as const, y: 93 };
+
+const TRACK_LANDING = 14, TRACK_EASE = 10;
+/** 0 across the landing, then a short eased start into a straight climb that reaches 1 at the top. */
+function smoothLanding(s: number, total: number) {
+  const run = total - TRACK_LANDING - TRACK_EASE / 2, u = s - TRACK_LANDING;
+  if (u <= 0) return 0;
+  const eased = u < TRACK_EASE ? u * u / (2 * TRACK_EASE) : u - TRACK_EASE / 2;
+  return Math.min(1, eased / run);
+}
+
 /** A1 authored profiles; A2 must conform ground/collision before activating these places. */
 export function createExpansionLayout(input: { junction: Vec3; panoramaTargets: readonly Vec3[] }): ExpansionLayout {
   const finiteVector = (value: readonly number[]) => value.length === 3 && value.every(Number.isFinite);
@@ -90,8 +105,8 @@ export function createExpansionLayout(input: { junction: Vec3; panoramaTargets: 
   // steep (about half a metre climbed per metre) but hugs the slope, so every vehicle can drive it.
   // Bearing and length chosen so the straight line hugs the south face: about six metres of cut and
   // eight of fill, 23 m clear of the walking trail, at the gentlest grade a straight climb allows here.
-  const trackFoot: XZ = [-325, -803];
-  const trackFootY = 75;
+  const trackFoot: XZ = [...SUMMIT_TRACK_FOOT.position];
+  const trackFootY = SUMMIT_TRACK_FOOT.y;
   // The summit anchor levels a cap around the peak, so the track climbs to the cap's edge and the
   // flat top carries it the rest of the way; ending inside the cap would leave a step.
   const trackRun = Math.hypot(summitPosition[0] - trackFoot[0], summitPosition[2] - trackFoot[1]);
@@ -100,7 +115,8 @@ export function createExpansionLayout(input: { junction: Vec3; panoramaTargets: 
     summitPosition[2] - (summitPosition[2] - trackFoot[1]) / trackRun * 12,
   ];
   const track = route('summit-offroad-track', [trackFoot, trackTop], 28,
-    (s, total) => trackFootY + (summitPosition[1] - trackFootY) * (s / total), false, { widthM: 6, surface: 'dirt' });
+    // Level for its first 14 m off the dam road, easing into the climb, so the junction stays flat.
+    (s, total) => trackFootY + (summitPosition[1] - trackFootY) * smoothLanding(s, total), false, { widthM: 6, surface: 'dirt' });
   const anchor = (id: string, areaId: AreaId, position: Vec3, iconId: string, discoveryRadiusM = 10): ExpansionAnchor => ({ id, areaId, position, iconId, discoveryRadiusM });
   const anchors = [
     anchor('kodassery-junction', 'chokkana', [...junction], 'signpost'),

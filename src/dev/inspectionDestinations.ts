@@ -13,6 +13,7 @@ import {
 import { createExpansionPlaces } from '../content/world/expansionPlaces';
 import { stuntSites } from '../game/world/stuntSites';
 import { GLIDER_LAUNCH } from '../content/world/gliderSites';
+import { PLANE_SPAWN } from '../content/world/planeSites';
 import { STADIUM, stadiumToWorld } from '../content/world/stadiumLayout';
 
 export type InspectionDestination = {
@@ -118,5 +119,12 @@ export const INSPECTION_DESTINATIONS: InspectionDestination[] = [
   { id: 'v2-chalakkudy-kodaly-ghat', label: 'Chalakkudy–Kodaly Highway — ghat descent', position: [-104, terrainHeight(-104, 60) + 0.1, 60], headingRad: 0, group: 'V2 planned sites', available: true },
   { id: 'v2-chalakkudy-kurumali-bridge', label: 'NH 544 — Kurumali Bridge (Kodaly junction)', position: [-100, terrainHeight(-100, -52) + 0.1, -52], headingRad: 0, group: 'V2 planned sites', available: true },
   { id: 'v2-chalakkudy-nh-kodakara', label: 'NH 544 — Kodakara junction', position: [-196, terrainHeight(-196, -185) + 0.1, -185], headingRad: Math.atan2(60, -19), group: 'V2 planned sites', available: true },
+  // Peringalkuthu Dam: the plunge pool's west bank beside the moored boat, and the top of the west buttress
+  // at the end of the crest walkway (heading π/2 walks +x, along the crest toward the reservoir boat).
+  { id: 'dam-plunge-pool', label: 'Peringalkuthu Dam — plunge pool boat', position: [-718, terrainHeight(-718, -773) + 0.1, -773], headingRad: Math.PI / 2, group: 'Mountain and forest expansion', available: true },
+  // Beside the biplane at the west end of the runway, facing down the runway like the plane (heading π/2 walks +x).
+  { id: 'airport-biplane', label: 'Nedumbassery Airport — biplane on the runway', position: [PLANE_SPAWN.x - 2, terrainHeight(PLANE_SPAWN.x - 2, PLANE_SPAWN.z - 6) + 0.1, PLANE_SPAWN.z - 6], headingRad: Math.PI / 2, group: 'V2 planned sites', available: true },
+  { id: 'dam-pool-view', label: 'Peringalkuthu Dam — plunge pool from the south-west bank', position: [-714, terrainHeight(-714, -752) + 0.1, -752], headingRad: Math.atan2(24, 38), group: 'Mountain and forest expansion', available: true },
+  { id: 'dam-crest-west', label: 'Peringalkuthu Dam — crest and reservoir boat', position: [-716, V2_LAYOUT.riverNodes.find(n => n.id === 'dam-crest')!.position[1] + 0.7, -796], headingRad: Math.PI / 2, group: 'Mountain and forest expansion', available: true },
   { id: 'v2-chalakkudy-mg-junction', label: 'Chalakkudy — MG Road / Boulevard junction', position: [-450, terrainHeight(-450, -62) + 0.1, -62], headingRad: Math.PI / 2, group: 'V2 planned sites', available: true },
 ];

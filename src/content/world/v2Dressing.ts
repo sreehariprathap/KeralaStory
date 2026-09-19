@@ -45,7 +45,8 @@ export function v2DressingBoxes(): TraversalBox[] {
   // The whole basin remains non-enterable until swimming exists, including jumping over the rim.
   boxes.push({ id: 'park-pool-basin', position: [pool.x, pool.y + 1.4, pool.z], size: [pool.width, 2.8, pool.depth], rotation: [0, 0, 0] });
   const [x, , z] = V2_LAYOUT.park.center;
-  boxes.push({ id: 'park-forecourt', position: [x, terrainHeight(x, z) + .22, z + 31], size: [48, .12, 10], rotation: [0, 0, 0] });
+  // Flush with the access road that crosses it: a kerb here would stop cars dead.
+  boxes.push({ id: 'park-forecourt', position: [x, terrainHeight(x, z) - .04, z + 31], size: [48, .12, 10], rotation: [0, 0, 0] });
   return boxes;
 }
 

@@ -29,15 +29,8 @@ export function lotGround(lot: Pick<CityLot, 'x' | 'z' | 'width' | 'depth'>) {
   return { min: Math.min(...heights), max: Math.max(...heights) };
 }
 
-/**
- * Colliders use XYZ Euler angles (browser and server alike). Converts "yaw, then pitch about the
- * turned x axis" (YXZ) into the XYZ triple for the same rotation.
- */
-export function yawPitchToXyz(yaw: number, pitch: number): V3 {
-  if (!pitch) return [0, yaw, 0];
-  const sy = Math.sin(yaw), cy = Math.cos(yaw), sp = Math.sin(pitch), cp = Math.cos(pitch);
-  return [Math.atan2(sp, cy * cp), Math.asin(Math.max(-1, Math.min(1, sy * cp))), Math.atan2(-sy * sp, cy)];
-}
+export { yawPitchToXyz } from './rotation';
+import { yawPitchToXyz } from './rotation';
 
 function distanceToPolyline(x: number, z: number, points: readonly (readonly number[])[]) {
   let best = Infinity;
@@ -243,6 +236,18 @@ function createCity() {
       }
       solid(at(along, 0, -1.6), [b.width - 2, .8, 2.2], '#a9a498', frame.yaw);
     }
+    const xs = [b.from[0], b.to[0]], zs = [b.from[2], b.to[2]];
+    clearAreas.push({ xMin: Math.min(...xs) - 14, xMax: Math.max(...xs) + 14, zMin: Math.min(...zs) - 14, zMax: Math.max(...zs) + 14 });
+    const deckAt = (along: number, across: number): [number, number] => { const p = at(along, across); return [p[0], p[2]]; };
+    if (b.style === 'beam') {
+      // A plain girder span: two-lane paint, a dashed centre line and solid edges.
+      for (let along = 1; along < L - 1; along += 3) {
+        const end = Math.min(L - 1, along + 3);
+        if (Math.floor(along / 3) % 2 === 0) paint.push({ a: deckAt(along, 0), b: deckAt(end, 0), width: .14, color: YELLOW });
+        for (const o of [-b.width / 2 + 1.5, b.width / 2 - 1.5]) paint.push({ a: deckAt(along, o), b: deckAt(end, o), width: .15, color: WHITE });
+      }
+      continue;
+    }
     // Pylons outside each parapet, joined by a crossbeam high above the road.
     const mid = L / 2, deckY = frame.heightAt(mid), topY = deckY + 26, pylonAcross = b.width / 2 + 1.3;
     for (const side of [-1, 1]) {
@@ -269,15 +274,12 @@ function createCity() {
       piece('glow', arm, [.35, .14, .6], '#fff4d6', frame.yaw);
     }
     // Lane paint on the deck, following its grade.
-    const deckAt = (along: number, across: number): [number, number] => { const p = at(along, across); return [p[0], p[2]]; };
     for (let along = 1; along < L - 1; along += 3) {
       const end = Math.min(L - 1, along + 3);
       for (const o of [-.18, .18]) paint.push({ a: deckAt(along, o), b: deckAt(end, o), width: .12, color: YELLOW });
       for (const o of [-CITY_ROAD_WIDTH_M / 2 + .35, CITY_ROAD_WIDTH_M / 2 - .35]) paint.push({ a: deckAt(along, o), b: deckAt(end, o), width: .15, color: WHITE });
       if (Math.floor(along / 3) % 3 === 0) for (const o of [-CITY_LANE_WIDTH_M, CITY_LANE_WIDTH_M]) paint.push({ a: deckAt(along, o), b: deckAt(end, o), width: .14, color: WHITE });
     }
-    const xs = [b.from[0], b.to[0]], zs = [b.from[2], b.to[2]];
-    clearAreas.push({ xMin: Math.min(...xs) - 14, xMax: Math.max(...xs) + 14, zMin: Math.min(...zs) - 14, zMax: Math.max(...zs) + 14 });
   }
 
   // Four-lane markings along each road's grounded samples: double yellow centre, dashed lanes, solid edges.

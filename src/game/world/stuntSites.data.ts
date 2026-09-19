@@ -215,72 +215,6 @@ export const STUNT_SITES: StuntSite[] = [
     ]
   },
   {
-    "id": "stunt-park-kodassery-2",
-    "label": "Kodassery Stunt Park II",
-    "kind": "park",
-    "ramps": [
-      {
-        "model": "kicker",
-        "entry": [
-          -420.008,
-          60.928,
-          -672.497
-        ],
-        "yaw": -0.75
-      },
-      {
-        "model": "wedge",
-        "entry": [
-          -417.204,
-          61.434,
-          -653.493
-        ],
-        "yaw": -0.75
-      },
-      {
-        "model": "wedge",
-        "entry": [
-          -433.391,
-          61.496,
-          -636.101
-        ],
-        "yaw": 2.392
-      },
-      {
-        "model": "curve",
-        "entry": [
-          -414.073,
-          61.821,
-          -645.115
-        ],
-        "yaw": -0.75
-      }
-    ],
-    "sign": {
-      "position": [
-        -407.339,
-        61.964,
-        -674.367
-      ],
-      "yaw": 2.392
-    },
-    "start": {
-      "position": [
-        -405.02,
-        62.291,
-        -688.601
-      ],
-      "headingRad": -2.392
-    },
-    "clear": [
-      {
-        "x": -430.503,
-        "z": -649.478,
-        "radius": 46
-      }
-    ]
-  },
-  {
     "id": "stunt-park-chokkana-1",
     "label": "Chokkana Stunt Park",
     "kind": "park",
@@ -342,6 +276,72 @@ export const STUNT_SITES: StuntSite[] = [
       {
         "x": -238.857,
         "z": -339.303,
+        "radius": 46
+      }
+    ]
+  },
+  {
+    "id": "stunt-park-chokkana-2",
+    "label": "Chokkana Stunt Park II",
+    "kind": "park",
+    "ramps": [
+      {
+        "model": "kicker",
+        "entry": [
+          -414.947,
+          62.088,
+          -633.904
+        ],
+        "yaw": -0.878
+      },
+      {
+        "model": "wedge",
+        "entry": [
+          -414.605,
+          63.075,
+          -614.698
+        ],
+        "yaw": -0.878
+      },
+      {
+        "model": "wedge",
+        "entry": [
+          -432.892,
+          63.368,
+          -599.528
+        ],
+        "yaw": 2.263
+      },
+      {
+        "model": "curve",
+        "entry": [
+          -412.576,
+          63.67,
+          -605.987
+        ],
+        "yaw": -0.878
+      }
+    ],
+    "sign": {
+      "position": [
+        -402.143,
+        63.024,
+        -634.132
+      ],
+      "yaw": 2.263
+    },
+    "start": {
+      "position": [
+        -398.015,
+        62.891,
+        -647.951
+      ],
+      "headingRad": -2.263
+    },
+    "clear": [
+      {
+        "x": -428.31,
+        "z": -612.424,
         "radius": 46
       }
     ]
@@ -413,6 +413,138 @@ export const STUNT_SITES: StuntSite[] = [
     ]
   },
   {
+    "id": "stunt-park-kodassery-2",
+    "label": "Kodassery Stunt Park II",
+    "kind": "park",
+    "ramps": [
+      {
+        "model": "kicker",
+        "entry": [
+          61.527,
+          72.467,
+          -856.054
+        ],
+        "yaw": -1.832
+      },
+      {
+        "model": "wedge",
+        "entry": [
+          46.06,
+          74.063,
+          -844.661
+        ],
+        "yaw": -1.832
+      },
+      {
+        "model": "wedge",
+        "entry": [
+          23.106,
+          73.905,
+          -850.797
+        ],
+        "yaw": 1.31
+      },
+      {
+        "model": "curve",
+        "entry": [
+          40.13,
+          75.005,
+          -837.966
+        ],
+        "yaw": -1.832
+      }
+    ],
+    "sign": {
+      "position": [
+        69.122,
+        73.693,
+        -845.743
+      ],
+      "yaw": 1.31
+    },
+    "start": {
+      "position": [
+        82.781,
+        73.076,
+        -850.372
+      ],
+      "headingRad": -1.31
+    },
+    "clear": [
+      {
+        "x": 36.275,
+        "z": -854.523,
+        "radius": 46
+      }
+    ]
+  },
+  {
+    "id": "stunt-park-kodaly-1",
+    "label": "Kodaly Stunt Park",
+    "kind": "park",
+    "ramps": [
+      {
+        "model": "kicker",
+        "entry": [
+          -456.251,
+          26.608,
+          68.323
+        ],
+        "yaw": 1.446
+      },
+      {
+        "model": "wedge",
+        "entry": [
+          -442.475,
+          28.905,
+          54.934
+        ],
+        "yaw": 1.446
+      },
+      {
+        "model": "wedge",
+        "entry": [
+          -418.9,
+          28.763,
+          57.894
+        ],
+        "yaw": -1.696
+      },
+      {
+        "model": "curve",
+        "entry": [
+          -437.51,
+          29.889,
+          47.495
+        ],
+        "yaw": 1.446
+      }
+    ],
+    "sign": {
+      "position": [
+        -465.176,
+        28.471,
+        59.139
+      ],
+      "yaw": -1.696
+    },
+    "start": {
+      "position": [
+        -478.079,
+        27.509,
+        65.582
+      ],
+      "headingRad": 1.696
+    },
+    "clear": [
+      {
+        "x": -431.441,
+        "z": 63.375,
+        "radius": 46
+      }
+    ]
+  },
+  {
     "id": "stunt-park-kadambode-1",
     "label": "Kadambode Stunt Park",
     "kind": "park",
@@ -474,72 +606,6 @@ export const STUNT_SITES: StuntSite[] = [
       {
         "x": -442.784,
         "z": -236.509,
-        "radius": 46
-      }
-    ]
-  },
-  {
-    "id": "stunt-park-kodaly-1",
-    "label": "Kodaly Stunt Park",
-    "kind": "park",
-    "ramps": [
-      {
-        "model": "kicker",
-        "entry": [
-          -209.303,
-          22.496,
-          84.628
-        ],
-        "yaw": -1.129
-      },
-      {
-        "model": "wedge",
-        "entry": [
-          -213.736,
-          20.895,
-          103.319
-        ],
-        "yaw": -1.129
-      },
-      {
-        "model": "wedge",
-        "entry": [
-          -235.213,
-          20.204,
-          113.48
-        ],
-        "yaw": 2.013
-      },
-      {
-        "model": "curve",
-        "entry": [
-          -213.93,
-          19.731,
-          112.261
-        ],
-        "yaw": -1.129
-      }
-    ],
-    "sign": {
-      "position": [
-        -196.842,
-        23.036,
-        87.583
-      ],
-      "yaw": 2.013
-    },
-    "start": {
-      "position": [
-        -189.416,
-        24.429,
-        75.219
-      ],
-      "headingRad": -2.013
-    },
-    "clear": [
-      {
-        "x": -227.576,
-        "z": 102.123,
         "radius": 46
       }
     ]
