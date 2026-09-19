@@ -5,6 +5,7 @@ import { KeralaRoom } from './KeralaRoom.ts';
 import { IpLimiter, originAllowed, readConfig, type ServerConfig } from './config.ts';
 import { liveRooms } from './liveRooms.ts';
 import { roomRegistry } from './roomRegistry.ts';
+import { handleNpcChat, npcChatLimiter } from './npcChat.ts';
 
 const START_TIME_MS = Date.now();
 
@@ -16,6 +17,11 @@ export function createGameServer(config: ServerConfig = readConfig()) {
     resolveRoom: createEndpoint('/rooms/:code', { method: 'GET' }, async context => {
       const roomId = roomRegistry.resolve(context.params.code);
       return new Response(JSON.stringify(roomId ? { roomId } : { code: 'ROOM_NOT_FOUND' }), { status: roomId ? 200 : 404, headers: { 'content-type': 'application/json' } });
+    }),
+    npcChat: createEndpoint('/npc/chat', { method: 'POST' }, async context => {
+      const result = await handleNpcChat(context.body, { geminiApiKey: process.env.GEMINI_API_KEY, openRouterApiKey: process.env.OPENROUTER_API_KEY, openRouterModel: process.env.OPENROUTER_MODEL });
+      if ('error' in result) return new Response(JSON.stringify(result), { status: result.error === 'INVALID_MESSAGE' ? 400 : 503, headers: { 'content-type': 'application/json' } });
+      return new Response(JSON.stringify(result), { status: 200, headers: { 'content-type': 'application/json' } });
     }),
   }, { onRequest: (request: Request) => {
     if (!originAllowed(config, request.headers.get('origin') ?? undefined)) return new Response('Origin denied', { status: 403 });
@@ -47,6 +53,10 @@ export async function startGameServer(config: ServerConfig = readConfig()) {
       return;
     }
     if (!originAllowed(config, request.headers.origin)) { response.writeHead(403).end(); return; }
+    if (request.method === 'POST' && url.pathname === '/npc/chat' && !npcChatLimiter.accept(request.socket.remoteAddress ?? 'unknown', Date.now())) {
+      response.writeHead(429, { 'content-type': 'application/json' }).end(JSON.stringify({ error: 'RATE_LIMITED' }));
+      return;
+    }
     if (request.method === 'POST' && !joins.accept(request.socket.remoteAddress ?? 'unknown', Date.now())) { response.writeHead(429).end(); return; }
     if (request.headers['transfer-encoding'] || Number(request.headers['content-length'] ?? 0) > config.maxPayload) { response.writeHead(413).end(); return; }
     for (const handler of handlers) handler.call(http, request, response);
