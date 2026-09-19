@@ -23,6 +23,10 @@ export const CAR_MODELS = [
   { id: 'supercar', name: 'Supercar', url: '/assets/cars/modern_cartoon_sports_car.glb', rotationY: 0 },
   // Authored rotated 45 degrees in its file; its wheels are fused into the body, like the Bronco.
   { id: 'toy-car', name: 'Toy car', url: '/assets/cars/cartoony_car.glb', rotationY: Math.PI * 5 / 4 },
+  { id: 'lambini', name: 'Lambini GT', url: '/assets/cars/bbr_2_-_lambini_gt.glb', rotationY: 0 },
+  { id: 'celero', name: 'Celero GT', url: '/assets/cars/bbr_2_-_celero_gt.glb', rotationY: 0 },
+  // Source node names have left/right swapped relative to world +X; the measured coordinates rule.
+  { id: 'willys-buggy', name: 'Willys buggy', url: '/assets/cars/willys_mountain_buggy_2.glb', rotationY: 0 },
 ] as const;
 /** Source assets remain visible to review tooling but cannot spawn before calibration. */
 export const PENDING_CAR_MODELS = [

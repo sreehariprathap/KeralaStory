@@ -20,11 +20,11 @@ async function loadGeometry(url: string) {
 }
 
 describe('measured vehicle calibration', () => {
-  it('keeps the one unresolved source unavailable in the eleven-car catalog', () => {
-    expect(CAR_PICKER_CATALOG).toHaveLength(11);
+  it('keeps the one unresolved source unavailable in the fourteen-car catalog', () => {
+    expect(CAR_PICKER_CATALOG).toHaveLength(14);
     expect(CAR_PICKER_CATALOG.filter(car => !car.available).map(car => car.id)).toEqual(['car']);
   });
-  it.each(['car-carton', 'fennec', 'cyberpunk', 'supercar'] as const)('%s physics matches actual four wheel meshes', async id => {
+  it.each(['car-carton', 'fennec', 'cyberpunk', 'supercar', 'lambini', 'celero', 'willys-buggy'] as const)('%s physics matches actual four wheel meshes', async id => {
     const model = CAR_MODELS.find(car => car.id === id)!;
     const profile = VEHICLE_PROFILES[id], root = new Group(), scene = await loadGeometry(model.url);
     // The renderer drops hidden nodes before it measures, so the shadow plane never sets the scale.

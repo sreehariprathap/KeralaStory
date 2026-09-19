@@ -82,4 +82,24 @@ export const VEHICLE_PROFILES: Record<CarModelId, VehicleProfile> = {
     wheel(0.8024,0.4424,-1.4536,0.4198,"��������������_2_����������������3_0"),
     wheel(-0.8024,0.4424,-1.4536,0.4198,"��������������_1_2_����������������3_0"),
   ] },
+  // Measured by replaying ModelAsset's normalization; see the design doc's calibration table.
+  lambini: { length: 4.2, chassis: { x: .95, y: .45, z: 1.85, offset: .1 }, topSpeed: 34, wheels: [
+    wheel(.7966,.39347,1.05764,.39347,'mesh_12_15nr012_mat_7011_0','mesh_12_19nr013_mat_8015_0','mesh_12_8nr012_mat_3009_0'),
+    wheel(-.7966,.39347,1.05764,.39347,'mesh_12_15nr011_mat_7010_0','mesh_12_19nr012_mat_8014_0','mesh_12_8nr011_mat_3008_0'),
+    wheel(.76823,.39347,-1.07211,.39347,'mesh_12_15nr013_mat_7012_0','mesh_12_19nr014_mat_8016_0','mesh_12_8nr013_mat_3010_0'),
+    wheel(-.76823,.39347,-1.07211,.39347,'mesh_12_15nr010_mat_7009_0','mesh_12_19nr011_mat_8013_0','mesh_12_8nr010_mat_3007_0'),
+  ] },
+  celero: { length: 4.3, chassis: { x: .95, y: .42, z: 1.9, offset: .06 }, topSpeed: 30, wheels: [
+    wheel(.8713,.41515,1.21039,.41515,'CarWheelRubberHW002_Car_Wheel_Rubber_HW006_0','CarWheelHubHWCelero_Steel002_Car_Wheel_Hub_HWCelero_Steel006_0','CarWheelBrakeBrake006_Car_Wheel_Brake_Brake013_0'),
+    wheel(-.8713,.41515,1.21039,.41515,'CarWheelRubberHW001_Car_Wheel_Rubber_HW005_0','CarWheelHubHWCelero_Steel001_Car_Wheel_Hub_HWCelero_Steel005_0','CarWheelBrakeBrake005_Car_Wheel_Brake_Brake012_0'),
+    wheel(.8713,.41515,-1.24832,.41515,'CarWheelRubberHW003_Car_Wheel_Rubber_HW007_0','CarWheelHubHWCelero_Steel003_Car_Wheel_Hub_HWCelero_Steel007_0','CarWheelBrakeBrake007_Car_Wheel_Brake_Brake014_0'),
+    wheel(-.8713,.41515,-1.24832,.41515,'CarWheelRubberHW_Car_Wheel_Rubber_HW004_0','CarWheelHubHWCelero_Steel_Car_Wheel_Hub_HWCelero_Steel004_0','CarWheelBrakeBrake004_Car_Wheel_Brake_Brake004_0'),
+  ] },
+  // Tall off-roader: the belly sits .74 m clear, well above the .4 m floor the clearance test enforces.
+  'willys-buggy': { length: 4, chassis: { x: 1.05, y: .6, z: 1.7, offset: .5 }, wheels: [
+    wheel(1.01681,.58824,1.41221,.58824,'front_left_wheel_wheels_0','front_left_wheel_suspension_part_1_0'),
+    wheel(-1.0168,.58824,1.41221,.58824,'front_right_wheel_wheels_0','front_right_wheel_suspension_part_1_0'),
+    wheel(1.01681,.58824,-1.41221,.58824,'rear_left_wheel_wheels_0','rear_left_wheel_suspension_part_2_0'),
+    wheel(-1.0168,.58824,-1.41221,.58824,'rear_right_wheel_wheels_0','rear_right_wheel_suspension_part_2_0'),
+  ] },
 };

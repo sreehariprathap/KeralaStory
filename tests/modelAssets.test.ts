@@ -60,7 +60,7 @@ function readGlb(url: string, staticModel = true) {
 
 describe('character model assets', () => {
   it('catalogs all supplied self-contained car files', () => {
-    expect(CAR_MODELS).toHaveLength(10);
+    expect(CAR_MODELS).toHaveLength(13);
     for (const model of CAR_MODELS) readGlb(model.url, false);
   });
   it('preserves a selected character model through the local save round trip', () => {
