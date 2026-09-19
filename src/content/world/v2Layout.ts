@@ -129,6 +129,8 @@ export function createV2Layout(input: {
     // Kodaly Road's last stretch narrows to two lanes and threads between the houses into the west
     // avenue of the Banyan circle, so NH 544 runs on into Kodaly instead of stopping at its edge.
     { id: 'kodaly-avenue-link', label: 'Kodaly Road', widthM: 7, points: [[-46, 13, -48], [-22, 12.1, -26], [-9, 11.7, -18]] },
+    // Malakkappara's Market Road: west off the level main street, shops both sides, towards the river.
+    { id: 'malakkappara-market-road', label: 'Malakkappara Market Road', widthM: 5.5, points: [[-554.35, base + 7, -668], [-606, base + 7, -668]] },
     // Malakkappara to the top of the dam: level out of town between the shops, a wide swing round the
     // valley head to the summit track junction, then back west along the lake's southern shoulder onto
     // the east end of the crest walkway, each leg at one even grade.
@@ -165,6 +167,7 @@ export function createV2Layout(input: {
     { id: 'summit-trailhead-cap', center: [-65, base + 2, -482.5], radius: 8 },
     // A lay-by beside the dam road where it tops out, looking over the lake to the dam.
     cap('peringalkuthu-viewpoint-cap', 'chalakudy-dam-road', -626, -781.6, 9),
+    cap('malakkappara-market-cap', 'malakkappara-market-road', -604, -668, 8),
     cap('nedumbassery-forecourt-cap', 'nedumbassery-airport-road', NEDUMBASSERY_AIRPORT_PLAN.forecourt[0], NEDUMBASSERY_AIRPORT_PLAN.forecourt[1], 12),
   ];
   const airport: WorldV2Layout['airport'] = {

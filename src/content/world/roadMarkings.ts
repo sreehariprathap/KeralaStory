@@ -5,7 +5,7 @@ import { EXPANSION_LAYOUT, V2_LAYOUT, V2_ROUTES } from './definition';
 
 const WHITE = '#f1efe6';
 /** Two-lane roads that get a dashed centre line and solid edge lines. */
-export const MARKED_ROADS: ReadonlySet<string> = new Set(['malakkappara-road', 'chalakudy-dam-road']);
+export const MARKED_ROADS: ReadonlySet<string> = new Set(['malakkappara-road', 'chalakudy-dam-road', 'malakkappara-market-road']);
 
 function polylineDistance(x: number, z: number, pts: readonly (readonly number[])[]) {
   let best = Infinity;
