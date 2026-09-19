@@ -15,18 +15,21 @@ export const TEA_ESTATE = {
   /** First row's distance from the road centre, and the spacing between rows (metres). */
   firstRowM: 6.5,
   rowSpacingM: 2,
-  rows: 17,
+  rows: 22,
   /** Hedges are clipped flat-topped: height and full width (metres). */
   hedgeHeightM: 1,
   hedgeWidthM: 1.65,
-  /** No planting on ground steeper than this (rise over run). */
-  maxSlope: .55,
-  /** Picker's paths cross the rows at this spacing along the road (metres), two metres wide. */
+  /** No planting on ground steeper than this (rise over run): the terraces climb the road-cut banks. */
+  maxSlope: .85,
+  /** Picker's paths wind across the rows at about this spacing along the road (metres). */
   pathEveryM: 34,
 } as const;
 
 export interface TeaRow { points: Vec3[] }
 export interface ShadeTree { position: Vec3; height: number; yaw: number }
+
+/** How far a picker's path strays along the road as it climbs through the rows. */
+const wobble = (k: number, offset: number) => Math.sin(offset * .13 + k * 1.7) * 5;
 
 function rng(seed: number) {
   let s = seed >>> 0;
@@ -68,6 +71,33 @@ function createEstate() {
     // Clear of every road, trail, bridge and turning circle (the estate road itself is well inside the first row).
     return isClearOfRoads(x, z, 1.5);
   };
+  // Pickers' paths first: one point a metre, climbing from the road through every row. Hedges then
+  // keep a metre clear of them on the ground, which holds on the inside of bends where rows bunch up.
+  const paths: Vec3[][] = [], lastRow = TEA_ESTATE.firstRowM + (TEA_ESTATE.rows - 1) * TEA_ESTATE.rowSpacingM;
+  const lineAt = (at: number) => line[Math.max(0, Math.min(line.length - 1, Math.round(at)))];
+  for (let k = 1; k * TEA_ESTATE.pathEveryM < line.at(-1)!.s; k++) for (const side of [-1, 1]) {
+    let path: Vec3[] = [];
+    const flush = () => { if (path.length >= 4) paths.push(path); path = []; };
+    for (let offset = TEA_ESTATE.firstRowM - 1; offset <= lastRow + 1; offset++) {
+      const at = k * TEA_ESTATE.pathEveryM + wobble(k, offset), p = lineAt(at);
+      const x = p.x + p.nx * offset * side, z = p.z + p.nz * offset * side;
+      if (at < 40 || at > line.at(-1)!.s - 70 || !hasGroundAt(x, z) || isWater(x, z) || !isClearOfRoads(x, z, 1.5) || pointInPolygon(x, z, town.footprint)) { flush(); continue; }
+      path.push([x, terrainHeight(x, z), z]);
+    }
+    flush();
+  }
+  const pathBins = new Map<string, [Vec3, Vec3][]>();
+  for (const path of paths) for (let i = 1; i < path.length; i++) {
+    const key = `${Math.floor(path[i][0] / 8)},${Math.floor(path[i][2] / 8)}`;
+    pathBins.set(key, [...(pathBins.get(key) ?? []), [path[i - 1], path[i]]]);
+  }
+  const nearPath = (x: number, z: number) => {
+    for (const dx of [-1, 0, 1]) for (const dz of [-1, 0, 1]) for (const [a, b] of pathBins.get(`${Math.floor(x / 8) + dx},${Math.floor(z / 8) + dz}`) ?? []) {
+      const ex = b[0] - a[0], ez = b[2] - a[2], t = Math.max(0, Math.min(1, ((x - a[0]) * ex + (z - a[2]) * ez) / (ex * ex + ez * ez || 1)));
+      if (Math.hypot(x - a[0] - ex * t, z - a[2] - ez * t) < 1.15) return true;
+    }
+    return false;
+  };
   const rows: TeaRow[] = [];
   for (const side of [-1, 1]) for (let r = 0; r < TEA_ESTATE.rows; r++) {
     const offset = TEA_ESTATE.firstRowM + r * TEA_ESTATE.rowSpacingM;
@@ -76,9 +106,8 @@ function createEstate() {
     // Leave the first and last stretches (the town edge and the dam's lakeside plateau) unplanted.
     for (let i = 0; i < line.length; i++) {
       const p = line[i];
-      const inPath = (p.s % TEA_ESTATE.pathEveryM) < 2;
       const x = p.x + p.nx * offset * side, z = p.z + p.nz * offset * side;
-      if (p.s < 40 || p.s > line.at(-1)!.s - 70 || inPath || !plantable(x, z, offset, i)) { flush(); continue; }
+      if (p.s < 40 || p.s > line.at(-1)!.s - 70 || nearPath(x, z) || !plantable(x, z, offset, i)) { flush(); continue; }
       current.push([x, terrainHeight(x, z), z]);
     }
     flush();
@@ -91,7 +120,7 @@ function createEstate() {
     const [x, y, z] = row.points[i];
     shade.push({ position: [x, y, z], height: 9 + random() * 6, yaw: random() * Math.PI * 2 });
   }
-  return { rows, shade };
+  return { rows, shade, paths };
 }
 
 export const TEA_ESTATE_PLANTING = createEstate();
