@@ -14,6 +14,8 @@ import { SoccerMatch, type KickControl, type SoccerEvent } from '../game/soccer/
 import { createDprGovernor, frameloopFor, renderProfile, type RenderProfile } from '../game/render/renderBudget';
 import { MultiplayerRoomScene, type MultiplayerSceneProps } from '../features/multiplayer/MultiplayerRoomScene';
 import { reportLoadProgress } from '../game/render/loadProgress';
+import { Npcs } from '../game/npc/Npcs';
+import type { NpcId } from '../game/npc/npcDefinitions';
 
 // Set at module load, before any scene renders, so the first GLB request is counted.
 DefaultLoadingManager.onProgress = (_url, loaded, total) => reportLoadProgress(loaded, total);
@@ -53,7 +55,7 @@ function RenderMeter(){
   useFrame(({gl},delta)=>{if(!import.meta.env.DEV)return;times.current.push(delta*1000);if(times.current.length>180)times.current.shift();elapsed.current+=delta;if(elapsed.current<2)return;elapsed.current=0;const sorted=[...times.current].sort((a,b)=>a-b);const node=document.querySelector<HTMLElement>('[data-render-metrics]');if(node){node.dataset.median=String(sorted[Math.floor(sorted.length*.5)]?.toFixed(1));node.dataset.p95=String(sorted[Math.floor(sorted.length*.95)]?.toFixed(1));node.textContent=`Frame ${node.dataset.median}ms / p95 ${node.dataset.p95}ms · dpr ${gl.getPixelRatio().toFixed(2)} · ${gl.info.render.calls} calls · ${gl.info.render.triangles.toLocaleString()} tris`;}});
   return null;
 }
-function SceneCanvas({active,settings,controller,onReady,onError,locale='en',playerRef,collectedIds,onCollect,soccer,multiplayer}:{soccer?:SoccerSceneProps;multiplayer?:MultiplayerSceneProps;locale?:Locale;active:boolean;settings:GameSettings;controller:ExplorerControllerProps;onReady:()=>void;onError:(error:string)=>void;playerRef:RefObject<PlayerSnapshot>;collectedIds:readonly string[];onCollect:(item:CollectItem)=>void}){
+function SceneCanvas({active,settings,controller,onReady,onError,locale='en',playerRef,collectedIds,onCollect,soccer,multiplayer,onNpcCoinEffect,onNpcPositions,onNpcProximity}:{soccer?:SoccerSceneProps;multiplayer?:MultiplayerSceneProps;locale?:Locale;active:boolean;settings:GameSettings;controller:ExplorerControllerProps;onReady:()=>void;onError:(error:string)=>void;playerRef:RefObject<PlayerSnapshot>;collectedIds:readonly string[];onCollect:(item:CollectItem)=>void;onNpcCoinEffect:(npcId:NpcId,coinsDelta:number)=>void;onNpcPositions:(positions:Record<NpcId,[number,number,number]>)=>void;onNpcProximity:(npcId:NpcId|null)=>void}){
   const mobile=useMemo(()=>matchMedia('(pointer: coarse)').matches,[]);
   const profile=useMemo(()=>renderProfile(settings.quality,mobile,window.devicePixelRatio||1),[settings.quality,mobile]);
   // Antialiasing is fixed when the WebGL context is created; later quality changes apply it on the next load.
@@ -71,6 +73,7 @@ function SceneCanvas({active,settings,controller,onReady,onError,locale='en',pla
         : <EstablishingCamera/>}<Ready onReady={onReady}/>
       {active&&!multiplayer&&soccer?.active&&<SoccerMatch active playing={controller.mode==='playing'} kick={soccer.kick} onEvent={soccer.onEvent} chargeBar={soccer.chargeBar}/>}
       {active&&!multiplayer&&<Suspense fallback={null}><Collectables playerRef={playerRef} settings={settings} collectedIds={collectedIds} onCollect={onCollect}/></Suspense>}
+      {active&&<Npcs playerRef={playerRef} onCoinEffect={onNpcCoinEffect} onPositionsChange={onNpcPositions} onProximity={onNpcProximity}/>}
     </Physics></Suspense>
   </Canvas>;
 }

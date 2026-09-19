@@ -73,6 +73,7 @@ export function scareAway(state: NpcRuntimeState, def: NpcDefinition, mayaviPos:
   const dx = state.position[0] - mayaviPos[0], dz = state.position[2] - mayaviPos[2];
   const away = Math.hypot(dx, dz) > 0 ? [dx, dz] : [1, 0];
   const len = Math.hypot(away[0], away[1]);
-  const anchor: Vec3 = [state.position[0] + (away[0] / len) * 25, state.position[1], state.position[2] + (away[1] / len) * 25];
-  return { ...state, targetPosition: sampleNear(anchor, 15, rng) };
+  const fleeDistance = def.scareRadiusM * 2;
+  const anchor: Vec3 = [state.position[0] + (away[0] / len) * fleeDistance, state.position[1], state.position[2] + (away[1] / len) * fleeDistance];
+  return { ...state, targetPosition: sampleNear(anchor, def.scareRadiusM, rng) };
 }
