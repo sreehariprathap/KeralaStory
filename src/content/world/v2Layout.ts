@@ -115,7 +115,9 @@ export function createV2Layout(input: {
   const roads: RoadProposal[] = [
     { id: 'malakkappara-road', label: 'Malakkappara forest road', widthM: 5.5, points: [fallsParking, [-565, base, -495], [-550, base + 2, -570], [-555, base + 7, -680]] },
     { id: 'chalakkudy-road', label: 'Forest–Chalakkudy road', widthM: 5.5, // Gentler control grades: rounding a corner shortens the path, which steepens the sampled grade.
-    points: [forestJoin, [-595, 67, -195], [-565, 58, -100], [-430, 49, -120], [-430, 49, -155]] },
+    // The approach curves in from the west so its final leg doesn't run down Chalakkudy
+    // Boulevard's own x=-430 corridor before joining the highway junction at that point.
+    points: [forestJoin, [-595, 67, -195], [-565, 58, -100], [-460, 49, -110], [-430, 49, -155]] },
     // Branches off the NH 544 loop east of Kodakara, falling with it through the fork, then on to the village.
     // Joins the village road north of Rajan's tea shop, clear of its steps and bench.
     { id: 'kodakara-road', label: 'Kodakara–village road', widthM: 5.5, points: [[-190, 31.62, -197.14], [-160, 28.8, -200], [-105, 30, -190], [-40, 25.6, -180], [-5, 24.4, -168], input.villageRoadJoin] },
