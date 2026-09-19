@@ -9,6 +9,8 @@ import { beachSand, coastDistance } from '../../content/world/snehaTheeram';
 import { isTeaEstateGround } from '../../content/world/teaEstate';
 import { createCapDisc, createRouteRibbon } from './routeVisualGeometry';
 import { yawPitchToXyz } from '../../content/world/rotation';
+import { MARKED_ROADS, ROAD_MARKINGS } from '../../content/world/roadMarkings';
+import { createPaintGeometry } from './chalakkudyCityGeometry';
 
 const WORLD_ROUTES = [...EXPANSION_LAYOUT.routes, ...V2_ROUTES];
 
@@ -58,10 +60,12 @@ const CAR_COLORS={surface:rgb('#686d5e'),shoulder:rgb('#8e8b72')},TRAIL_COLORS={
 // Turning circles are fresh asphalt: a touch darker than the weathered carriageways they finish.
 const CAP_COLORS={surface:rgb('#595d55'),shoulder:rgb('#7f7d68')};
 const DIRT_COLORS={surface:rgb('#9a8560'),shoulder:rgb('#8e8256')};
+// Freshly tarred hill roads under their lane paint: darker than the weathered country roads.
+const TAR_COLORS={surface:rgb('#4b4f4d'),shoulder:rgb('#7c7866')};
 /** Dense, ground-hugging road surface with flared junction corners (see createRouteRibbon). */
 function RouteRibbon({route,routes}:{route:ExpansionRoute;routes:readonly ExpansionRoute[]}) {
   const geometry=useMemo(()=>{
-    const mesh=createRouteRibbon(route,routes,surfaceHeight,route.surface==='dirt'?DIRT_COLORS:route.allowedModes.includes('car')?CAR_COLORS:TRAIL_COLORS);
+    const mesh=createRouteRibbon(route,routes,surfaceHeight,route.surface==='dirt'?DIRT_COLORS:MARKED_ROADS.has(route.id)?TAR_COLORS:route.allowedModes.includes('car')?CAR_COLORS:TRAIL_COLORS);
     const g=new BufferGeometry();g.setAttribute('position',new Float32BufferAttribute(mesh.positions,3));g.setAttribute('color',new Float32BufferAttribute(mesh.colors,3));g.setIndex(mesh.indices);g.computeVertexNormals();return g;
   },[route,routes]);
   useEffect(()=>()=>geometry.dispose(),[geometry]);
@@ -77,6 +81,12 @@ function CapDisc({cap}:{cap:{center:readonly [number,number,number];radius:numbe
   // Drawn just under the road ribbons, so a carriageway running into the circle reads as continuous.
   return <mesh geometry={geometry} receiveShadow><meshStandardMaterial vertexColors roughness={1} polygonOffset polygonOffsetFactor={-.5} polygonOffsetUnits={-.5}/></mesh>;
 }
+/** Lane lines on the two-lane hill roads, laid just above the road ribbon. */
+function RoadMarkings() {
+  const geometry=useMemo(()=>createPaintGeometry(ROAD_MARKINGS,surfaceHeight),[]);
+  useEffect(()=>()=>geometry.dispose(),[geometry]);
+  return <mesh geometry={geometry} receiveShadow><meshStandardMaterial vertexColors roughness={.9} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2}/></mesh>;
+}
 /** Original north ground is rendered by KodasseryWorld; these chunks share only its edges. */
 export const ExpansionGround=memo(function ExpansionGround(){return <>
   <RigidBody type="fixed" colliders={false} position={[EXPANSION_GROUND.streamBridge.position[0],EXPANSION_GROUND.streamBridge.position[1]-.3,EXPANSION_GROUND.streamBridge.position[2]]} rotation={yawPitchToXyz(EXPANSION_GROUND.streamBridge.yawRad,EXPANSION_GROUND.streamBridge.pitchRad)}>
@@ -86,6 +96,7 @@ export const ExpansionGround=memo(function ExpansionGround(){return <>
   {EXPANSION_GROUND.chunks.map(chunk=><Chunk key={chunk.id} chunk={chunk}/>)}
   {WORLD_ROUTES.map(route=><RouteRibbon key={route.id} route={route} routes={WORLD_ROUTES}/>)}
   {V2_LAYOUT.roadCaps.map(cap=><CapDisc key={cap.id} cap={cap}/>)}
+  <RoadMarkings/>
   {/* Chalakkudy has its own city gateway board. */}
   {[...V2_LAYOUT.towns.filter(t=>!t.existing&&t.id!=='chalakkudy'),V2_LAYOUT.park].map(site=>{
     // First spot beside the centre that is clear of every road (Kodakara's centre is on NH 544).
