@@ -6,6 +6,7 @@ import { createRiverField } from '../../game/world/riverGeometry';
 import { STADIUM, stadiumRectDistance } from './stadiumLayout';
 import { cityBridgeAbutment, cityBridgeCeiling, cityBridgeDeckAt, cityBridgeUnderside } from './chalakkudyCityPlan';
 import { SNEHA_HEADLAND, coastDistance } from './snehaTheeram';
+import { MALAKKAPPARA_FILL_BLEND_M } from './malakkapparaPlan';
 
 /** Sea level shared with the original world (definition.ts re-exports the same value). */
 const WATER_LEVEL = 8;
@@ -75,7 +76,10 @@ export function createV2GroundProfile(layout: WorldV2Layout) {
       const xs = site.footprint.map(p => p[0]), zs = site.footprint.map(p => p[1]);
       const dx = Math.max(Math.min(...xs) - x, 0, x - Math.max(...xs));
       const dz = Math.max(Math.min(...zs) - z, 0, z - Math.max(...zs));
-      const blend = 1 - smooth(Math.hypot(dx, dz) / 25);
+      // Malakkappara's pad drops to lower ground over a short step, faced by its dry-stone walls; cuts
+      // into the hill (and every other site) keep the long, easy slope.
+      const walled = 'id' in site && site.id === 'malakkappara' && y < site.center[1];
+      const blend = 1 - smooth(Math.hypot(dx, dz) / (walled ? MALAKKAPPARA_FILL_BLEND_M : 25));
       y = y * (1 - blend) + site.center[1] * blend;
     }
     // The football ground is levelled like a town site, with a shorter blend.

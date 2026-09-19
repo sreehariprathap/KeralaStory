@@ -113,7 +113,9 @@ export function createV2Layout(input: {
     reach('kurumali-existing', 'Kurumalippuzha', 'kurumali-join', 'kodaly-estuary', input.legacyRiver.slice(1, -1), 42),
   ];
   const roads: RoadProposal[] = [
-    { id: 'malakkappara-road', label: 'Malakkappara forest road', widthM: 5.5, points: [fallsParking, [-565, base, -495], [-550, base + 2, -570], [-555, base + 7, -680]] },
+    { id: 'malakkappara-road', label: 'Malakkappara forest road', widthM: 5.5, points: [fallsParking, [-565, base, -495], [-550, base + 2, -570],
+      // Up to pad level at the town's south edge, so the bazaar lines a level street.
+      [-552, base + 7, -625], [-555, base + 7, -680]] },
     { id: 'chalakkudy-road', label: 'Forest–Chalakkudy road', widthM: 5.5, // Gentler control grades: rounding a corner shortens the path, which steepens the sampled grade.
     // The approach curves in from the west so its final leg doesn't run down Chalakkudy
     // Boulevard's own x=-430 corridor before joining the highway junction at that point.
