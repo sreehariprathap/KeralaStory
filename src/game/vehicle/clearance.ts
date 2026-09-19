@@ -3,6 +3,8 @@ import type { RigidBody, World } from '@dimforge/rapier3d-compat';
 import type { Vec3 } from '../../contracts';
 import { isWater, isTravelAllowed, walkableDeckHeight } from '../../content/world/definition';
 import { CAPSULE_HALF_HEIGHT, CAPSULE_RADIUS, FEET_TO_CENTER, needsSafeReset } from '../player/controllerMath';
+import type { CarModelId } from '../../content/assets/models';
+import { VEHICLE_PROFILES } from '../../content/assets/vehicleProfiles';
 
 const SUPPORT_REACH = 0.75;
 const CONTACT_GAP = 0.06;
@@ -13,18 +15,32 @@ const MIN_GROUND_NORMAL_Y = Math.cos(Math.PI / 4);
  * Call after collision readiness; heading is the target parked/rider heading.
  * This checks destination clearance, not a swept rotation or dismount path.
  */
-export function resolveClearFeet(world: World, excludeBody: RigidBody | null | undefined, x: number, z: number, nearY: number, ride: boolean | 'car', heading: number): Vec3 | null {
+/** The default car probe, kept for callers that do not know which car they are placing. */
+const DEFAULT_CAR_FOOTPRINT = { halfX: .9, halfZ: 1.9 };
+
+/**
+ * A car's plan-view half-extents. Deliberately NOT the collision chassis, which is a
+ * compact belly box: a 3.8 m car carries a 1.35 m half-length one. Clearance needs the
+ * space the vehicle actually occupies, so the length drives it. At the 3.8 m reference
+ * length this returns exactly the values the fixed probe used.
+ */
+export function carFootprint(model: CarModelId): { halfX: number; halfZ: number } {
+  const profile = VEHICLE_PROFILES[model];
+  return { halfX: Math.max(profile.chassis.x, DEFAULT_CAR_FOOTPRINT.halfX), halfZ: profile.length / 2 };
+}
+
+export function resolveClearFeet(world: World, excludeBody: RigidBody | null | undefined, x: number, z: number, nearY: number, ride: boolean | 'car', heading: number, footprint: { halfX: number; halfZ: number } = DEFAULT_CAR_FOOTPRINT): Vec3 | null {
   if (![x,z,nearY,heading].every(Number.isFinite)) return null;
   const vehicle = ride === 'car' ? 'car' : ride ? 'bicycle' : null;
   if(vehicle && !isTravelAllowed(vehicle,x,z))return null;
   const angle = vehicle ? Math.PI - heading : 0;
   const rotation = {x:0,y:Math.sin(angle/2),z:0,w:Math.cos(angle/2)};
-  const shape = vehicle === 'car' ? new Cuboid(.9,FEET_TO_CENTER,1.9) : vehicle ? new Cuboid(.38,FEET_TO_CENTER,.95) : new Capsule(CAPSULE_HALF_HEIGHT,CAPSULE_RADIUS);
+  const shape = vehicle === 'car' ? new Cuboid(footprint.halfX,FEET_TO_CENTER,footprint.halfZ) : vehicle ? new Cuboid(.38,FEET_TO_CENTER,.95) : new Capsule(CAPSULE_HALF_HEIGHT,CAPSULE_RADIUS);
   // A center-only ray can accept a bike straddling a ledge. Probe its four
   // corners too, with the same heading used by the collider. Foot cardinal
   // probes conservatively require the whole capsule base to be supported.
   const samples = vehicle === 'car'
-    ? [[0,0],[-.9,-1.9],[-.9,1.9],[.9,-1.9],[.9,1.9]]
+    ? [[0,0],[-footprint.halfX,-footprint.halfZ],[-footprint.halfX,footprint.halfZ],[footprint.halfX,-footprint.halfZ],[footprint.halfX,footprint.halfZ]]
     : vehicle ? [[0,0],[-.38,-.95],[-.38,.95],[.38,.95],[.38,-.95]]
     : [[0,0],[-CAPSULE_RADIUS,0],[CAPSULE_RADIUS,0],[0,-CAPSULE_RADIUS],[0,CAPSULE_RADIUS]];
   let highest = -Infinity;

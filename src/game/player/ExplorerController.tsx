@@ -21,7 +21,8 @@ import { createBikePhysics, type BikePhysics, type BikeMotion, type BikeIntent }
 import { CarVisual } from '../vehicle/CarVisual';
 import { createCarMotion, createCarPhysics, type CarPhysics } from '../vehicle/carPhysics';
 import { VEHICLE_PROFILES } from '../../content/assets/vehicleProfiles';
-import { resolveClearFeet } from '../vehicle/clearance';
+import type { CarModelId } from '../../content/assets/models';
+import { carFootprint, resolveClearFeet } from '../vehicle/clearance';
 import { interactionReason } from '../vehicle/mountState';
 import { configureTravelCollider } from './travelCollider';
 import { measureBikeTilt } from '../vehicle/bikeGrounding';
@@ -112,7 +113,7 @@ export function ExplorerController(props: ExplorerControllerProps) {
     body.current?.setRotation(ride?rotation(heading.current):{x:0,y:0,z:0,w:1},true);
     clearInput(input.current);
   };
-  const clearFeet=(x:number,z:number,nearY:number,ride:boolean|'car',targetHeading=heading.current)=>resolveClearFeet(world,body.current,x,z,nearY,ride,targetHeading);
+  const clearFeet=(x:number,z:number,nearY:number,ride:boolean|'car',targetHeading=heading.current,model?:CarModelId)=>resolveClearFeet(world,body.current,x,z,nearY,ride,targetHeading,model?carFootprint(model):undefined);
   /** Nearest dry, clear spot on foot around (x, z), searching outward in rings. */
   const nearestDryFeet=(x:number,z:number,maxRadius:number):Vec3|null=>{
     for(let radius=0;radius<=maxRadius;radius+=3)for(let i=0,steps=radius?12:1;i<steps;i++){
@@ -192,7 +193,9 @@ export function ExplorerController(props: ExplorerControllerProps) {
     }
     else parked.current={position:feet,headingRad:h};
     const capsule=new rapier.Capsule(CAPSULE_HALF_HEIGHT,CAPSULE_RADIUS),upright={x:0,y:0,z:0,w:1};
-    const side=isCar?1.55:1.05,along=isCar?3:1.4;
+    // Step out clear of the vehicle's own plan size: the 3.8 m reference car resolves to the 1.55/3 these replace.
+    const footprint=isCar?carFootprint(spawnedCarModel??'admin'):null;
+    const side=footprint?footprint.halfX+.65:1.05,along=footprint?footprint.halfZ+1.1:1.4;
     // [right, forward] offsets: sides first, then behind and in front.
     const offsets=[[side,0],[-side,0],[0,-along],[0,along]].map(([r,f])=>({x:position.x+Math.cos(h)*r+Math.sin(h)*f,z:position.z+Math.sin(h)*r-Math.cos(h)*f}));
     const ignoreOwnCar=(candidate:RapierCollider)=>!isCar||candidate.parent()?.handle!==car.current?.body.handle;
@@ -242,7 +245,8 @@ export function ExplorerController(props: ExplorerControllerProps) {
     const position=rigidBody.translation(),feet:Vec3=[position.x,position.y-FEET_TO_CENTER,position.z];
     if(vehicle.current!=='foot'){finish(false,'Exit your vehicle before spawning a car.');return;}
     const candidates:[[number,number],[number,number],[number,number],[number,number]]=[[0,4],[2,4],[-2,4],[0,-4]];
-    for(const [right,forward] of candidates){const x=feet[0]+Math.cos(heading.current)*right+Math.sin(heading.current)*forward,z=feet[2]-Math.sin(heading.current)*right-Math.cos(heading.current)*forward;const valid=clearFeet(x,z,feet[1],'car',heading.current);if(valid&&isTravelAllowed('car',x,z)){const model=latest.current.carModelId??'admin';let replacement:CarPhysics;try{replacement=createCarPhysics(world,valid,heading.current,model);}catch{finish(false,'The car could not be prepared. Your current car is unchanged.');return;}removeCar();car.current=replacement;carMotion.current=car.current.motion;carPose.current.snap(replacement.body.translation(),replacement.body.rotation(),performance.now());car.current.body.setEnabled(latest.current.mode==='playing'||latest.current.mode==='loading');carParked.current=valid;carParkedHeading.current=heading.current;setSpawnedCarModel(model);finish(true,'Car ready nearby. Close this panel and approach it to drive.');return;}}
+    const model=latest.current.carModelId??'admin';
+    for(const [right,forward] of candidates){const x=feet[0]+Math.cos(heading.current)*right+Math.sin(heading.current)*forward,z=feet[2]-Math.sin(heading.current)*right-Math.cos(heading.current)*forward;const valid=clearFeet(x,z,feet[1],'car',heading.current,model);if(valid&&isTravelAllowed('car',x,z)){let replacement:CarPhysics;try{replacement=createCarPhysics(world,valid,heading.current,model);}catch{finish(false,'The car could not be prepared. Your current car is unchanged.');return;}removeCar();car.current=replacement;carMotion.current=car.current.motion;carPose.current.snap(replacement.body.translation(),replacement.body.rotation(),performance.now());car.current.body.setEnabled(latest.current.mode==='playing'||latest.current.mode==='loading');carParked.current=valid;carParkedHeading.current=heading.current;setSpawnedCarModel(model);finish(true,'Car ready nearby. Close this panel and approach it to drive.');return;}}
     finish(false,'No clear space to spawn the car. Move to open ground and try again.');
   },[props.carSpawnToken]);
   const lastGliderLaunch=useRef(props.gliderLaunchToken);
