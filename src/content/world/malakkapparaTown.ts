@@ -1,7 +1,7 @@
 import type { TraversalBox } from '../../game/world/traversalGeometry';
 import type { CityMaterial, CityPaint, CityPiece, CitySign } from './chalakkudyCity';
 import { EXPANSION_LAYOUT, V2_LAYOUT, V2_ROUTES, terrainHeight } from './definition';
-import { MALAKKAPPARA_BUS_BAY, MALAKKAPPARA_FILL_BLEND_M, MALAKKAPPARA_LOTS, MALAKKAPPARA_WALL_EDGES, lotCorners, type TownLot } from './malakkapparaPlan';
+import { ALL_LOTS, MALAKKAPPARA_BUS_BAY, MALAKKAPPARA_FILL_BLEND_M, MALAKKAPPARA_GARDEN, MALAKKAPPARA_WALL_EDGES, lotCorners, type TownLot } from './malakkapparaPlan';
 import { yawPitchToXyz } from './rotation';
 
 type V3 = [number, number, number];
@@ -32,7 +32,7 @@ function createTown() {
     return (u: number, y: number, v: number): V3 => [x + c * u + s * v, y, z - s * u + c * v];
   };
 
-  for (const lot of MALAKKAPPARA_LOTS) {
+  for (const lot of ALL_LOTS) {
     const n = idNumber(lot.id), at = frame(lot.x, lot.z, lot.yaw), { width: w, depth: d, yaw } = lot;
     const ground = footprintGround(lot), floor = ground.max + .2;
     // Plinth down to the lowest ground: on the hillside it reads as the stone storey under the house.
@@ -163,6 +163,70 @@ function createTown() {
       piece('ground', [cx, padY - .02, cz], [size[0], .06, T], '#9a9385', yaw);
       const parapet: V3 = [ex + edge.out[0] * (T - .25), padY + .4, ez + edge.out[1] * (T - .25)];
       piece('solid', parapet, [size[0], .8, .5], '#a39c8e', yaw); collide(`mk-parapet-${edge.id}-${i}`, parapet, [size[0], .8, .5], yaw);
+    }
+  }
+
+  // Malakkappara Botanical Garden: hedged beds, gravel walks, a glasshouse and a fountain.
+  {
+    const g = MALAKKAPPARA_GARDEN, cx = (g.xMin + g.xMax) / 2, cz = (g.zMin + g.zMax) / 2;
+    const w = g.xMax - g.xMin, dz = g.zMax - g.zMin, y = terrainHeight(cx, cz);
+    // Lawn, then the two gravel walks that cross it.
+    piece('ground', [cx, y + .02, cz], [w, .06, dz], '#6f8f4a');
+    piece('ground', [cx, y + .05, cz], [w - 2, .06, 3], '#c9bb9a');
+    piece('ground', [cx, y + .05, cz], [3, .06, dz - 2], '#c9bb9a');
+    // Clipped boundary hedge, open where the gate stands on the road side.
+    const hedge = (x: number, z: number, sx: number, sz: number) => piece('solid', [x, y + .6, z], [sx, 1.2, sz], '#3f6b32');
+    for (const side of [-1, 1]) hedge(cx + side * (w / 2 - .4), cz, .8, dz);
+    hedge(cx, g.zMax - .4, w, .8);
+    for (const dir of [-1, 1]) {
+      const span = (w - 6) / 2;
+      hedge(g.gateX + dir * (3 + span / 2), g.zMin + .4, span, .8);
+    }
+    // Gate: two piers, a lintel and the garden's board, facing the road.
+    for (const side of [-1, 1]) {
+      const pier: V3 = [g.gateX + side * 2.6, y + 1.8, g.zMin + .4];
+      piece('solid', pier, [1.1, 3.6, 1.1], '#e8e1cf'); collide(`mk-garden-pier-${side}`, pier, [.9, 3.2, .9]);
+    }
+    piece('solid', [g.gateX, y + 3.9, g.zMin + .4], [6.6, 1, .8], '#1f6f4a');
+    signs.push({ id: 'mk-garden-sign', label: g.label, position: [g.gateX, y + 3.9, g.zMin - .05], yaw: Math.PI, width: 6.2, height: .8, background: '#1f6f4a', ink: '#ffffff' });
+    // Six flower beds, two to a quarter of the garden; the glasshouse takes the fourth quarter.
+    const BLOOMS = ['#e4572e', '#f2c230', '#e98aa8', '#9b5de5', '#f1efe6', '#ef6f1f'] as const;
+    const quarters = [[1, -1], [1, 1], [-1, -1]] as const;
+    quarters.forEach(([qx, qz], q) => {
+      const qcx = cx + qx * 11, qcz = cz + qz * 7.5;
+      for (const half of [-1, 1]) {
+        const bx = qcx, bz = qcz + half * 3.2, bed = q * 2 + (half > 0 ? 1 : 0);
+        piece('ground', [bx, y + .09, bz], [7.5, .12, 2], '#5a4632');
+        for (let k = 0; k < 9; k++) for (const row of [-.5, .5]) {
+          const fx = bx - 3.2 + k * .8, fz = bz + row, lift = hash(bed, k) * .12;
+          piece('solid', [fx, y + .35 + lift, fz], [.42, .42, .42], BLOOMS[(bed + (row > 0 ? 1 : 0)) % BLOOMS.length]);
+          piece('solid', [fx, y + .2, fz], [.12, .3, .12], '#3f6b32');
+        }
+      }
+    });
+    // Glasshouse in the remaining quarter, and a round fountain where the walks cross.
+    const gh: V3 = [cx - 11, y + 1.7, cz + 7.5];
+    piece('glass', gh, [11, 3.4, 8], '#cfe7ef'); collide('mk-garden-glasshouse', gh, [11, 3.4, 8]);
+    for (const side of [1, -1]) piece('glass', [gh[0], y + 4.1, gh[2] + side * 2], [11, .15, 4.2 / Math.cos(.5)], '#dff0f5', 0, side * .5);
+    piece('solid', [gh[0], y + 4.9, gh[2]], [11.2, .2, .3], '#e8e1cf');
+    for (let ring = 0; ring < 12; ring++) {
+      const a = ring / 12 * Math.PI * 2;
+      piece('solid', [cx + Math.cos(a) * 2.2, y + .35, cz + Math.sin(a) * 2.2], [1.25, .7, 1.25], '#c9c2b2', a);
+    }
+    piece('ground', [cx, y + .3, cz], [3.4, .5, 3.4], '#7fc3e8');
+    piece('solid', [cx, y + 1.1, cz], [.5, 1.6, .5], '#c9c2b2');
+    piece('solid', [cx, y + 2, cz], [1.6, .3, 1.6], '#c9c2b2');
+    // Clipped ornamental trees along the walks.
+    for (const [tx, tz] of [[cx - 6, cz + 6], [cx + 6, cz + 6], [cx - 6, cz - 6], [cx + 6, cz - 6], [cx + 13, cz], [cx - 13, cz]] as const) {
+      piece('solid', [tx, y + .8, tz], [.3, 1.6, .3], '#6b4a2f');
+      piece('solid', [tx, y + 2, tz], [2.2, 1.6, 2.2], '#3f6b32');
+      piece('solid', [tx, y + 3, tz], [1.4, 1, 1.4], '#4d8040');
+    }
+    // Benches along the walks.
+    for (const [bx, bz, yaw] of [[cx - 6, cz + 2.4, 0], [cx + 6, cz + 2.4, 0], [cx - 6, cz - 2.4, Math.PI], [cx + 6, cz - 2.4, Math.PI]] as const) {
+      piece('solid', [bx, y + .45, bz], [2.2, .12, .55], '#7a5a3c', yaw);
+      piece('solid', [bx, y + .25, bz], [2, .4, .12], '#5c6166', yaw);
+      piece('solid', [bx, y + .8, bz - Math.cos(yaw) * .25], [2.2, .55, .1], '#7a5a3c', yaw);
     }
   }
 

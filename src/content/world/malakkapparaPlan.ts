@@ -78,6 +78,27 @@ export const MALAKKAPPARA_LOTS: readonly TownLot[] = [
   { id: 'mk-resort-reception', kind: 'resort-reception', x: -560, z: -773.5, width: 8, depth: 5, yaw: FACE_N, floors: 1, wall: '#f1e6c8', roof: 'tile', label: 'Misty Hills Resort', accent: '#1f6f4a' },
 ];
 
+/**
+ * The west bank across the river: homestays and a resort north of the road, the botanical garden south
+ * of it. The district is levelled to 77 m (see the town site's districts in v2Layout).
+ */
+export const MALAKKAPPARA_WEST_LOTS: readonly TownLot[] = [
+  { id: 'mk-riverside-resort', kind: 'hotel', x: -708, z: -693, width: 18, depth: 12, yaw: FACE_E, floors: 2, wall: '#f1e6c8', roof: 'tile', label: 'Riverside Retreat', accent: '#0f7c7c' },
+  ...[-724, -733, -742, -751].map((x, i): TownLot => ({ id: `mk-riverside-cottage-${i + 1}`, kind: 'resort-cottage', x, z: -694, width: 6, depth: 5, yaw: FACE_S, floors: 1, wall: pick(['#f4d9a6', '#d9e7ef', '#f1e6c8'], i), roof: 'tile' })),
+  house('mk-west-bank-house-1', -712, -678, FACE_S, 50), house('mk-west-bank-house-2', -726, -678, FACE_S, 51),
+  house('mk-west-bank-house-3', -740, -678, FACE_S, 52), house('mk-west-bank-house-4', -754, -678, FACE_S, 53),
+  { id: 'mk-homestay', kind: 'hotel', x: -767, z: -680, width: 12, depth: 10, yaw: FACE_S, floors: 2, wall: '#b5d334', roof: 'tile', label: 'Sky View Homestay', accent: '#1f6f4a' },
+];
+
+/** The botanical garden: a small, walled tourist garden south of the west-bank road. */
+export const MALAKKAPPARA_GARDEN = {
+  id: 'malakkappara-botanical-garden',
+  label: 'Malakkappara Botanical Garden · സസ്യോദ്യാനം',
+  xMin: -752, xMax: -708, zMin: -662, zMax: -632,
+  /** Where the gate opens onto the road (world x). */
+  gateX: -730,
+} as const;
+
 /** The north slope above the pad where the terraces and the resort stand (x, z polygon). */
 export const MALAKKAPPARA_HILLSIDE: readonly (readonly [number, number])[] = [[-612, -779], [-512, -779], [-512, -745], [-612, -745]];
 
@@ -90,6 +111,9 @@ export const MALAKKAPPARA_WALL_EDGES: readonly { id: string; a: readonly [number
 
 /** The bus bay beside the main road, and where the KSRTC bus stands in it. */
 export const MALAKKAPPARA_BUS_BAY = { x: -546, z: -636, length: 18, width: 7, yaw: FACE_N } as const;
+
+/** Every building in the town, both banks. */
+export const ALL_LOTS: readonly TownLot[] = [...MALAKKAPPARA_LOTS, ...MALAKKAPPARA_WEST_LOTS];
 
 /** Corners of a lot, in world x/z. */
 export function lotCorners(l: Pick<TownLot, 'x' | 'z' | 'width' | 'depth' | 'yaw'>, margin = 0): [number, number][] {
@@ -112,5 +136,7 @@ const inside = (x: number, z: number, poly: readonly (readonly [number, number])
 /** Whether (x, z) is taken by a town building (within `margin` metres) or the hillside quarter. */
 export function isMalakkapparaBuilt(x: number, z: number, margin = 1): boolean {
   if (inside(x, z, MALAKKAPPARA_HILLSIDE)) return true;
-  return MALAKKAPPARA_LOTS.some(l => Math.hypot(x - l.x, z - l.z) < Math.hypot(l.width, l.depth) / 2 + margin && inside(x, z, lotCorners(l, margin)));
+  const g = MALAKKAPPARA_GARDEN;
+  if (x > g.xMin - margin && x < g.xMax + margin && z > g.zMin - margin && z < g.zMax + margin) return true;
+  return ALL_LOTS.some(l => Math.hypot(x - l.x, z - l.z) < Math.hypot(l.width, l.depth) / 2 + margin && inside(x, z, lotCorners(l, margin)));
 }

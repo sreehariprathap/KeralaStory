@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { MALAKKAPPARA_LOTS, lotCorners } from '../src/content/world/malakkapparaPlan';
+import { ALL_LOTS as MALAKKAPPARA_LOTS, MALAKKAPPARA_GARDEN, lotCorners } from '../src/content/world/malakkapparaPlan';
+import { V2_LAYOUT } from '../src/content/world/definition';
 import { MALAKKAPPARA_TOWN } from '../src/content/world/malakkapparaTown';
 import { EXPANSION_LAYOUT, V2_ROUTES, isWater, terrainHeight } from '../src/content/world/definition';
 
@@ -12,9 +13,24 @@ describe('Malakkappara town', () => {
     const kinds = MALAKKAPPARA_LOTS.map(l => l.kind);
     expect(kinds.filter(k => k === 'shop').length).toBeGreaterThanOrEqual(18);
     expect(kinds.filter(k => k === 'house').length).toBeGreaterThanOrEqual(20);
-    expect(kinds.filter(k => k === 'hotel').length).toBe(2);
+    expect(kinds.filter(k => k === 'hotel').length).toBeGreaterThanOrEqual(2);
     expect(kinds.filter(k => k === 'resort-cottage').length).toBeGreaterThanOrEqual(4);
     expect(kinds).toContain('bus-shelter');
+    // The west bank across the river: homestays, the riverside resort and its cottages.
+    expect(MALAKKAPPARA_LOTS.filter(l => l.x < -698).length).toBeGreaterThanOrEqual(10);
+  });
+
+  it('puts a small botanical garden on the west bank, off the road', () => {
+    const g = MALAKKAPPARA_GARDEN, width = g.xMax - g.xMin, depth = g.zMax - g.zMin;
+    expect(width).toBeGreaterThanOrEqual(40); expect(width).toBeLessThanOrEqual(50);
+    expect(depth).toBeGreaterThanOrEqual(28); expect(depth).toBeLessThanOrEqual(36);
+    const district = V2_LAYOUT.towns.find(t => t.id === 'malakkappara')!.districts!.find(d => d.id === 'malakkappara-west-bank')!;
+    const xs = district.footprint.map(p => p[0]), zs = district.footprint.map(p => p[1]);
+    for (const [x, z] of [[g.xMin, g.zMin], [g.xMax, g.zMax]]) {
+      expect(x).toBeGreaterThanOrEqual(Math.min(...xs)); expect(x).toBeLessThanOrEqual(Math.max(...xs));
+      expect(z).toBeGreaterThanOrEqual(Math.min(...zs)); expect(z).toBeLessThanOrEqual(Math.max(...zs));
+    }
+    for (const [x, z] of [[g.xMin, g.zMin], [g.xMax, g.zMin], [g.gateX, g.zMin]]) expect(roadGap(x, z), 'garden edge').toBeGreaterThan(1.5);
   });
   it('keeps every lot off roads and water', () => {
     for (const l of MALAKKAPPARA_LOTS) for (const [x, z] of corners(l)) {
