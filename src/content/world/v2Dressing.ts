@@ -1,4 +1,5 @@
 import { V2_LAYOUT, terrainHeight } from './definition';
+import { waterParkBoxes } from './waterPark';
 import type { TraversalBox } from '../../game/world/traversalGeometry';
 
 export type Building = { id: string; x: number; z: number; width: number; depth: number; height: number; wall: string; roof: string; label?: string };
@@ -55,6 +56,7 @@ export function v2DressingBoxes(): TraversalBox[] {
   for (const side of [-1, 1]) boxes.push({ id: `park-pool-end-${side}`, position: [pool.x + side * (pool.width / 2 + .7), pool.y + .42, pool.z], size: [1.4, .7, pool.depth], rotation: [0, 0, 0] });
   // The whole basin remains non-enterable until swimming exists, including jumping over the rim.
   boxes.push({ id: 'park-pool-basin', position: [pool.x, pool.y + 1.4, pool.z], size: [pool.width, 2.8, pool.depth], rotation: [0, 0, 0] });
+  boxes.push(...waterParkBoxes());
   const [x, , z] = V2_LAYOUT.park.center;
   boxes.push({ id: 'park-forecourt', position: [x, terrainHeight(x, z) + .22, z + 31], size: [48, .12, 10], rotation: [0, 0, 0] });
   return boxes;
