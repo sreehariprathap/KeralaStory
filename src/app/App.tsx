@@ -23,7 +23,7 @@ import { PauseMenu } from '../features/shell/PauseMenu';
 import { createShellState, reduceShell } from '../features/shell/shellFlow';
 import { applyEquippedCharacter, isUnlocked, resolveEquipped, type CharacterChoiceId } from '../content/store/catalog';
 import { resetLoadProgress } from '../game/render/loadProgress';
-import type { Equipped } from '../contracts';
+import type { Equipped, Locale } from '../contracts';
 import { RoomStatus } from '../features/multiplayer/RoomStatus';
 import { useAccount } from './useAccount';
 import { chooseSave, type CloudRecord } from '../account/cloudSave';
@@ -38,6 +38,7 @@ import { bearingToWaypoint } from '../features/map/mapGeometry';
 import type { SoccerSceneProps } from './WorldCanvas';
 import type { KickControl, SoccerEvent } from '../game/soccer/SoccerMatch';
 import type { NpcId } from '../game/npc/npcDefinitions';
+import { NpcChatPanel } from '../features/npc/NpcChatPanel';
 
 const WorldCanvas=lazy(()=>import('./WorldCanvas').then(m=>({default:m.WorldCanvas})));
 const CarPreview=lazy(()=>import('../features/vehicles/CarPreview').then(m=>({default:m.CarPreview})));
@@ -52,6 +53,10 @@ class SceneBoundary extends Component<{children:ReactNode;onRetry:()=>void;onErr
 
 // The shell's load screen waits on the player, not the world, so world readiness is not tracked.
 const noop=()=>undefined;
+
+function formatNpcToast(key:'npc.toast.stolen'|'npc.toast.blessed',n:number,locale:Locale):string{
+  return translate(key,locale).replace('{n}',String(n)).replace('{s}',n===1?'':'s');
+}
 
 function safeSavedPosition(save:SaveV3|null):Vec3{
   return save?safeGroundPosition(save.position):SPAWN;
@@ -141,6 +146,14 @@ export function App(){
     setNpcToast({npcId,coinsDelta});
   },[haptic]);
   useEffect(()=>{if(!npcToast)return;const t=setTimeout(()=>setNpcToast(null),3200);return()=>clearTimeout(t);},[npcToast]);
+  const [npcChatOpen,setNpcChatOpen]=useState<NpcId|null>(null);
+  const npcBaseUrl=(import.meta.env.VITE_MULTIPLAYER_URL??'ws://127.0.0.1:2567').replace(/^ws/,'http');
+  useEffect(()=>{
+    if(!npcInRange)return;
+    const onKey=(e:KeyboardEvent)=>{if(e.key.toLowerCase()==='e')setNpcChatOpen(npcInRange);};
+    window.addEventListener('keydown',onKey);
+    return()=>window.removeEventListener('keydown',onKey);
+  },[npcInRange]);
   const [visited,setVisited]=useState<string[]>(initial.save?.visitedLandmarkIds.filter(id=>LANDMARKS.some(l=>l.id===id))??[]);
   const visitedRef=useRef(visited);visitedRef.current=visited;
   const [discovery,setDiscovery]=useState<string|null>(null);const [waypoint,setWaypoint]=useState<Vec3|null>(null);
@@ -327,8 +340,9 @@ export function App(){
       {mode==='playing'&&!snapshot.wasted&&!gliderOffer&&!soccerOffer&&(touch?Boolean(snapshot.interactionMessage&&snapshot.interactionMessage in ENGLISH_CATALOG):snapshot.canInteract||snapshot.interactionMessage)&&<div className="bicycle-prompt" role="status">{snapshot.interactionMessage?(snapshot.interactionMessage in ENGLISH_CATALOG?t(snapshot.interactionMessage as TranslationKey):snapshot.interactionMessage):<><kbd>{touch?'●':'F'}</kbd> {t(snapshot.travelMode==='car'?'controls.exitCar':snapshot.travelMode==='bicycle'?'controls.dismount':snapshot.travelMode==='boat'?'controls.leaveBoat':snapshot.travelMode==='plane'?'controls.leavePlane':snapshot.travelMode==='glider'?'controls.letGo':'controls.mount')}{snapshot.travelMode!=='foot'&&snapshot.travelMode!=='plane'&&snapshot.travelMode!=='glider'&&<small>S / ↓ · {t('controls.brake')}</small>}</>}</div>}
       {(snapshot.travelMode==='car'||snapshot.travelMode==='boat'||snapshot.travelMode==='bicycle'&&snapshot.nitroAvailable)&&<div className={`nitro-status ${snapshot.nitroActive?'is-active':''}`} role="status"><Car size={15}/><span>SHIFT · NITRO {snapshot.nitroActive?'ACTIVE':'READY'}</span></div>}
       {location&&mode==='playing'&&<div className="discovery-toast" role="status"><div><Compass size={24}/><span>{t('app.placeDiscovered')}</span></div><h2>{localizedPlace(location.id,locale)}</h2><p>{t(({origin:'landmark.originDescription',canopy:'landmark.canopyDescription',waterfall:'landmark.waterfallDescription',paddy:'landmark.paddyDescription',temple:'landmark.templeDescription','tea-shop':'landmark.teaShopDescription','river-bridge':'landmark.riverBridgeDescription','fishing-bank':'landmark.fishingBankDescription',market:'landmark.marketDescription',lighthouse:'landmark.lighthouseDescription',harbor:'landmark.harborDescription','spice-garden':'landmark.spiceGardenDescription'} as Record<string,TranslationKey>)[location.id]??`landmark.${location.id}Description` as TranslationKey)}</p></div>}
-      {npcToast&&<div className="npc-toast" role="status">{npcToast.coinsDelta<0?`Luttappi took ${Math.abs(npcToast.coinsDelta)} coin${Math.abs(npcToast.coinsDelta)>1?'s':''}!`:`Mayavi blessed you with ${npcToast.coinsDelta} coin${npcToast.coinsDelta>1?'s':''}!`}</div>}
-      {npcInRange&&mode==='playing'&&<div className="npc-prompt" role="status">{npcInRange==='luttappi'?'Luttappi is nearby...':'Mayavi is nearby.'}</div>}
+      {npcToast&&<div className="npc-toast" role="status">{formatNpcToast(npcToast.coinsDelta<0?'npc.toast.stolen':'npc.toast.blessed',Math.abs(npcToast.coinsDelta),locale)}</div>}
+      {npcInRange&&mode==='playing'&&!npcChatOpen&&<button className="npc-prompt" onClick={()=>setNpcChatOpen(npcInRange)}>{t((touch?`npc.talk.${npcInRange}.touch`:`npc.talk.${npcInRange}`) as TranslationKey)}</button>}
+      {npcChatOpen&&<NpcChatPanel npcId={npcChatOpen} zoneId={getZoneAtPosition(snapshot.position[0],snapshot.position[2])} baseUrl={npcBaseUrl} onClose={()=>setNpcChatOpen(null)}/>}
     </div>}
     {warning&&<div className="storage-notice" role="status"><p>{warning}</p><button aria-label="Dismiss save notice" onClick={()=>setWarning(null)}><X size={16}/></button></div>}
     <ModalShell open={mode==='map'} title={t('app.yourFieldAtlas')} onClose={()=>setMode('playing')} className="map-modal"><ExplorerMap player={snapshot} visited={visited} waypoint={waypoint} onWaypoint={setWaypoint} npcs={npcMapEntries}/></ModalShell>

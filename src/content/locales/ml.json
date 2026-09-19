@@ -438,5 +438,14 @@
   "pause.resume": "തുടരുക",
   "pause.atlas": "ഭൂപടം",
   "pause.leaveRoom": "മുറി വിടുക",
-  "pause.hints": "↑↓ തിരഞ്ഞെടുക്കുക · ENTER ഉറപ്പിക്കുക · ESC തുടരുക"
+  "pause.hints": "↑↓ തിരഞ്ഞെടുക്കുക · ENTER ഉറപ്പിക്കുക · ESC തുടരുക",
+  "npc.talk.luttappi": "ലുട്ടാപ്പിയോട് സംസാരിക്കാൻ E അമർത്തുക",
+  "npc.talk.mayavi": "മായാവിയോട് സംസാരിക്കാൻ E അമർത്തുക",
+  "npc.talk.luttappi.touch": "ലുട്ടാപ്പിയോട് സംസാരിക്കാൻ ടാപ്പ് ചെയ്യുക",
+  "npc.talk.mayavi.touch": "മായാവിയോട് സംസാരിക്കാൻ ടാപ്പ് ചെയ്യുക",
+  "npc.chat.placeholder": "എന്തെങ്കിലും പറയൂ...",
+  "npc.chat.send": "അയയ്ക്കുക",
+  "npc.chat.close": "അടയ്ക്കുക",
+  "npc.toast.stolen": "ലുട്ടാപ്പി {n} നാണയം എടുത്തു!",
+  "npc.toast.blessed": "മായാവി നിങ്ങൾക്ക് {n} നാണയം അനുഗ്രഹിച്ചു!"
 }

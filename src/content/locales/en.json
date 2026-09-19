@@ -438,5 +438,14 @@
   "pause.resume": "Resume",
   "pause.atlas": "Field Atlas",
   "pause.leaveRoom": "Leave Room",
-  "pause.hints": "↑↓ SELECT · ENTER CONFIRM · ESC RESUME"
+  "pause.hints": "↑↓ SELECT · ENTER CONFIRM · ESC RESUME",
+  "npc.talk.luttappi": "Press E to talk to Luttappi",
+  "npc.talk.mayavi": "Press E to talk to Mayavi",
+  "npc.talk.luttappi.touch": "Tap to talk to Luttappi",
+  "npc.talk.mayavi.touch": "Tap to talk to Mayavi",
+  "npc.chat.placeholder": "Say something...",
+  "npc.chat.send": "Send",
+  "npc.chat.close": "Close",
+  "npc.toast.stolen": "Luttappi took {n} coin{s}!",
+  "npc.toast.blessed": "Mayavi blessed you with {n} coin{s}!"
 }
