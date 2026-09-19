@@ -237,6 +237,8 @@ export const ROAD_MARKINGS: CityPaint[] = V2_ROUTES.filter(r => MARKED_ROADS.has
 
 ### Task 4: Dry-stone retaining walls along road cuts
 
+> **Dropped during execution (2026-09-18).** Measured along both graded roads, the ground within 10 m of the edge never rises more than 0.8 m: the verges are already graded to about 1:3, so there is no raw road cut to face. The sheer banks were 14–20 m out and are now covered by Task 2's terraces (slope limit 1.15). Walls move to Phase 2, where the town pad meets the steep bank east of town.
+
 **Files:**
 - Create: `src/content/world/retainingWalls.ts`, `src/game/world/RetainingWalls.tsx`
 - Modify: `src/game/world/KeralaWorld.tsx` (mount next to `<TeaEstate/>`)
